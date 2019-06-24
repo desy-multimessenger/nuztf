@@ -1,4 +1,4 @@
 numpy
-ztfquery
 datetime
 pandas
+git+https://github.com/MickaelRigault/ztfquery@master
