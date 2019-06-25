@@ -2,4 +2,5 @@ matplotlib
 numpy
 datetime
 pandas
+tqdm
 git+https://github.com/MickaelRigault/ztfquery@master
