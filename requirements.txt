@@ -3,4 +3,5 @@ numpy
 datetime
 pandas
 tqdm
+astropy
 git+https://github.com/MickaelRigault/ztfquery@master
