@@ -4,4 +4,13 @@ datetime
 pandas
 tqdm
 astropy
+ipykernel
+sqlalchemy
+scipy
+requirements
+psycopg2-binary
 git+https://github.com/MickaelRigault/ztfquery@master
+git+https://github.com/AmpelProject/Ampel-ZTF@master
+git+https://github.com/AmpelProject/Ampel-base@master
+git+https://github.com/AmpelProject/Ampel-core@master
+git+https://github.com/AmpelProject/Ampel-base-ZTF@master
