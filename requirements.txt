@@ -7,6 +7,6 @@ astropy
 ipykernel
 sqlalchemy
 scipy
-requirements
+requests
 psycopg2-binary
 git+https://github.com/MickaelRigault/ztfquery@master
