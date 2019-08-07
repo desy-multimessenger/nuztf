@@ -10,3 +10,9 @@ scipy
 requests
 psycopg2-binary
 git+https://github.com/MickaelRigault/ztfquery@master
+git+https://github.com/MickaelRigault/pysedm@master
+shapely
+astrobject
+ligo-gracedb
+bs4
+lxml
