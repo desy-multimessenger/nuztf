@@ -11,8 +11,13 @@ requests
 psycopg2-binary
 git+https://github.com/MickaelRigault/ztfquery@master
 git+https://github.com/MickaelRigault/pysedm@master
+git+https://github.com/AmpelProject/Ampel-contrib-HU@master
+git+https://github.com/maayane/catsHTM@master
 shapely
 astrobject
 ligo-gracedb
 bs4
 lxml
+fastavro
+pydantic
+zerorpc
