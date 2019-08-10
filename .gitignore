@@ -1,3 +1,5 @@
 .AMPEL_user.txt
 .AMPEL_pass.txt
 summary/*
+LIGO_candidates/*
+LIGO_skymaps/*
