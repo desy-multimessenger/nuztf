@@ -22,3 +22,11 @@ In order to use the ampel tunnel, you need to have a separate shell that opens a
 ```ssh -L5432:localhost:5433 ztf-wgs.zeuthen.desy.de```
 
 However, you need to make sure that your ~/.ssh/config file is configured directly for this to work.
+
+In additioin, you need a second port to connect to ampel resources. 
+
+THIS IS IN ADDITION TO THE PORT CONNDECTING TO THE ARCHIVE DATABASE!
+
+Open a new terminal, and into that terminal, run the following command:
+
+```ssh -L27020:localhost:27020 ztf-wgs.zeuthen.desy.de```
