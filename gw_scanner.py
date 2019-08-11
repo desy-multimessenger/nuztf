@@ -21,7 +21,7 @@ except HTTPError as e:
     raise(e.message)
 
 base_ligo_dir = os.path.join(Path().absolute(), "LIGO_skymaps")
-candidate_output_dir = os.path.join(Path().absolute(), "LIGO_candidates")
+ligo_candidate_output_dir = os.path.join(Path().absolute(), "LIGO_candidates")
 
 gw_run_config = {
     "MIN_NDET": 1,  # Default:2
@@ -56,21 +56,21 @@ class GravWaveScanner(AmpelWizard):
     def __init__(self, gw_name=None, rev=None, logger=None, prob_threshold=0.9, cone_nside=64, t_max=None):
         self.gw_path, self.output_path = self.get_superevent(gw_name, rev)
         self.parsed_file = self.read_map()
-        self.merger_time = Time(self.parsed_file[1].header["DATE-OBS"], format="isot", scale="utc")
+        t_min = Time(self.parsed_file[1].header["DATE-OBS"], format="isot", scale="utc")
 
-        if t_max is not None:
-            self.t_max = t_max
-        else:
-            self.t_max = Time.now()
+        # if t_max is not None:
+        #     self.t_max = t_max
+        # else:
+        #     self.t_max = Time.now()
 
-        print("MERGER TIME: {0}".format(self.merger_time))
+        print("MERGER TIME: {0}".format(t_min))
 
         self.data = self.parsed_file[1].data
         self.prob_map = hp.read_map(self.gw_path)
         self.prob_threshold = prob_threshold
         self.pixel_threshold = self.find_pixel_threshold(self.data["PROB"])
         self.map_coords = self.unpack_skymap()
-        AmpelWizard.__init__(self, run_config=gw_run_config, logger=logger, cone_nside=cone_nside)
+        AmpelWizard.__init__(self, run_config=gw_run_config, t_min=t_min, logger=logger, cone_nside=cone_nside)
 
 
     def filter_f_no_prv(self, res):
@@ -85,13 +85,13 @@ class GravWaveScanner(AmpelWizard):
         # Veto past detections, but not past upper limits
 
         for prv_detection in res["prv_candidates"]:
-            if np.logical_and(prv_detection["isdiffpos"] is not None, prv_detection["jd"] < self.merger_time.jd):
+            if np.logical_and(prv_detection["isdiffpos"] is not None, prv_detection["jd"] < self.t_min.jd):
                 return False
 
         # Require 2 detections
 
         n_detections = len([x for x in res["prv_candidates"] if np.logical_and(
-            x["isdiffpos"] is not None, x["jd"] > self.merger_time.jd)])
+            x["isdiffpos"] is not None, x["jd"] > self.t_min.jd)])
 
         if n_detections < 1:
             return False
@@ -106,8 +106,6 @@ class GravWaveScanner(AmpelWizard):
             superevent_iterator = ligo_client.superevents('category: Production')
             superevent_ids = [superevent['superevent_id'] for superevent in superevent_iterator]
             name = superevent_ids[0]
-
-        # latest_gw = ligo_client.superevent(name)
 
         voevents = ligo_client.voevents(name).json()["voevents"]
 
@@ -144,7 +142,7 @@ class GravWaveScanner(AmpelWizard):
         with open(savepath, "wb") as f:
             f.write(response.content)
 
-        output_file = "{0}/{1}_{2}.pdf".format(candidate_output_dir, name, latest_voevent["N"])
+        output_file = "{0}/{1}_{2}.pdf".format(ligo_candidate_output_dir, name, latest_voevent["N"])
 
         return savepath, output_file
 
@@ -169,17 +167,6 @@ class GravWaveScanner(AmpelWizard):
                 break
 
         return pixel_threshold
-
-    @staticmethod
-    def extract_ra_dec(nside, index):
-        (colat, ra) = hp.pix2ang(nside, index, nest=True)
-        dec = np.pi / 2. - colat
-        return (ra, dec)
-
-    @staticmethod
-    def extract_npix(nside, ra, dec):
-        colat = np.pi / 2. - dec
-        return hp.ang2pix(nside, colat, ra, nest=True)
 
     def unpack_skymap(self):
 

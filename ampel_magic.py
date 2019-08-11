@@ -59,8 +59,9 @@ except sqlalchemy.exc.OperationalError as e:
 
 class AmpelWizard:
 
-    def __init__(self, run_config, logger=None, base_config=None, filter_class=DecentFilter, cone_nside=64,):
+    def __init__(self, run_config, t_min, logger=None, base_config=None, filter_class=DecentFilter, cone_nside=64,):
         self.cone_nside = cone_nside
+        self.t_min = t_min
 
         if base_config is None:
             base_config = {'catsHTM.default': "tcp://127.0.0.1:27020"}
@@ -124,7 +125,7 @@ class AmpelWizard:
     def query_ampel(self, ra, dec, rad, t_max):
 
         ztf_object = ampel_client.get_alerts_in_cone(
-            ra, dec, rad, self.merger_time.jd, self.t_max.jd, with_history=False)
+            ra, dec, rad, self.t_min.jd, t_max.jd, with_history=False)
         query_res = [i for i in ztf_object]
 
         candids = []
@@ -158,6 +159,17 @@ class AmpelWizard:
             pp['ssnamenr'] = 'dunno'
 
         return mock_alert
+
+    @staticmethod
+    def extract_ra_dec(nside, index):
+        (colat, ra) = hp.pix2ang(nside, index, nest=True)
+        dec = np.pi / 2. - colat
+        return (ra, dec)
+
+    @staticmethod
+    def extract_npix(nside, ra, dec):
+        colat = np.pi / 2. - dec
+        return hp.ang2pix(nside, colat, ra, nest=True)
 
     def create_candidate_summary(self):
 
