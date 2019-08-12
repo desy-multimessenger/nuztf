@@ -77,11 +77,12 @@ class AmpelWizard:
         self.scanned_pixels = []
         self.cone_ids, self.cone_coords = self.find_cone_coords()
         self.cache = dict()
+        self.default_t_max = Time.now()
 
     def filter_ampel(self, res):
         return self.ampel_filter_class.apply(AmpelAlert(res['objectId'], *self.dap._shape(res))) is not None
 
-    def scan_cones(self, t_max=Time.now(), max_cones=None):
+    def scan_cones(self, t_max=None, max_cones=None):
 
         if max_cones is None:
             max_cones = len(self.cone_ids)
@@ -122,7 +123,10 @@ class AmpelWizard:
     def find_cone_coords(self):
         raise NotImplementedError
 
-    def query_ampel(self, ra, dec, rad, t_max):
+    def query_ampel(self, ra, dec, rad, t_max=None):
+
+        if t_max is None:
+            t_max = self.default_t_max
 
         ztf_object = ampel_client.get_alerts_in_cone(
             ra, dec, rad, self.t_min.jd, t_max.jd, with_history=False)

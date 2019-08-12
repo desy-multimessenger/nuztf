@@ -75,8 +75,8 @@ class NeutrinoScanner(AmpelWizard):
         self.dec_min = min(dec[1:]) + dec[0]
 
         self.output_path = "{0}/{1}.pdf".format(nu_candidate_output_dir, nu_name)
-        self.t_max = Time.now()
         AmpelWizard.__init__(self, t_min=nu_time, run_config=nu_run_config, logger=logger, cone_nside=cone_nside)
+        self.default_t_max = Time(nu_time.jd + 5., format="jd")
 
     @staticmethod
     def gcn_url(gcn_number):

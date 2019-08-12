@@ -53,15 +53,10 @@ class RetractionError(Exception):
 
 class GravWaveScanner(AmpelWizard):
 
-    def __init__(self, gw_name=None, rev=None, logger=None, prob_threshold=0.9, cone_nside=64, t_max=None):
+    def __init__(self, gw_name=None, rev=None, logger=None, prob_threshold=0.9, cone_nside=64):
         self.gw_path, self.output_path = self.get_superevent(gw_name, rev)
         self.parsed_file = self.read_map()
         t_min = Time(self.parsed_file[1].header["DATE-OBS"], format="isot", scale="utc")
-
-        # if t_max is not None:
-        #     self.t_max = t_max
-        # else:
-        #     self.t_max = Time.now()
 
         print("MERGER TIME: {0}".format(t_min))
 
@@ -72,6 +67,7 @@ class GravWaveScanner(AmpelWizard):
         self.map_coords = self.unpack_skymap()
         AmpelWizard.__init__(self, run_config=gw_run_config, t_min=t_min, logger=logger, cone_nside=cone_nside)
 
+        self.default_t_max = Time(t_min.jd + 1., format="jd")
 
     def filter_f_no_prv(self, res):
         # Positive detection
@@ -91,7 +87,8 @@ class GravWaveScanner(AmpelWizard):
         # Require 2 detections
 
         n_detections = len([x for x in res["prv_candidates"] if np.logical_and(
-            x["isdiffpos"] is not None, x["jd"] > self.t_min.jd)])
+            x["isdiffpos"] is not None,
+            np.logical_and(x["jd"] > self.t_min.jd, x["jd"] < self.default_t_max.jd))])
 
         if n_detections < 1:
             return False
