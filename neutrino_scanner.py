@@ -45,20 +45,29 @@ nu_run_config = {
     "PS1_CONFUSION_SG_TOL": 0.1
 }
 
+class ParsingError(Exception):
+   """Base class for parsing error"""
+   pass
+
 
 class NeutrinoScanner(AmpelWizard):
 
-    def __init__(self, manual_args=None, gcn_no=None, logger=None, cone_nside=64):
+    def __init__(self, nu_name=None, manual_args=None, gcn_no=None, logger=None, cone_nside=64):
 
         if manual_args is None:
 
-            if gcn_no is None:
+            if nu_name is not None:
+                gcn_no = self.find_gcn_no(nu_name)
+
+            elif gcn_no is None:
                 gcn_no = self.get_latest_gcn()
 
             nu_name, ra, dec, nu_time = self.parse_gcn(gcn_no)
 
         else:
             (nu_name, ra, dec, nu_time) = manual_args
+
+        print("Neutrino time: {0}".format(nu_time))
 
         self.ra_max = max(ra[1:]) + ra[0]
         self.ra_min = min(ra[1:]) + ra[0]
@@ -85,7 +94,7 @@ class NeutrinoScanner(AmpelWizard):
         return vals
 
 
-    def parse_gcn(self, gcn_number, silent=True):
+    def parse_gcn(self, gcn_number):
         url = self.gcn_url(gcn_number)
         page = requests.get(url)
         print("Found GCN: {0}".format(url))
@@ -103,7 +112,17 @@ class NeutrinoScanner(AmpelWizard):
                 ut_time = "20{0}-{1}-{2}T{3}".format(raw_date[0:2], raw_date[2:4], raw_date[4:6], raw_time)
                 time = Time(ut_time, format='isot', scale='utc')
 
-        return name, ra, dec, time
+        try:
+
+            if np.sum([x is not None for x in [name, ra, dec, time]]) == 4:
+                if np.logical_and(len(ra) == 3, len(dec) == 3):
+
+                    return name, ra, dec, time
+
+        except:
+            pass
+
+        raise ParsingError("Error parsing GCN {0}".format(url))
 
 
     def parse_gcn_archive(self):
@@ -119,6 +138,34 @@ class NeutrinoScanner(AmpelWizard):
                 nu_circulars.append((name, gcn_no))
 
         return nu_circulars
+
+    def find_gcn_no(self, base_nu_name):
+        page = requests.get("https://gcn.gsfc.nasa.gov/gcn3_archive.html")
+
+        gcn_no = None
+        name = None
+
+        nu_name = str(base_nu_name)
+
+        while not nu_name[0].isdigit():
+            nu_name = nu_name[1:]
+
+        for line in page.text.splitlines():
+            if np.logical_and("IceCube observation of a high-energy neutrino" in line, nu_name in line):
+                res = line.split(">")
+                if gcn_no is None:
+                    gcn_no = "".join([x for x in res[2] if x.isdigit()])
+                    name = res[3].split(" - ")[0]
+                    print("Found match to {0}: {1}".format(base_nu_name, name))
+                else:
+                    raise Exception("Multiple matches found to {0}".format(base_nu_name))
+
+        if name is None:
+            raise ParsingError("No GCN match found for {0}".format(base_nu_name))
+
+        print("Match is {0} (GCN #{1})".format(name, gcn_no))
+
+        return gcn_no
 
     def get_latest_gcn(self):
         latest = self.parse_gcn_archive()[0]
