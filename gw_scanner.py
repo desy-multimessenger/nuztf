@@ -54,6 +54,7 @@ class RetractionError(Exception):
 class GravWaveScanner(AmpelWizard):
 
     def __init__(self, gw_name=None, rev=None, logger=None, prob_threshold=0.9, cone_nside=64):
+        self.prob_threshold = prob_threshold
         self.gw_path, self.output_path = self.get_superevent(gw_name, rev)
         self.parsed_file = self.read_map()
         t_min = Time(self.parsed_file[1].header["DATE-OBS"], format="isot", scale="utc")
@@ -62,7 +63,6 @@ class GravWaveScanner(AmpelWizard):
 
         self.data = self.parsed_file[1].data
         self.prob_map = hp.read_map(self.gw_path)
-        self.prob_threshold = prob_threshold
         self.pixel_threshold = self.find_pixel_threshold(self.data["PROB"])
         self.map_coords = self.unpack_skymap()
         AmpelWizard.__init__(self, run_config=gw_run_config, t_min=t_min, logger=logger, cone_nside=cone_nside)
@@ -141,7 +141,8 @@ class GravWaveScanner(AmpelWizard):
         with open(savepath, "wb") as f:
             f.write(response.content)
 
-        output_file = "{0}/{1}_{2}.pdf".format(ligo_candidate_output_dir, name, latest_voevent["N"])
+        output_file = "{0}/{1}_{2}_{3}.pdf".format(ligo_candidate_output_dir, name, latest_voevent["N"],
+                                                   self.prob_threshold)
 
         return savepath, output_file
 
