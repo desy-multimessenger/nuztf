@@ -67,7 +67,7 @@ class GravWaveScanner(AmpelWizard):
         self.map_coords = self.unpack_skymap()
         AmpelWizard.__init__(self, run_config=gw_run_config, t_min=t_min, logger=logger, cone_nside=cone_nside)
 
-        self.default_t_max = Time(t_min.jd + 1., format="jd")
+        self.default_t_max = Time.now()
 
     def filter_f_no_prv(self, res):
         # Positive detection
@@ -86,9 +86,11 @@ class GravWaveScanner(AmpelWizard):
 
         # Require 2 detections
 
-        n_detections = len([x for x in res["prv_candidates"] if np.logical_and(
+        old_detections = [x for x in res["prv_candidates"] if np.logical_and(
             x["isdiffpos"] is not None,
-            np.logical_and(x["jd"] > self.t_min.jd, x["jd"] < self.default_t_max.jd))])
+            np.logical_and(x["jd"] > self.t_min.jd, x["jd"] < self.default_t_max.jd))]
+
+        n_detections = len([x for x in old_detections if x['isdiffpos'] in ["t", "1"]])
 
         if n_detections < 1:
             return False
