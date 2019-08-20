@@ -53,10 +53,19 @@ class RetractionError(Exception):
 
 class GravWaveScanner(AmpelWizard):
 
-    def __init__(self, gw_name=None, rev=None, logger=None, prob_threshold=0.9, cone_nside=64):
+    def __init__(self, gw_name=None, gw_file=None, rev=None, logger=None, prob_threshold=0.9, cone_nside=64):
         self.prob_threshold = prob_threshold
-        self.gw_path, self.output_path = self.get_superevent(gw_name, rev)
+
+        if gw_file is None:
+            self.gw_path, self.output_path = self.get_superevent(gw_name, rev)
+
+        else:
+            self.gw_path = "{0}/{1}".format(base_ligo_dir, gw_file)
+            self.output_path = "{0}/{1}_{2}.pdf".format(
+                ligo_candidate_output_dir, gw_file.split(".")[0], self.prob_threshold)
+
         self.parsed_file = self.read_map()
+
         t_min = Time(self.parsed_file[1].header["DATE-OBS"], format="isot", scale="utc")
 
         print("MERGER TIME: {0}".format(t_min))
