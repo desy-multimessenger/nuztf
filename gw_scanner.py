@@ -73,25 +73,38 @@ class GravWaveScanner(AmpelWizard):
         self.data = self.parsed_file[1].data
         self.prob_map = hp.read_map(self.gw_path)
         self.pixel_threshold = self.find_pixel_threshold(self.data["PROB"])
-        self.map_coords = self.unpack_skymap()
+        self.map_coords, self.map_probs = self.unpack_skymap()
         AmpelWizard.__init__(self, run_config=gw_run_config, t_min=t_min, logger=logger, cone_nside=cone_nside)
-
         self.default_t_max = Time.now()
 
     def filter_f_no_prv(self, res):
-        # Positive detection
-        if res['candidate']['isdiffpos'] in ["t", "1"]:
-            if self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
-                return True
 
-        return False
+        # Positive detection
+        if res['candidate']['isdiffpos'] not in ["t", "1"]:
+            return False
+
+        # Require 2 detections separated by 15 mins
+
+        if (res["candidate"]["jdendhist"] - res["candidate"]["jdstarthist"]) < 0.01:
+            return False
+
+        # Veto old transients
+
+        if res["candidate"]["jdstarthist"] < self.t_min.jd:
+            return False
+
+        # Check contour
+        if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
+            return False
+
+        return True
 
     def filter_f_history(self, res):
-        # Veto past detections, but not past upper limits
-
-        for prv_detection in res["prv_candidates"]:
-            if np.logical_and(prv_detection["isdiffpos"] is not None, prv_detection["jd"] < self.t_min.jd):
-                return False
+        # # Veto past detections, but not past upper limits
+        #
+        # for prv_detection in res["prv_candidates"]:
+        #     if np.logical_and(prv_detection["isdiffpos"] is not None, prv_detection["jd"] < self.t_min.jd):
+        #         return False
 
         # Require 2 detections
 
@@ -99,13 +112,24 @@ class GravWaveScanner(AmpelWizard):
             x["isdiffpos"] is not None,
             np.logical_and(x["jd"] > self.t_min.jd, x["jd"] < self.default_t_max.jd))]
 
-        n_detections = len([x for x in old_detections if x['isdiffpos'] in ["t", "1"]])
+        pos_detections = [x for x in old_detections if x['isdiffpos'] in ["t", "1"]]
 
-        if n_detections < 1:
+        if len(pos_detections) < 1:
             return False
 
-        if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
-            return False
+        # times = [x["jd"] for x in pos_detections] + [res["candidate"]["jd"]]
+        #
+        # time_delta = max(times) - min(times)
+        #
+        # # Separated by 15 mins
+        #
+        # if time_delta < 0.01:
+        #     print("VETO was right!")
+        #     return False
+
+        #
+        # if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
+        #     return False
 
         return True
 
@@ -199,7 +223,7 @@ class GravWaveScanner(AmpelWizard):
         map_coords = np.array(map_coords, dtype=np.dtype([("ra", np.float),
                                                           ("dec", np.float)]))
 
-        return map_coords
+        return map_coords, self.data["PROB"][mask]
 
     def find_cone_coords(self):
         cone_ids = []
