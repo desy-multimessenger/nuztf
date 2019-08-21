@@ -10,6 +10,7 @@ from pathlib import Path
 import requests
 import lxml.etree
 from astropy.io import fits
+import matplotlib.patches as mpatches
 
 # Setup LIGO client
 
@@ -73,7 +74,7 @@ class GravWaveScanner(AmpelWizard):
         self.data = self.parsed_file[1].data
         self.prob_map = hp.read_map(self.gw_path)
         self.pixel_threshold = self.find_pixel_threshold(self.data["PROB"])
-        self.map_coords, self.map_probs = self.unpack_skymap()
+        self.map_coords, self.map_probs, self.ligo_nside = self.unpack_skymap()
         AmpelWizard.__init__(self, run_config=gw_run_config, t_min=t_min, logger=logger, cone_nside=cone_nside)
         self.default_t_max = Time.now()
 
@@ -223,7 +224,7 @@ class GravWaveScanner(AmpelWizard):
         map_coords = np.array(map_coords, dtype=np.dtype([("ra", np.float),
                                                           ("dec", np.float)]))
 
-        return map_coords, self.data["PROB"][mask]
+        return map_coords, self.data["PROB"][mask], ligo_nside
 
     def find_cone_coords(self):
         cone_ids = []
@@ -265,6 +266,56 @@ class GravWaveScanner(AmpelWizard):
         sc = plt.scatter(self.wrap_around_180(self.cone_coords["ra"]), self.cone_coords["dec"])
         plt.title("CONE REGION")
         plt.show()
+
+    def plot_overlap_with_observations(self):
+        plt.figure()
+        plt.subplot(projection="aitoff")
+
+        probs = []
+
+        decs = list(self.mns.data["dec"])
+
+        plot_ras = []
+        plot_decs = []
+
+        veto_ras = []
+        veto_decs = []
+
+        for j, (ra, dec) in enumerate(tqdm(self.map_coords)):
+            ra_deg = np.degrees(ra)
+            dec_deg = np.degrees(dec)
+            ztf_rad = 3.5 / np.cos(dec)
+
+            n_obs = 0
+
+            for i, x in enumerate(self.mns.data["ra"]):
+                if np.logical_and(not ra_deg < float(x) - ztf_rad, not ra_deg > float(x) + ztf_rad):
+                    if np.logical_and(not dec_deg < float(decs[i]) - ztf_rad, not dec_deg > float(decs[i]) + ztf_rad):
+                        n_obs += 1
+
+            if n_obs > 1:
+                probs.append(self.map_probs[j])
+                plot_ras.append(ra)
+                plot_decs.append(dec)
+
+            else:
+                veto_ras.append(ra)
+                veto_decs.append(dec)
+
+        size = 1e-4
+
+        size = 1e2/(self.ligo_nside**2)
+
+        plt.scatter(self.wrap_around_180(np.array([plot_ras])), plot_decs,
+                    c=probs, vmin=0., vmax=max(self.data["PROB"]), s=size)
+
+        plt.scatter(self.wrap_around_180(np.array([veto_ras])), veto_decs, color="red", s=size)
+
+        red_patch = mpatches.Patch(color='red', label='Not observed')
+        plt.legend(handles=[red_patch])
+
+        print("In total, {0} % of the LIGO contour was observed at least twice. \n"
+              "THIS DOES NOT INCLUDE CHIP GAPS!!!".format(100*np.sum(probs)))
 
     def interpolate_map(self, ra_deg, dec_deg):
         colat = np.pi / 2. - np.radians(dec_deg)
