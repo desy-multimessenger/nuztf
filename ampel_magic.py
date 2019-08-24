@@ -30,6 +30,7 @@ from ampel.contrib.hu.t0.DecentFilter import DecentFilter
 from ampel.pipeline.t0.DevAlertProcessor import DevAlertProcessor
 from ampel.base.AmpelAlert import AmpelAlert
 import datetime
+import socket
 
 try:
     with open(".AMPEL_user.txt", "r") as f:
@@ -47,8 +48,13 @@ except FileNotFoundError:
     with open(".AMPEL_pass.txt", "wb") as f:
         f.write(password.encode())
 
+if socket.gethostname() == "wgs33.zeuthen.desy.de":
+    port = 5433
+else:
+    port = 5432
+
 try:
-    ampel_client = ArchiveDB('postgresql://{0}:{1}@localhost:5432/ztfarchive'.format(username, password))
+    ampel_client = ArchiveDB('postgresql://{0}:{1}@localhost:{2}/ztfarchive'.format(username, password, port))
 except sqlalchemy.exc.OperationalError as e:
     print("You can't access the archive database without first opening the port.")
     print("Open a new terminal, and into that terminal, run the following command:")

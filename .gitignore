@@ -1,5 +1,6 @@
 .AMPEL_user.txt
 .AMPEL_pass.txt
+.slack_access_token.txt
 summary/*
 LIGO_candidates/*
 LIGO_skymaps/*

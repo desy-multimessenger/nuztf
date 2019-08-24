@@ -1,6 +1,8 @@
 from slack import RTMClient
 import getpass
 import numpy as np
+import logging
+from gw_scanner import GravWaveScanner
 
 try:
     with open(".slack_access_token.txt", "r") as f:
@@ -25,33 +27,41 @@ def run_on_event(data, web_client):
     gw_name = None
     gw_file = None
     rev_no = None
+    prob_threshold = 0.9
 
     for x in split_message:
         if x[0] in ["s", "S"]:
             if np.sum([y.isdigit() for y in x[1:7]]) == 6:
                 gw_name = x
-
         elif ".fits" in x:
             gw_file = x
-        if "rev" in x:
-            rev_no = x.split("=")[1]
-     
+        elif "rev" in x:
+            rev_no = int(x.split("=")[1])
+        elif "prob_threshold" in x:
+            prob_threshold = float(x.split("=")[1])     
+
     message = ""
 
     if gw_name is not None:
-        message = "You are interested in LIGO event {0}.".format(gw_name)
+        message = "You are interested in LIGO event {0}. ".format(gw_name)
     
     if rev_no is not None:
         if gw_name is None:
-            message = "You have specified a revision number, but not a GW event name."
+            message = "You have specified a revision number, but not a GW event name. "
         else:
-            message += "You have specified revision number {0}".format(rev_no)
+            message += "You have specified revision number {0}. ".format(rev_no)
     
     if gw_file is not None:
         if gw_name is not None:
-            message = "You have specified both a fits file and a GW event name. Please specify only one."
+            message = "You have specified both a fits file and a GW event name. The fits file will be used.  "
         else:
-            message = "You are interested in the following fits fille: {0}.".format(gw_file)
+            message = "You are interested in the following fits fille: {0}. ".format(gw_file)
+    
+    if message == "":
+        message = "No file was specified. I will just assume that you want the most recent LIGO event. "
+
+    message += "The LIGO Skymap will be scanned up to {0}% of the probability.".format(100. * prob_threshold)
+
     web_client.chat_postMessage(
         channel=channel_id,
         text=message,
@@ -59,6 +69,15 @@ def run_on_event(data, web_client):
         icon_emoji=':ligo:'
     )
 
+    try:
+        gw = grav_wave_scanner(gw_name=gw_name, gw_file=gw_file, rev=rev_no, logger=logger)
+    except Exception as e:
+        web_client.chat_postMessage(
+            channel=channel_id,
+            text="Sorry <@{0}>, we need to talk. It's not you, it's me. I have run into an error, and cannot process your request further. I wish you the best of luck in all your future endeavours. \n, `{1}`. ".format(data["user"], e),
+            thread_ts=thread_ts,
+            icon_emoji=':ligo:'
+        )
 
 keywords = ["<@UMNJK00CU>", "LIGO", "banana"]
 
