@@ -47,7 +47,6 @@ except FileNotFoundError:
     with open(".AMPEL_pass.txt", "wb") as f:
         f.write(password.encode())
 
-
 try:
     ampel_client = ArchiveDB('postgresql://{0}:{1}@localhost:5432/ztfarchive'.format(username, password))
 except sqlalchemy.exc.OperationalError as e:
