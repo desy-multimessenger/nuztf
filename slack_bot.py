@@ -69,9 +69,12 @@ def run_on_event(data, web_client):
         icon_emoji=':ligo:'
     )
 
+    logger = logging.getLogger("quiet_logger")
+    logger.setLevel(logging.ERROR)
+
     try:
-        gw = grav_wave_scanner(gw_name=gw_name, gw_file=gw_file, rev=rev_no, logger=logger)
-    except Exception as e:
+        gw = GravWaveScanner(gw_name=gw_name, gw_file=gw_file, rev=rev_no, logger=logger)
+    except KeyError as e:
         web_client.chat_postMessage(
             channel=channel_id,
             text="Sorry <@{0}>, we need to talk. It's not you, it's me. I have run into an error, and cannot process your request further. I wish you the best of luck in all your future endeavours. \n, `{1}`. ".format(data["user"], e),
