@@ -151,14 +151,19 @@ class AmpelWizard:
         self.cache = dict()
         self.default_t_max = Time.now()
 
-        time = str(self.t_min).split("T")[0].replace("-", "")
-        self.mns = MultiNightSummary(start_date=time)
+        self.mns_time = str(self.t_min).split("T")[0].replace("-", "")
+        self.mns = None
 
     def filter_ampel(self, res):
         return self.ampel_filter_class.apply(AmpelAlert(res['objectId'], *self.dap._shape(res))) is not None
 
     def plot_ztf_observations(self):
-        self.mns.show_gri_fields()
+        self.get_multi_night_summary().show_gri_fields()
+
+    def get_multi_night_summary(self):
+        if self.mns is None:
+            self.mns = MultiNightSummary(start_date=self.mns_time)
+        return self.mns
 
     def scan_cones(self, t_max=None, max_cones=None):
 
@@ -178,7 +183,6 @@ class AmpelWizard:
             if cone_id not in self.scanned_pixels:
                 res = self.query_ampel(np.degrees(ra), np.degrees(dec), scan_radius, t_max)
                 #                 print(len(res))
-
                 for res_alert in res:
 
                     if res_alert['objectId'] not in self.cache.keys():
@@ -210,14 +214,18 @@ class AmpelWizard:
             ra, dec, rad, self.t_min.jd, t_max.jd, with_history=False)
         query_res = [i for i in ztf_object]
 
-        candids = []
+        objectids = []
         for res in query_res:
             if self.filter_f_no_prv(res):
                 if self.filter_ampel(res) is not None:
-                    candids.append(res["candid"])
+                    objectids.append(res["objectId"])
 
-        ztf_object = ampel_client.get_alerts(candids, with_history=True)
+        ztf_object = ampel_client.get_alerts_for_object(objectids, with_history=True)
+
         query_res = [i for i in ztf_object]
+
+        query_res = self.merge_alerts(query_res)
+
         final_res = []
 
         for res in query_res:
@@ -241,6 +249,40 @@ class AmpelWizard:
             pp['ssnamenr'] = 'dunno'
 
         return mock_alert
+
+    @staticmethod
+    def merge_alerts(alert_list):
+        merged_list = []
+        keys = list(set([x["objectId"] for x in alert_list]))
+
+        for objectid in keys:
+            alerts = [x for x in alert_list if x["objectId"] == objectid]
+            if len(alerts) == 1:
+                merged_list.append(alerts[0])
+            else:
+                jds = [x["candidate"]["jd"] for x in alerts]
+                order = [jds.index(x) for x in sorted(jds)[::-1]]
+                latest = alerts[jds.index(max(jds))]
+                latest["candidate"]["jdstarthist"] = min(jds)
+
+                for index in order[1:]:
+
+                    x = alerts[index]
+
+                    # Check jdstarthist
+                    #
+                    # if np.logical_and(x["candidate"]["jdstarthist"] < latest["candidate"]["jdstarthist"],
+                    #                   x["candidate"]["isdiffpos"] is not None):
+                    #     latest["candidate"]["jdstarthist"] = x["candidate"]["jdstarthist"]
+
+                    # Merge previous detections
+
+                    for prv in x["prv_candidates"] + [x["candidate"]]:
+                        if prv not in latest["prv_candidates"]:
+                            latest["prv_candidates"] = [prv] + latest["prv_candidates"]
+
+                merged_list.append(latest)
+        return merged_list
 
     @staticmethod
     def extract_ra_dec(nside, index):

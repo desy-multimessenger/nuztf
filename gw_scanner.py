@@ -84,13 +84,7 @@ class GravWaveScanner(AmpelWizard):
         if res['candidate']['isdiffpos'] not in ["t", "1"]:
             return False
 
-        # Require 2 detections separated by 15 mins
-
-        if (res["candidate"]["jdendhist"] - res["candidate"]["jdstarthist"]) < 0.01:
-            return False
-
         # Veto old transients
-
         if res["candidate"]["jdstarthist"] < self.t_min.jd:
             return False
 
@@ -101,14 +95,15 @@ class GravWaveScanner(AmpelWizard):
         return True
 
     def filter_f_history(self, res):
-        # # Veto past detections, but not past upper limits
-        #
-        # for prv_detection in res["prv_candidates"]:
-        #     if np.logical_and(prv_detection["isdiffpos"] is not None, prv_detection["jd"] < self.t_min.jd):
-        #         return False
+        # Veto old transients
+        if res["candidate"]["jdstarthist"] < self.t_min.jd:
+            return False
 
-        # Require 2 detections
+        # Require 2 detections separated by 15 mins
+        if (res["candidate"]["jdendhist"] - res["candidate"]["jdstarthist"]) < 0.01:
+            return False
 
+        # Require 2 positive detections
         old_detections = [x for x in res["prv_candidates"] if np.logical_and(
             x["isdiffpos"] is not None,
             np.logical_and(x["jd"] > self.t_min.jd, x["jd"] < self.default_t_max.jd))]
@@ -273,7 +268,7 @@ class GravWaveScanner(AmpelWizard):
 
         probs = []
 
-        decs = list(self.mns.data["dec"])
+        decs = list(self.get_multi_night_summary().data["dec"])
 
         plot_ras = []
         plot_decs = []
@@ -288,7 +283,7 @@ class GravWaveScanner(AmpelWizard):
 
             n_obs = 0
 
-            for i, x in enumerate(self.mns.data["ra"]):
+            for i, x in enumerate(self.get_multi_night_summary().data["ra"]):
                 if np.logical_and(not ra_deg < float(x) - ztf_rad, not ra_deg > float(x) + ztf_rad):
                     if np.logical_and(not dec_deg < float(decs[i]) - ztf_rad, not dec_deg > float(decs[i]) + ztf_rad):
                         n_obs += 1
