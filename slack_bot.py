@@ -2,6 +2,8 @@ from slack import RTMClient
 import getpass
 import numpy as np
 import logging
+import matplotlib.pyplot as plt
+import io
 from gw_scanner import GravWaveScanner
 
 try:
@@ -11,6 +13,20 @@ except FileNotFoundError:
     access_token = getpass.getpass(prompt='Slack Access Token: ', stream=None)
     with open(".slack_access_token.txt", "wb") as f:
         f.write(access_token.encode())
+
+
+def upload_fig(fig, web_client, data):
+    imgdata = io.BytesIO()
+    fig.savefig(imgdata, format='png', dpi=600, transparent=True)
+    imgdata.seek(0)
+    print(web_client.files_upload(
+        file=imgdata,
+        channel=data['channel'],
+        thread_ts = data['ts'],
+        icon_emoji=':ligo:',
+        text="<@{0}>, here's a file I've uploaded for you!".format(data["user"])
+    ))
+    #fig.close()
 
 def run_on_event(data, web_client):
     channel_id = data['channel']
@@ -74,6 +90,9 @@ def run_on_event(data, web_client):
 
     try:
         gw = GravWaveScanner(gw_name=gw_name, gw_file=gw_file, rev=rev_no, logger=logger)
+        fig = gw.plot_skymap()
+        upload_fig(fig, web_client, data)
+        print("Done!")
     except KeyError as e:
         web_client.chat_postMessage(
             channel=channel_id,

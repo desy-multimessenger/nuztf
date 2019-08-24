@@ -246,21 +246,20 @@ class GravWaveScanner(AmpelWizard):
         return ra
 
     def plot_skymap(self):
-
-        plt.subplot(projection="aitoff")
+        fig = plt.figure()
+        plt.subplot(121, projection="aitoff")
 
         mask = self.data["PROB"] > self.pixel_threshold
 
         sc = plt.scatter(self.wrap_around_180(self.map_coords["ra"]), self.map_coords["dec"],
                          c=self.data["PROB"][mask], vmin=0., vmax=max(self.data["PROB"]), s=1e-4)
         plt.title("LIGO SKYMAP")
-        plt.show()
 
-        plt.subplot(projection="aitoff")
+        plt.subplot(122, projection="aitoff")
 
         sc = plt.scatter(self.wrap_around_180(self.cone_coords["ra"]), self.cone_coords["dec"])
         plt.title("CONE REGION")
-        plt.show()
+        return fig
 
     def plot_overlap_with_observations(self):
         plt.figure()
