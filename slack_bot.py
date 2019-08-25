@@ -4,7 +4,7 @@ import numpy as np
 import logging
 import matplotlib.pyplot as plt
 import io
-from gw_scanner import GravWaveScanner
+#from gw_scanner import GravWaveScanner
 
 try:
     with open(".slack_access_token.txt", "r") as f:
@@ -89,8 +89,10 @@ def run_on_event(data, web_client):
     logger.setLevel(logging.ERROR)
 
     try:
-        gw = GravWaveScanner(gw_name=gw_name, gw_file=gw_file, rev=rev_no, logger=logger)
-        fig = gw.plot_skymap()
+#        gw = GravWaveScanner(gw_name=gw_name, gw_file=gw_file, rev=rev_no, logger=logger)
+#        fig = gw.plot_skymap()
+        fig = plt.figure()
+        plt.scatter(1, 1)
         upload_fig(fig, web_client, data)
         print("Done!")
     except KeyError as e:
