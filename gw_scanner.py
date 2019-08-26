@@ -65,13 +65,12 @@ class GravWaveScanner(AmpelWizard):
             self.output_path = "{0}/{1}_{2}.pdf".format(
                 ligo_candidate_output_dir, gw_file.split(".")[0], self.prob_threshold)
 
-        self.parsed_file = self.read_map()
+        self.data, t_obs = self.read_map()
 
-        t_min = Time(self.parsed_file[1].header["DATE-OBS"], format="isot", scale="utc")
+        t_min = Time(t_obs, format="isot", scale="utc")
 
         print("MERGER TIME: {0}".format(t_min))
 
-        self.data = self.parsed_file[1].data
         self.prob_map = hp.read_map(self.gw_path)
         self.pixel_threshold = self.find_pixel_threshold(self.data["PROB"])
         self.map_coords, self.map_probs, self.ligo_nside = self.unpack_skymap()
@@ -177,8 +176,13 @@ class GravWaveScanner(AmpelWizard):
 
     def read_map(self, ):
         print("Reading file: {0}".format(self.gw_path))
-        f = fits.open(self.gw_path)
-        return f
+        with fits.open(self.gw_path) as hdul:
+            print("Opened file")
+            t_obs = hdul[1].header["DATE-OBS"]
+            print("read merger time")
+            data = hdul[1].data
+            print("Read data")
+        return data, t_obs
 
     def find_pixel_threshold(self, data):
         print("")

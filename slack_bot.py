@@ -113,7 +113,7 @@ def run_on_event(data, web_client):
         )
         upload_fig(fig, web_client, data, "LIGO_overlap.png")
         web_client.chat_postMessage(
-            channels=data['channel'],
+            channel=data['channel'],
             thread_ts=data['ts'],
             icon_emoji=':ligo:',
             text="<@{0}>, I'm all finished. Go find that kilonova!".format(data["user"])
