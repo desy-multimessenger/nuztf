@@ -63,24 +63,21 @@ def run_on_event(data, web_client):
 
     if gw_name is not None:
         message = "You are interested in LIGO event {0}. ".format(gw_name)
-    
-    if rev_no is not None:
-        if gw_name is None:
-            message = "You have specified a revision number, but not a GW event name. "
-        else:
-            message += "You have specified revision number {0}. ".format(rev_no)
-    else:
-        message += "No revision number has been specified. I will just take the most recent revision for this event. "
-    
+
     if gw_file is not None:
         if gw_name is not None:
-            message = "You have specified both a fits file and a GW event name. The fits file will be used.  "
+            message = "You have also specified a fits file. The fits file will be used.  "
         else:
             message = "You are interested in the following fits fille: {0}. ".format(gw_file)
-    
+
     if message == "":
         message = "No file was specified. I will just assume that you want the most recent LIGO event. "
 
+    if rev_no is not None:
+        message += "You have specified revision number {0}. ".format(rev_no)
+    else:
+        message += "No revision number has been specified. I will just take the most recent revision for this event. "
+    
     message += "The LIGO Skymap will be scanned up to {0}% of the probability.".format(100. * prob_threshold)
 
     web_client.chat_postMessage(
@@ -119,10 +116,10 @@ def run_on_event(data, web_client):
             icon_emoji=':ligo:',
             text="<@{0}>, I'm all finished. Go find that kilonova!".format(data["user"])
         )
-    except ValueError as e:
+    except Exception as e:
         web_client.chat_postMessage(
             channel=channel_id,
-            text="Sorry <@{0}>, we need to talk. It's not you, it's me. I have run into an error, and cannot process your request further. I wish you the best of luck in all your future endeavours. \n, `{1}`. ".format(data["user"], e),
+            text="Sorry <@{0}>, we need to talk. It's not you, it's me. I have run into an error, and cannot process your request further. I wish you the best of luck in all your future endeavours. \n\n `{1}`. ".format(data["user"], e),
             thread_ts=thread_ts,
             icon_emoji=':ligo:'
         )
