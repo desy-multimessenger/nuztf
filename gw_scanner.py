@@ -66,15 +66,10 @@ class GravWaveScanner(AmpelWizard):
             self.gw_path, self.output_path = self.get_superevent(gw_name, rev)
 
         else:
-            # print(gw_file)
             self.gw_path = "{0}/{1}".format(base_ligo_dir, os.path.basename(gw_file[7:]))
             wget.download(gw_file, self.gw_path)
-            # with open(self.gw_path, "wb") as f:
-            #     r = requests.get(gw_file, allow_redirects=True)
-            #     f.write(r.content)
             self.output_path = "{0}/{1}_{2}.pdf".format(
-                ligo_candidate_output_dir, gw_file.split(".")[0], self.prob_threshold)
-
+                ligo_candidate_output_dir, os.path.basename(gw_file), self.prob_threshold)
         self.data, t_obs, self.hpm = self.read_map()
 
         t_min = Time(t_obs, format="isot", scale="utc")
