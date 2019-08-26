@@ -6,6 +6,7 @@ datetime
 pandas
 tqdm
 astropy
+astropy_healpix
 ipykernel
 sqlalchemy
 scipy
