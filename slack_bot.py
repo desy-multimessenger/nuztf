@@ -1,10 +1,11 @@
-from slack import RTMClient
+from slack import RTMClient, WebClient
 import getpass
 import numpy as np
 import logging
 import matplotlib.pyplot as plt
 import io
-#from gw_scanner import GravWaveScanner
+import os
+from gw_scanner import GravWaveScanner
 
 try:
     with open(".slack_access_token.txt", "r") as f:
@@ -15,17 +16,18 @@ except FileNotFoundError:
         f.write(access_token.encode())
 
 
-def upload_fig(fig, web_client, data):
+def upload_fig(fig, web_client, data, filename):
     imgdata = io.BytesIO()
     fig.savefig(imgdata, format='png', dpi=600, transparent=True)
     imgdata.seek(0)
-    print(web_client.files_upload(
-        file=imgdata,
-        channel=data['channel'],
+    web_client.files_upload(
+        file=imgdata.getvalue(),
+        filename=filename,
+        channels=data['channel'],
         thread_ts = data['ts'],
         icon_emoji=':ligo:',
-        text="<@{0}>, here's a file I've uploaded for you!".format(data["user"])
-    ))
+        text="<@{0}>, here's the file {1} I've uploaded for you!".format(data["user"], filename)
+    )
     #fig.close()
 
 def run_on_event(data, web_client):
@@ -66,6 +68,8 @@ def run_on_event(data, web_client):
             message = "You have specified a revision number, but not a GW event name. "
         else:
             message += "You have specified revision number {0}. ".format(rev_no)
+    else:
+        message += "No revision number has been specified. I will just take the most recent revision for this event. "
     
     if gw_file is not None:
         if gw_name is not None:
@@ -89,12 +93,31 @@ def run_on_event(data, web_client):
     logger.setLevel(logging.ERROR)
 
     try:
-#        gw = GravWaveScanner(gw_name=gw_name, gw_file=gw_file, rev=rev_no, logger=logger)
-#        fig = gw.plot_skymap()
-        fig = plt.figure()
-        plt.scatter(1, 1)
-        upload_fig(fig, web_client, data)
-        print("Done!")
+        gw = GravWaveScanner(gw_name=gw_name, gw_file=gw_file, rev=rev_no, logger=logger)
+        fig = gw.plot_skymap()
+        upload_fig(fig, web_client, data, "LIGO_skymap.png")
+        gw.scan_cones()
+        web_client.files_upload(
+            file=gw.output_path,
+            filename=os.path.basename(gw.output_path),
+            channels=data['channel'],
+            thread_ts=data['ts'],
+            icon_emoji=':ligo:'
+        )
+        fig, overlap = gw.plot_overlap_with_observations()
+        web_client.chat_postMessage(
+            channel=channel_id,
+            text=overlap,
+            thread_ts=thread_ts,
+            icon_emoji=':ligo:'
+        )
+        upload_fig(fig, web_client, data, "LIGO_overlap.png")
+        web_client.chat_postMessage(
+            channels=data['channel'],
+            thread_ts=data['ts'],
+            icon_emoji=':ligo:',
+            text="<@{0}>, I'm all finished. Go find that kilonova!".format(data["user"])
+        )
     except KeyError as e:
         web_client.chat_postMessage(
             channel=channel_id,

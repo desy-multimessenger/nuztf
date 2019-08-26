@@ -247,7 +247,7 @@ class GravWaveScanner(AmpelWizard):
 
     def plot_skymap(self):
         fig = plt.figure()
-        plt.subplot(121, projection="aitoff")
+        plt.subplot(211, projection="aitoff")
 
         mask = self.data["PROB"] > self.pixel_threshold
 
@@ -255,14 +255,14 @@ class GravWaveScanner(AmpelWizard):
                          c=self.data["PROB"][mask], vmin=0., vmax=max(self.data["PROB"]), s=1e-4)
         plt.title("LIGO SKYMAP")
 
-        plt.subplot(122, projection="aitoff")
+        plt.subplot(212, projection="aitoff")
 
         sc = plt.scatter(self.wrap_around_180(self.cone_coords["ra"]), self.cone_coords["dec"])
         plt.title("CONE REGION")
         return fig
 
     def plot_overlap_with_observations(self):
-        plt.figure()
+        fig = plt.figure()
         plt.subplot(projection="aitoff")
 
         probs = []
@@ -308,8 +308,11 @@ class GravWaveScanner(AmpelWizard):
         red_patch = mpatches.Patch(color='red', label='Not observed')
         plt.legend(handles=[red_patch])
 
-        print("In total, {0} % of the LIGO contour was observed at least twice. \n"
-              "THIS DOES NOT INCLUDE CHIP GAPS!!!".format(100*np.sum(probs)))
+        message = "In total, {0} % of the LIGO contour was observed at least twice. \n" \
+                  "THIS DOES NOT INCLUDE CHIP GAPS!!!".format(100*np.sum(probs))
+
+        print(message)
+        return fig, message
 
     def interpolate_map(self, ra_deg, dec_deg):
         colat = np.pi / 2. - np.radians(dec_deg)
