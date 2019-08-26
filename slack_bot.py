@@ -118,7 +118,7 @@ def run_on_event(data, web_client):
             icon_emoji=':ligo:',
             text="<@{0}>, I'm all finished. Go find that kilonova!".format(data["user"])
         )
-    except KeyError as e:
+    except ValueError as e:
         web_client.chat_postMessage(
             channel=channel_id,
             text="Sorry <@{0}>, we need to talk. It's not you, it's me. I have run into an error, and cannot process your request further. I wish you the best of luck in all your future endeavours. \n, `{1}`. ".format(data["user"], e),
@@ -131,7 +131,6 @@ keywords = ["<@UMNJK00CU>", "LIGO", "banana"]
 @RTMClient.run_on(event="message")
 def say_hello(**payload):
     data = payload['data']
-    print(data.items())
     web_client = payload['web_client']
     try:
         if not np.logical_and(np.sum([x in data['text'] for x in keywords]) == 0, "DMBKJG00K" not in data["channel"]):

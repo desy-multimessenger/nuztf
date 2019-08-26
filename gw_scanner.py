@@ -10,7 +10,11 @@ from pathlib import Path
 import requests
 import lxml.etree
 from astropy.io import fits
+from astropy_healpix import HEALPix
+from astropy.coordinates import SkyCoord
 import matplotlib.patches as mpatches
+import fitsio
+from astropy import units as u
 
 # Setup LIGO client
 
@@ -65,13 +69,13 @@ class GravWaveScanner(AmpelWizard):
             self.output_path = "{0}/{1}_{2}.pdf".format(
                 ligo_candidate_output_dir, gw_file.split(".")[0], self.prob_threshold)
 
-        self.data, t_obs = self.read_map()
+        self.data, t_obs, self.hpm = self.read_map()
 
         t_min = Time(t_obs, format="isot", scale="utc")
 
         print("MERGER TIME: {0}".format(t_min))
+        print("Reading map")
 
-        self.prob_map = hp.read_map(self.gw_path)
         self.pixel_threshold = self.find_pixel_threshold(self.data["PROB"])
         self.map_coords, self.map_probs, self.ligo_nside = self.unpack_skymap()
         AmpelWizard.__init__(self, run_config=gw_run_config, t_min=t_min, logger=logger, cone_nside=cone_nside)
@@ -86,6 +90,7 @@ class GravWaveScanner(AmpelWizard):
         # Veto old transients
         if res["candidate"]["jdstarthist"] < self.t_min.jd:
             return False
+
 
         # Check contour
         if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
@@ -176,13 +181,16 @@ class GravWaveScanner(AmpelWizard):
 
     def read_map(self, ):
         print("Reading file: {0}".format(self.gw_path))
-        with fits.open(self.gw_path) as hdul:
-            print("Opened file")
-            t_obs = hdul[1].header["DATE-OBS"]
-            print("read merger time")
-            data = hdul[1].data
-            print("Read data")
-        return data, t_obs
+        data, h = fitsio.read(self.gw_path, header=True)#columns=["PROB"],
+        t_obs = h["DATE-OBS"]
+        hpm = HEALPix(nside=h["NSIDE"], order=h["ORDERING"], frame='icrs')
+        # with fits.open(self.gw_path) as hdul:
+        #     print("Opened file")
+        #     t_obs = hdul[1].header["DATE-OBS"]
+        #     print("read merger time")
+        #     data = hdul[1].data
+        #     print("Read data")
+        return data, t_obs, hpm
 
     def find_pixel_threshold(self, data):
         print("")
@@ -318,10 +326,16 @@ class GravWaveScanner(AmpelWizard):
         print(message)
         return fig, message
 
+    # def interpolate_map(self, ra_deg, dec_deg):
+    #     colat = np.pi / 2. - np.radians(dec_deg)
+    #     long = np.radians(ra_deg)
+    #     return hp.pixelfunc.get_interp_val(self.prob_map, colat, long)
+
     def interpolate_map(self, ra_deg, dec_deg):
-        colat = np.pi / 2. - np.radians(dec_deg)
-        long = np.radians(ra_deg)
-        return hp.pixelfunc.get_interp_val(self.prob_map, colat, long)
+        # colat = np.pi / 2. - np.radians(dec_deg)
+        # long = np.radians(ra_deg)
+        # coord = SkyCoord(ra_deg * u.deg, dec_deg * u.deg)
+        return self.hpm.interpolate_bilinear_skycoord(SkyCoord(ra_deg * u.deg, dec_deg * u.deg), self.data["PROB"])
 
     def in_contour(self, ra_deg, dec_deg):
         return self.interpolate_map(ra_deg, dec_deg) > self.pixel_threshold
