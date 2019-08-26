@@ -52,7 +52,8 @@ def run_on_event(data, web_client):
             if np.sum([y.isdigit() for y in x[1:7]]) == 6:
                 gw_name = x
         elif ".fits" in x:
-            gw_file = x
+            print(gw_file)
+            gw_file = x[1:-1]
         elif "rev" in x:
             rev_no = int(x.split("=")[1])
         elif "prob_threshold" in x:
