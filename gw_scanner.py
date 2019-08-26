@@ -66,8 +66,8 @@ class GravWaveScanner(AmpelWizard):
             self.gw_path, self.output_path = self.get_superevent(gw_name, rev)
 
         else:
-            print(gw_file)
-            self.gw_path = "{0}/{1}".format(base_ligo_dir, os.path.basename(gw_file))
+            # print(gw_file)
+            self.gw_path = "{0}/{1}".format(base_ligo_dir, os.path.basename(gw_file[7:]))
             wget.download(gw_file, self.gw_path)
             # with open(self.gw_path, "wb") as f:
             #     r = requests.get(gw_file, allow_redirects=True)
