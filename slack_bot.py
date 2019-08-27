@@ -124,17 +124,20 @@ def run_on_event(data, web_client):
             icon_emoji=':ligo:'
         )
 
-keywords = ["<@UMNJK00CU>", "LIGO", "banana"]
+ampel_bot_user = "UMNJK00CU"
+
+keywords = ["<@{0}>".format(ampel_bot_user), "LIGO", "banana"]
 
 @RTMClient.run_on(event="message")
 def say_hello(**payload):
     data = payload['data']
     web_client = payload['web_client']
-    try:
-        if not np.logical_and(np.sum([x in data['text'] for x in keywords]) == 0, "DMBKJG00K" not in data["channel"]):
-            run_on_event(data, web_client)
-    except KeyError:
-        pass 
+    if data["user"] != ampel_bot_user:
+        try:
+            if not np.logical_and(np.sum([x in data['text'] for x in keywords]) == 0, "DMBKJG00K" not in data["channel"]):
+                run_on_event(data, web_client)
+        except KeyError:
+            pass 
 # slack_token = os.environ["SLACK_API_TOKEN"]
 rtm_client = RTMClient(token=access_token)
 rtm_client.start()
