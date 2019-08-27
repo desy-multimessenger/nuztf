@@ -280,7 +280,10 @@ class GravWaveScanner(AmpelWizard):
 
         probs = []
 
-        decs = list(self.get_multi_night_summary().data["dec"])
+        ras = np.degrees(self.wrap_around_180(np.array([
+            np.radians(float(x)) for x in self.get_multi_night_summary().data["ra"]])))
+
+        # map_ras = np.array([x for (x, y) in self.map_coords])
 
         plot_ras = []
         plot_decs = []
@@ -288,16 +291,19 @@ class GravWaveScanner(AmpelWizard):
         veto_ras = []
         veto_decs = []
 
+
+
         for j, (ra, dec) in enumerate(tqdm(self.map_coords)):
             ra_deg = np.degrees(ra)
+            # ra_deg = self.wrap_around_180(np.array(np.degrees(ra)))
             dec_deg = np.degrees(dec)
             ztf_rad = 3.5 / np.cos(dec)
 
             n_obs = 0
 
-            for i, x in enumerate(self.get_multi_night_summary().data["ra"]):
-                if np.logical_and(not ra_deg < float(x) - ztf_rad, not ra_deg > float(x) + ztf_rad):
-                    if np.logical_and(not dec_deg < float(decs[i]) - ztf_rad, not dec_deg > float(decs[i]) + ztf_rad):
+            for i, x in enumerate(self.get_multi_night_summary().data["dec"]):
+                if np.logical_and(not dec_deg < float(x) - ztf_rad, not dec_deg > float(x) + ztf_rad):
+                    if np.logical_and(not ra_deg < float(ras[i]) - ztf_rad, not ra_deg > float(ras[i]) + ztf_rad):
                         n_obs += 1
 
             if n_obs > 1:
@@ -308,6 +314,10 @@ class GravWaveScanner(AmpelWizard):
             else:
                 veto_ras.append(ra)
                 veto_decs.append(dec)
+
+        print(max(self.get_multi_night_summary().data["ra"]), min(self.get_multi_night_summary().data["ra"]))
+        print(max(plot_ras), max(plot_decs))
+        input("?")
 
         size = 1e-4
 
