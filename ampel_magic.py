@@ -133,7 +133,6 @@ class MultiNightSummary(query._ZTFTableHandler_):
         except IndexError:
             return None
 
-
 class AmpelWizard:
 
     def __init__(self, run_config, t_min, logger=None, base_config=None, filter_class=DecentFilter, cone_nside=64,):
