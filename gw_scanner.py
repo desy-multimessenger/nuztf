@@ -16,6 +16,7 @@ import matplotlib.patches as mpatches
 import fitsio
 from astropy import units as u
 import wget
+from numpy.lib.recfunctions import append_fields
 
 # Setup LIGO client
 
@@ -70,14 +71,14 @@ class GravWaveScanner(AmpelWizard):
             wget.download(gw_file, self.gw_path)
             self.output_path = "{0}/{1}_{2}.pdf".format(
                 ligo_candidate_output_dir, os.path.basename(gw_file), self.prob_threshold)
-        self.data, t_obs, self.hpm = self.read_map()
+        self.data, t_obs, self.hpm, self.key = self.read_map()
 
         t_min = Time(t_obs, format="isot", scale="utc")
 
         print("MERGER TIME: {0}".format(t_min))
         print("Reading map")
 
-        self.pixel_threshold = self.find_pixel_threshold(self.data["PROB"])
+        self.pixel_threshold = self.find_pixel_threshold(self.data[self.key])
         self.map_coords, self.map_probs, self.ligo_nside = self.unpack_skymap()
         AmpelWizard.__init__(self, run_config=gw_run_config, t_min=t_min, logger=logger, cone_nside=cone_nside)
         self.default_t_max = Time.now()
@@ -183,18 +184,32 @@ class GravWaveScanner(AmpelWizard):
     def read_map(self, ):
         print("Reading file: {0}".format(self.gw_path))
         data, h = fitsio.read(self.gw_path, header=True)#columns=["PROB"],
-        t_obs = h["DATE-OBS"]
+        if "DATE-OBS" not in h:
+            t_obs = fitsio.read_header(self.gw_path)["DATE-OBS"]
+        else:
+            t_obs = h["DATE-OBS"]
+
+        if "PROB" in data.dtype.names:
+            key = "PROB"
+        elif 'PROBABILITY' in data.dtype.names:
+            key = 'PROB'
+            prob = np.array([np.sum(x) for x in data["PROBABILITY"]])
+            print("PROB sum", np.sum(prob))
+            data = append_fields(data, "PROB", prob)
+        else:
+            raise Exception("No recognised probability key in map. This is probably a weird one, right?")
+
         hpm = HEALPix(nside=h["NSIDE"], order=h["ORDERING"], frame='icrs')
         # with fits.open(self.gw_path) as hdul:
         #     print("Opened file")
-        #     t_obs = hdul[1].header["DATE-OBS"]
+        #     t_obs = hdul[0].header
+        #     print(t_obs)
         #     print("read merger time")
         #     data = hdul[1].data
         #     print("Read data")
-        return data, t_obs, hpm
+        return data, t_obs, hpm, key
 
     def find_pixel_threshold(self, data):
-        print("")
         ranked_pixels = np.sort(data)[::-1]
         int_sum = 0.0
         pixel_threshold = 0.0
@@ -212,11 +227,11 @@ class GravWaveScanner(AmpelWizard):
 
     def unpack_skymap(self):
 
-        ligo_nside = hp.npix2nside(len(self.data["PROB"]))
+        ligo_nside = hp.npix2nside(len(self.data[self.key]))
 
-        threshold = self.find_pixel_threshold(self.data["PROB"])
+        threshold = self.find_pixel_threshold(self.data[self.key])
 
-        mask = self.data["PROB"] > threshold
+        mask = self.data[self.key] > threshold
 
         map_coords = []
 
@@ -232,7 +247,7 @@ class GravWaveScanner(AmpelWizard):
         map_coords = np.array(map_coords, dtype=np.dtype([("ra", np.float),
                                                           ("dec", np.float)]))
 
-        return map_coords, self.data["PROB"][mask], ligo_nside
+        return map_coords, self.data[self.key][mask], ligo_nside
 
     def find_cone_coords(self):
         cone_ids = []
@@ -262,10 +277,12 @@ class GravWaveScanner(AmpelWizard):
         fig = plt.figure()
         plt.subplot(211, projection="aitoff")
 
-        mask = self.data["PROB"] > self.pixel_threshold
+        mask = self.data[self.key] > self.pixel_threshold
+
+        size = hp.max_pixrad(self.ligo_nside, degrees=True) ** 2
 
         sc = plt.scatter(self.wrap_around_180(self.map_coords["ra"]), self.map_coords["dec"],
-                         c=self.data["PROB"][mask], vmin=0., vmax=max(self.data["PROB"]), s=1e-4)
+                         c=self.data["PROB"][mask], vmin=0., vmax=max(self.data[self.key]), s=size)
         plt.title("LIGO SKYMAP")
 
         plt.subplot(212, projection="aitoff")
@@ -283,15 +300,11 @@ class GravWaveScanner(AmpelWizard):
         ras = np.degrees(self.wrap_around_180(np.array([
             np.radians(float(x)) for x in self.get_multi_night_summary().data["ra"]])))
 
-        # map_ras = np.array([x for (x, y) in self.map_coords])
-
         plot_ras = []
         plot_decs = []
 
         veto_ras = []
         veto_decs = []
-
-
 
         for j, (ra, dec) in enumerate(tqdm(self.map_coords)):
             ra_deg = np.degrees(ra)
@@ -315,16 +328,12 @@ class GravWaveScanner(AmpelWizard):
                 veto_ras.append(ra)
                 veto_decs.append(dec)
 
-        print(max(self.get_multi_night_summary().data["ra"]), min(self.get_multi_night_summary().data["ra"]))
-        print(max(plot_ras), max(plot_decs))
-        input("?")
+        size = hp.max_pixrad(self.ligo_nside, degrees=True)**2
 
-        size = 1e-4
-
-        size = 1e2/(self.ligo_nside**2)
+        # print(hp.max_pixrad(self.ligo_nside, degrees=True)**2 * np.pi, size)
 
         plt.scatter(self.wrap_around_180(np.array([plot_ras])), plot_decs,
-                    c=probs, vmin=0., vmax=max(self.data["PROB"]), s=size)
+                    c=probs, vmin=0., vmax=max(self.data[self.key]), s=size)
 
         plt.scatter(self.wrap_around_180(np.array([veto_ras])), veto_decs, color="red", s=size)
 
@@ -346,7 +355,7 @@ class GravWaveScanner(AmpelWizard):
         # colat = np.pi / 2. - np.radians(dec_deg)
         # long = np.radians(ra_deg)
         # coord = SkyCoord(ra_deg * u.deg, dec_deg * u.deg)
-        return self.hpm.interpolate_bilinear_skycoord(SkyCoord(ra_deg * u.deg, dec_deg * u.deg), self.data["PROB"])
+        return self.hpm.interpolate_bilinear_skycoord(SkyCoord(ra_deg * u.deg, dec_deg * u.deg), self.data[self.key])
 
     def in_contour(self, ra_deg, dec_deg):
         return self.interpolate_map(ra_deg, dec_deg) > self.pixel_threshold
