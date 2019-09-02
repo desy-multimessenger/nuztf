@@ -90,7 +90,7 @@ class MultiGwProcessor(GravWaveScanner):
 
         t_max = self.default_t_max
 
-        for i, cone_id in enumerate(tqdm(list(self.cone_ids[:300]))):
+        for i, cone_id in enumerate(tqdm(list(self.cone_ids))):
             self.scanned_pixels.append(cone_id)
             ra, dec = self.cone_coords[i]
             ztf_object = ampel_client.get_alerts_in_cone(
