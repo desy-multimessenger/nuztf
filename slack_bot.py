@@ -46,39 +46,46 @@ def run_on_event(data, web_client):
     gw_file = None
     rev_no = None
     prob_threshold = 0.9
+    try:
+        for x in split_message:
+            if len(x) > 0:
+                if x[0] in ["s", "S"]:
+                    if np.sum([y.isdigit() for y in x[1:7]]) == 6:
+                        gw_name = x
+                elif ".fits" in x:
+                    print(gw_file)
+                    gw_file = x[1:-1]
+                elif "rev" in x:
+                    rev_no = int(x.split("=")[1])
+                elif "prob_threshold" in x:
+                    prob_threshold = float(x.split("=")[1])     
 
-    for x in split_message:
-        if x[0] in ["s", "S"]:
-            if np.sum([y.isdigit() for y in x[1:7]]) == 6:
-                gw_name = x
-        elif ".fits" in x:
-            print(gw_file)
-            gw_file = x[1:-1]
-        elif "rev" in x:
-            rev_no = int(x.split("=")[1])
-        elif "prob_threshold" in x:
-            prob_threshold = float(x.split("=")[1])     
 
-    message = ""
 
-    if gw_name is not None:
-        message = "You are interested in LIGO event {0}. ".format(gw_name)
+        message = ""
 
-    if gw_file is not None:
         if gw_name is not None:
-            message = "You have also specified a fits file. The fits file will be used.  "
+            message = "You are interested in LIGO event {0}. ".format(gw_name)
+
+        if gw_file is not None:
+            if gw_name is not None:
+                message = "You have also specified a fits file. The fits file will be used.  "
+            else:
+                message = "You are interested in the following fits fille: {0}. ".format(gw_file)
+
+        if message == "":
+            message = "No file was specified. I will just assume that you want the most recent LIGO event. "
+
+        if rev_no is not None:
+            if gw_name is not None:
+                message += "You have specified revision number {0}. ".format(rev_no)
         else:
-            message = "You are interested in the following fits fille: {0}. ".format(gw_file)
-
-    if message == "":
-        message = "No file was specified. I will just assume that you want the most recent LIGO event. "
-
-    if rev_no is not None:
-        message += "You have specified revision number {0}. ".format(rev_no)
-    else:
-        message += "No revision number has been specified. I will just take the most recent revision for this event. "
+            message += "No revision number has been specified. I will just take the most recent revision for this event. "
     
-    message += "The LIGO Skymap will be scanned up to {0}% of the probability.".format(100. * prob_threshold)
+        message += "The LIGO Skymap will be scanned up to {0}% of the probability.".format(100. * prob_threshold)
+
+    except:
+        message = "Sorry <@{0}>, I have run into a parsing error with your message. All your bases are belong to us. \n {1}".format(data["channel"], split_message)
 
     web_client.chat_postMessage(
         channel=channel_id,
@@ -124,7 +131,7 @@ def run_on_event(data, web_client):
             icon_emoji=':ligo:'
         )
 
-ampel_bot_user = "UMNJK00CU"
+ampel_bot_user = ["UMNJK00CU", "DMBKJG00K"]
 
 keywords = ["<@{0}>".format(ampel_bot_user), "LIGO", "banana"]
 
@@ -132,9 +139,9 @@ keywords = ["<@{0}>".format(ampel_bot_user), "LIGO", "banana"]
 def say_hello(**payload):
     data = payload['data']
     web_client = payload['web_client']
-    if data["user"] != ampel_bot_user:
+    if "user" in data.keys():
         try:
-            if not np.logical_and(np.sum([x in data['text'] for x in keywords]) == 0, "DMBKJG00K" not in data["channel"]):
+            if not np.logical_and(np.sum([x in data['text'] for x in keywords]) == 0, "DMBKJG00K" not in data["user"]):
                 run_on_event(data, web_client)
         except KeyError:
             pass 
