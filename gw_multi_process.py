@@ -99,14 +99,11 @@ class MultiGwProcessor(GravWaveScanner):
         with open(path, "rb") as f:
             pickle.dump(self.obj_names, f)
 
-    def fill_queue(self, max_cones=None):
-
-        if max_cones is None:
-            max_cones = len(self.cone_ids)
+    def fill_queue(self):
 
         t_max = self.default_t_max
 
-        time_steps = np.linspace(self.t_min.jd-10, t_max.jd, 1000)
+        time_steps = np.linspace(self.t_min.jd, t_max.jd, 1000)
 
         n_tot = 0
 
@@ -169,7 +166,7 @@ if __name__ == '__main__':
 
     r = MultiGwProcessor(n_cpu=cfg.n_cpu, logger=logger, prob_threshold=cfg.prob_threshold, fast_query=True)
     r.clean_cache()
-    r.fill_queue(max_cones=100)
+    r.fill_queue()
     r.terminate()
     r.combine_cache()
     # r.clean_cache()
