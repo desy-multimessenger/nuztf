@@ -45,12 +45,14 @@ class MultiGwProcessor(GravWaveScanner):
         self.mp_id = kwargs["id"]
 
         while True:
-            ztf_object = self.queue.get()
-            if ztf_object is None:
+            item = self.queue.get()
+            if item is None:
                 break
 
-            query_res = [x for x in ztf_object]
+            (j, mts, query_res) = item
             res = self.filter(query_res)
+
+            print("{0} of {1}".format(j, mts))
 
             self.obj_names += [x["objectId"] for x in res]
 
@@ -103,9 +105,12 @@ class MultiGwProcessor(GravWaveScanner):
 
         t_max = self.default_t_max
 
-        time_steps = np.linspace(self.t_min.jd, t_max.jd, 1000)
+        time_steps = np.arange(self.t_min.jd, t_max.jd, step=0.005)[:100]
+        mts = len(time_steps)
 
         n_tot = 0
+
+        print("Scanning between {0}JD and {1}JD".format(time_steps[0], time_steps[1]))
 
         for j, t_start in enumerate(tqdm(list(time_steps[:-1]))):
 
@@ -115,8 +120,10 @@ class MultiGwProcessor(GravWaveScanner):
             n_tot += len(query_res)
             # print(n_tot)
             # print(query_res, ra, dec)
-            r.add_to_queue(query_res)
+            r.add_to_queue((j, mts, query_res))
             self.scanned_pixels.append(j)
+
+        print("Added {0} candidates since {1}".format(n_tot, time_steps[0]))
 
     def terminate(self):
         """ wait until queue is empty and terminate processes """
