@@ -67,12 +67,9 @@ class MultiGwProcessor(GravWaveScanner):
         if res['candidate']['isdiffpos'] not in ["t", "1"]:
             return False
 
-        if np.random.random() < 0.99:
+        # Veto old transients
+        if res["candidate"]["jdstarthist"] < self.t_min.jd:
             return False
-
-        # # Veto old transients
-        # if res["candidate"]["jdstarthist"] < self.t_min.jd:
-        #     return False
 
         # # Check contour
         # if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
