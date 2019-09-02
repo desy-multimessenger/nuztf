@@ -135,7 +135,8 @@ class MultiNightSummary(query._ZTFTableHandler_):
 
 class AmpelWizard:
 
-    def __init__(self, run_config, t_min, logger=None, base_config=None, filter_class=DecentFilter, cone_nside=64,):
+    def __init__(self, run_config, t_min, logger=None, base_config=None, filter_class=DecentFilter, cone_nside=64,
+                 fast_query=False, cones_to_scan=None):
         self.cone_nside = cone_nside
         self.t_min = t_min
 
@@ -151,12 +152,19 @@ class AmpelWizard:
             self.output_path = None
 
         self.scanned_pixels = []
-        self.cone_ids, self.cone_coords = self.find_cone_coords()
+        if cones_to_scan is None:
+            self.cone_ids, self.cone_coords = self.find_cone_coords()
+        else:
+            self.cone_ids, self.cone_coords = cones_to_scan
         self.cache = dict()
         self.default_t_max = Time.now()
 
         self.mns_time = str(self.t_min).split("T")[0].replace("-", "")
         self.mns = None
+
+        if fast_query:
+            print("Scanning in fast mode!")
+            self.query_ampel = self.fast_query_ampel
 
     def filter_ampel(self, res):
         return self.ampel_filter_class.apply(AmpelAlert(res['objectId'], *self.dap._shape(res))) is not None
@@ -167,6 +175,10 @@ class AmpelWizard:
     def get_multi_night_summary(self):
         if self.mns is None:
             self.mns = MultiNightSummary(start_date=self.mns_time)
+            times = np.array([Time(self.mns.data["UT_START"].iat[i], format="isot", scale="utc")
+                     for i in range(len(self.mns.data))])
+            mask = times > self.t_min
+            self.mns.data = self.mns.data[mask]
         return self.mns
 
     def scan_cones(self, t_max=None, max_cones=None):
@@ -203,8 +215,14 @@ class AmpelWizard:
     def filter_f_no_prv(self, res):
         raise NotImplementedError
 
+    def fast_filter_f_no_prv(self, res):
+        return self.filter_f_no_prv(res)
+
     def filter_f_history(self, res):
         raise NotImplementedError
+
+    def fast_filter_f_history(self, res):
+        return self.filter_f_history(res)
 
     def find_cone_coords(self):
         raise NotImplementedError
@@ -235,6 +253,30 @@ class AmpelWizard:
         for res in query_res:
             if self.filter_f_history(res):
                 final_res.append(res)
+
+        return final_res
+
+    def fast_query_ampel(self, ra, dec, rad, t_max=None):
+
+        if t_max is None:
+            t_max = self.default_t_max
+
+        ztf_object = ampel_client.get_alerts_in_cone(
+            ra, dec, rad, self.t_min.jd, t_max.jd, with_history=False)
+        query_res = [i for i in ztf_object]
+
+        indexes = []
+        for i, res in enumerate(query_res):
+            if self.fast_filter_f_no_prv(res):
+                if self.filter_ampel(res) is not None:
+                    indexes.append(i)
+
+        final_res = [query_res[i] for i in indexes]
+        # final_res = []
+        #
+        # for res in query_res:
+        #     if self.fast_filter_f_history(res):
+        #         final_res.append(res)
 
         return final_res
 

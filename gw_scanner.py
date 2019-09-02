@@ -60,7 +60,8 @@ class RetractionError(Exception):
 
 class GravWaveScanner(AmpelWizard):
 
-    def __init__(self, gw_name=None, gw_file=None, rev=None, logger=None, prob_threshold=0.9, cone_nside=64):
+    def __init__(self, gw_name=None, gw_file=None, rev=None, logger=None, prob_threshold=0.9, cone_nside=64,
+                 fast_query=False):
         self.prob_threshold = prob_threshold
 
         if gw_file is None:
@@ -80,8 +81,11 @@ class GravWaveScanner(AmpelWizard):
 
         self.pixel_threshold = self.find_pixel_threshold(self.data[self.key])
         self.map_coords, self.map_probs, self.ligo_nside = self.unpack_skymap()
-        AmpelWizard.__init__(self, run_config=gw_run_config, t_min=t_min, logger=logger, cone_nside=cone_nside)
+        AmpelWizard.__init__(self, run_config=gw_run_config, t_min=t_min, logger=logger, cone_nside=cone_nside,
+                             fast_query=fast_query)
         self.default_t_max = Time.now()
+
+
 
     def filter_f_no_prv(self, res):
 
@@ -93,9 +97,24 @@ class GravWaveScanner(AmpelWizard):
         if res["candidate"]["jdstarthist"] < self.t_min.jd:
             return False
 
-
         # Check contour
         if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
+            return False
+
+        return True
+
+    def fast_filter_f_no_prv(self, res):
+
+        # Positive detection
+        if res['candidate']['isdiffpos'] not in ["t", "1"]:
+            return False
+
+        # Veto old transients
+        if res["candidate"]["jdstarthist"] < self.t_min.jd:
+            return False
+
+        # Require 2 detections separated by 15 mins
+        if (res["candidate"]["jdendhist"] - res["candidate"]["jdstarthist"]) < 0.01:
             return False
 
         return True
@@ -118,20 +137,6 @@ class GravWaveScanner(AmpelWizard):
 
         if len(pos_detections) < 1:
             return False
-
-        # times = [x["jd"] for x in pos_detections] + [res["candidate"]["jd"]]
-        #
-        # time_delta = max(times) - min(times)
-        #
-        # # Separated by 15 mins
-        #
-        # if time_delta < 0.01:
-        #     print("VETO was right!")
-        #     return False
-
-        #
-        # if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
-        #     return False
 
         return True
 
@@ -193,8 +198,7 @@ class GravWaveScanner(AmpelWizard):
             key = "PROB"
         elif 'PROBABILITY' in data.dtype.names:
             key = 'PROB'
-            prob = np.array([np.sum(x) for x in data["PROBABILITY"]])
-            print("PROB sum", np.sum(prob))
+            prob = np.array(data["PROBABILITY"]).flatten()
             data = append_fields(data, "PROB", prob)
         else:
             raise Exception("No recognised probability key in map. This is probably a weird one, right?")
@@ -281,13 +285,13 @@ class GravWaveScanner(AmpelWizard):
 
         size = hp.max_pixrad(self.ligo_nside, degrees=True) ** 2
 
-        sc = plt.scatter(self.wrap_around_180(self.map_coords["ra"]), self.map_coords["dec"],
-                         c=self.data["PROB"][mask], vmin=0., vmax=max(self.data[self.key]), s=size)
+        plt.scatter(self.wrap_around_180(self.map_coords["ra"]), self.map_coords["dec"],
+                         c=self.data[self.key][mask], vmin=0., vmax=max(self.data[self.key]), s=size)
         plt.title("LIGO SKYMAP")
 
         plt.subplot(212, projection="aitoff")
 
-        sc = plt.scatter(self.wrap_around_180(self.cone_coords["ra"]), self.cone_coords["dec"])
+        plt.scatter(self.wrap_around_180(self.cone_coords["ra"]), self.cone_coords["dec"])
         plt.title("CONE REGION")
         return fig
 
