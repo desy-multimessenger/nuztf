@@ -50,26 +50,28 @@ class MultiGwProcessor(GravWaveScanner):
                 break
 
             (j, mts, query_res) = item
+
+            print("{0} of {1} queries: Staring {2} alerts".format(j, mts, len(query_res)))
+
             res = self.filter(query_res)
 
-            print("{0} of {1}".format(j, mts))
+            print("{0} of {1} queries: {2} accepted out of {3} alerts".format(j, mts, len(res), len(query_res)))
 
             self.obj_names += [x["objectId"] for x in res]
+            if len(res) > 0:
+                self.dump_cache()
 
             # self.dump_cache(res)
             self.queue.task_done()
-
-        self.dump_cache()
 
     def filter(self, query_res):
 
         indexes = []
 
         for i, res in enumerate(query_res):
-            # print(i)
             if self.filter_f_no_prv(res):
-                if self.filter_ampel(res) is not None:
-                    indexes.append(i)
+                # if self.filter_ampel(res) is not None:
+                indexes.append(i)
 
         return [query_res[i] for i in indexes]
 
@@ -87,6 +89,10 @@ class MultiGwProcessor(GravWaveScanner):
         if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
             return False
 
+        # Require 2 detections separated by 15 mins
+        if (res["candidate"]["jdendhist"] - res["candidate"]["jdstarthist"]) < 0.01:
+            return False
+
         return True
 
     # def dump_cache(self, res):
@@ -98,19 +104,19 @@ class MultiGwProcessor(GravWaveScanner):
 
         path = os.path.join(self.cache_dir, "{0}.pkl".format(self.mp_id))
 
-        with open(path, "rb") as f:
+        with open(path, "wb") as f:
             pickle.dump(self.obj_names, f)
 
     def fill_queue(self):
 
         t_max = self.default_t_max
 
-        time_steps = np.arange(self.t_min.jd, t_max.jd, step=0.005)[:100]
+        time_steps = np.arange(self.t_min.jd, t_max.jd, step=0.005)
         mts = len(time_steps)
 
         n_tot = 0
 
-        print("Scanning between {0}JD and {1}JD".format(time_steps[0], time_steps[1]))
+        print("Scanning between {0}JD and {1}JD".format(time_steps[0], time_steps[-1]))
 
         for j, t_start in enumerate(tqdm(list(time_steps[:-1]))):
 
@@ -118,8 +124,6 @@ class MultiGwProcessor(GravWaveScanner):
                 jd_min=t_start, jd_max=time_steps[j+1], with_history=False)
             query_res = [x for x in ztf_object]
             n_tot += len(query_res)
-            # print(n_tot)
-            # print(query_res, ra, dec)
             r.add_to_queue((j, mts, query_res))
             self.scanned_pixels.append(j)
 
@@ -145,7 +149,20 @@ class MultiGwProcessor(GravWaveScanner):
         print("Scanned {0} pixels".format(len(self.scanned_pixels)))
         print("Found {0} candidates".format(len(self.obj_names)))
 
-        # self.create_candidate_summary()
+        ztf_object = ampel_client.get_alerts_for_object(self.obj_names, with_history=True)
+
+        query_res = [i for i in ztf_object]
+
+        query_res = self.merge_alerts(query_res)
+
+        self.cache = dict()
+
+        for res in tqdm(query_res):
+            if self.filter_f_history(res):
+                if self.filter_ampel(res) is not None:
+                    self.cache[res["objectId"]] = res
+
+        self.create_candidate_summary()
 
     def get_cache_file(self):
         return [os.path.join(self.cache_dir, x) for x in os.listdir(self.cache_dir) if ".pkl" in x]
@@ -166,13 +183,14 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", "--n_cpu", default=min(24, max(1, os.cpu_count()-1)))
-    parser.add_argument("-p", "--prob_threshold", default=0.9)
+    parser.add_argument("-p", "--prob_threshold", default=0.9, type=float)
     cfg = parser.parse_args()
 
     print("N CPU available", os.cpu_count())
+    print("Using {0} CPUs".format(cfg.n_cpu))
 
     r = MultiGwProcessor(n_cpu=cfg.n_cpu, logger=logger, prob_threshold=cfg.prob_threshold, fast_query=True)
-    r.clean_cache()
+    # r.clean_cache()
     r.fill_queue()
     r.terminate()
     r.combine_cache()
