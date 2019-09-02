@@ -78,12 +78,12 @@ class MultiGwProcessor(GravWaveScanner):
             return False
 
         # Veto old transients
-        # if res["candidate"]["jdstarthist"] < self.t_min.jd:
-        #     return False
+        if res["candidate"]["jdstarthist"] < self.t_min.jd:
+            return False
 
-        # # Check contour
-        # if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
-        #     return False
+        # Check contour
+        if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
+            return False
 
         return True
 
@@ -106,15 +106,20 @@ class MultiGwProcessor(GravWaveScanner):
 
         t_max = self.default_t_max
 
-        for k, cone_id in enumerate(tqdm(list(self.cone_ids)[:max_cones])):
-            if cone_id not in self.scanned_pixels:
-                ra, dec = self.cone_coords[k]
-                ztf_object = ampel_client.get_alerts_in_cone(
-                    np.degrees(ra), np.degrees(dec), self.scan_radius, self.t_min.jd-10, t_max.jd, with_history=False)
-                query_res = [x for x in ztf_object]
-                # print(query_res, ra, dec)
-                r.add_to_queue(query_res)
-                self.scanned_pixels.append(cone_id)
+        time_steps = np.linspace(self.t_min.jd-10, t_max.jd, 1000)
+
+        n_tot = 0
+
+        for j, t_start in enumerate(tqdm(list(time_steps[:-1]))):
+
+            ztf_object = ampel_client.get_alerts_in_time_range(
+                jd_min=t_start, jd_max=time_steps[j+1], with_history=False)
+            query_res = [x for x in ztf_object]
+            n_tot += len(query_res)
+            # print(n_tot)
+            # print(query_res, ra, dec)
+            r.add_to_queue(query_res)
+            self.scanned_pixels.append(j)
 
     def terminate(self):
         """ wait until queue is empty and terminate processes """
