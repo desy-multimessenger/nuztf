@@ -80,7 +80,7 @@ class GravWaveScanner(AmpelWizard):
         print("Reading map")
 
         self.pixel_threshold = self.find_pixel_threshold(self.data[self.key])
-        self.map_coords, self.map_probs, self.ligo_nside = self.unpack_skymap()
+        self.map_coords, self.map_probs, self.ligo_nside, self.pixel_area = self.unpack_skymap()
         AmpelWizard.__init__(self, run_config=gw_run_config, t_min=t_min, logger=logger, cone_nside=cone_nside,
                              fast_query=fast_query)
         self.default_t_max = Time.now()
@@ -245,13 +245,14 @@ class GravWaveScanner(AmpelWizard):
             if mask[i]:
                 map_coords.append(self.extract_ra_dec(ligo_nside, i))
 
-        print("Total pixel area: {0} degrees".format(
-            hp.nside2pixarea(ligo_nside, degrees=True) * float(len(map_coords))))
+        pixel_area = hp.nside2pixarea(ligo_nside, degrees=True) * float(len(map_coords))
+
+        print("Total pixel area: {0} degrees".format(pixel_area))
 
         map_coords = np.array(map_coords, dtype=np.dtype([("ra", np.float),
                                                           ("dec", np.float)]))
 
-        return map_coords, self.data[self.key][mask], ligo_nside
+        return map_coords, self.data[self.key][mask], ligo_nside, pixel_area
 
     def find_cone_coords(self):
         cone_ids = []
@@ -300,21 +301,31 @@ class GravWaveScanner(AmpelWizard):
         plt.subplot(projection="aitoff")
 
         probs = []
+        single_probs = []
 
         ras = np.degrees(self.wrap_around_180(np.array([
             np.radians(float(x)) for x in self.get_multi_night_summary().data["ra"]])))
 
+        fields = list(self.get_multi_night_summary().data["field"])
+
         plot_ras = []
         plot_decs = []
+
+        single_ras = []
+        single_decs = []
 
         veto_ras = []
         veto_decs = []
 
+        overlapping_fields = []
+
+        base_ztf_rad = 3.5
+
         for j, (ra, dec) in enumerate(tqdm(self.map_coords)):
-            ra_deg = np.degrees(ra)
+            ra_deg = np.degrees(self.wrap_around_180(np.array([ra])))
             # ra_deg = self.wrap_around_180(np.array(np.degrees(ra)))
             dec_deg = np.degrees(dec)
-            ztf_rad = 3.5 / np.cos(dec)
+            ztf_rad = base_ztf_rad / np.cos(dec)
 
             n_obs = 0
 
@@ -322,15 +333,25 @@ class GravWaveScanner(AmpelWizard):
                 if np.logical_and(not dec_deg < float(x) - ztf_rad, not dec_deg > float(x) + ztf_rad):
                     if np.logical_and(not ra_deg < float(ras[i]) - ztf_rad, not ra_deg > float(ras[i]) + ztf_rad):
                         n_obs += 1
+                        fid = fields[i]
+                        if fid not in overlapping_fields:
+                            overlapping_fields.append(fields[i])
 
             if n_obs > 1:
                 probs.append(self.map_probs[j])
                 plot_ras.append(ra)
                 plot_decs.append(dec)
 
+            elif n_obs > 0:
+                single_probs.append(self.map_probs[j])
+                single_ras.append(ra)
+                single_decs.append(dec)
+
             else:
                 veto_ras.append(ra)
                 veto_decs.append(dec)
+
+        overlapping_fields = list(set(overlapping_fields))
 
         size = hp.max_pixrad(self.ligo_nside, degrees=True)**2
 
@@ -339,15 +360,26 @@ class GravWaveScanner(AmpelWizard):
         plt.scatter(self.wrap_around_180(np.array([plot_ras])), plot_decs,
                     c=probs, vmin=0., vmax=max(self.data[self.key]), s=size)
 
+        plt.scatter(self.wrap_around_180(np.array([single_ras])), single_decs,
+                    c=single_probs, vmin=0., vmax=max(self.data[self.key]), s=size, cmap='gray')
+
         plt.scatter(self.wrap_around_180(np.array([veto_ras])), veto_decs, color="red", s=size)
 
         red_patch = mpatches.Patch(color='red', label='Not observed')
-        plt.legend(handles=[red_patch])
+        gray_patch = mpatches.Patch(color='gray', label='Observed once')
+        plt.legend(handles=[red_patch, gray_patch])
 
-        message = "In total, {0} % of the LIGO contour was observed at least twice. \n" \
-                  "THIS DOES NOT INCLUDE CHIP GAPS!!!".format(100*np.sum(probs))
+        message = "In total, {0} % of the LIGO contour was observed at least once. \n " \
+                  "In total, {1} % of the LIGO contour was observed at least twice. \n" \
+                  "THIS DOES NOT INCLUDE CHIP GAPS!!!".format(
+            100 * (np.sum(probs) + np.sum(single_probs)), 100*np.sum(probs))
 
         print(message)
+
+        area = (2. * base_ztf_rad)**2 * float(len(overlapping_fields))
+
+        print("{0} fields were covered, covering approximately {1} sq deg.".format(
+            len(overlapping_fields), area))
         return fig, message
 
     # def interpolate_map(self, ra_deg, dec_deg):

@@ -104,15 +104,18 @@ class MultiNightSummary(query._ZTFTableHandler_):
         missing_nights = []
 
         for night in tqdm(self.nights):
-            new_ns = self.get_ztf_data(night)
+            try:
+                new_ns = self.get_ztf_data(night)
 
-            if ns is None:
-                ns = new_ns
+                if ns is None:
+                    ns = new_ns
 
-            if new_ns is not None:
-                ns.data = ns.data.append(new_ns.data)
-            else:
-                missing_nights.append(night)
+                if new_ns is not None:
+                    ns.data = ns.data.append(new_ns.data)
+                else:
+                    missing_nights.append(night)
+            except ValueError:
+                pass
 
         return ns.data, missing_nights
 

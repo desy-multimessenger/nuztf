@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import io
 import os
 from gw_scanner import GravWaveScanner
+from gw_multi_process import MultiGwProcessor
 
 try:
     with open(".slack_access_token.txt", "r") as f:
@@ -98,10 +99,20 @@ def run_on_event(data, web_client):
     logger.setLevel(logging.ERROR)
 
     try:
-        gw = GravWaveScanner(gw_name=gw_name, gw_file=gw_file, rev=rev_no, logger=logger)
+        gw = MultiGwProcessor(gw_name=gw_name, gw_file=gw_file, rev=rev_no, logger=logger)
+        web_client.chat_postMessage(
+            channel=channel_id,
+            text="Scanning method: {0} \n Effective sky number: {1}".format(gw.scan_method, gw.n_sky),
+            thread_ts=thread_ts,
+            icon_emoji=':ligo:'
+        )
         fig = gw.plot_skymap()
         upload_fig(fig, web_client, data, "LIGO_skymap.png")
-        gw.scan_cones()
+        gw.clean_cache()
+        gw.fill_queue()
+        gw.terminate()
+        gw.combine_cache()
+        gw.clean_cache()
         web_client.files_upload(
             file=gw.output_path,
             filename=os.path.basename(gw.output_path),
