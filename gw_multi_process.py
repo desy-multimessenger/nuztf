@@ -51,11 +51,11 @@ class MultiGwProcessor(GravWaveScanner):
 
             (j, mts, query_res) = item
 
-            print("{0} of {1} queries: Staring {2} alerts".format(j, mts, len(query_res)))
+            # print("{0} of {1} queries: Staring {2} alerts".format(j, mts, len(query_res)))
 
             res = self.filter(query_res)
 
-            print("{0} of {1} queries: {2} accepted out of {3} alerts".format(j, mts, len(res), len(query_res)))
+            # print("{0} of {1} queries: {2} accepted out of {3} alerts".format(j, mts, len(res), len(query_res)))
 
             self.obj_names += [x["objectId"] for x in res]
             if len(res) > 0:
@@ -189,9 +189,10 @@ if __name__ == '__main__':
     print("N CPU available", os.cpu_count())
     print("Using {0} CPUs".format(cfg.n_cpu))
 
-    r = MultiGwProcessor(n_cpu=cfg.n_cpu, logger=logger, prob_threshold=cfg.prob_threshold, fast_query=True)
-    # r.clean_cache()
-    r.fill_queue()
-    r.terminate()
-    r.combine_cache()
-    # r.clean_cache()
+    gw = MultiGwProcessor(n_cpu=cfg.n_cpu, logger=logger, prob_threshold=cfg.prob_threshold, fast_query=True)
+    gw.clean_cache()
+    gw.fill_queue()
+    gw.terminate()
+    gw.combine_cache()
+    gw.clean_cache()
+    gw.plot_ztf_observations()
