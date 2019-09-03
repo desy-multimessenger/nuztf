@@ -1,7 +1,7 @@
 import numpy as np
 import os
 from slack import RTMClient, WebClient
-from slack_bot import access_token
+from slack_bot import bot_access_token
 
 submit_file = os.path.join(os.path.dirname(os.path.abspath(__file__)) + "/spawn_tmux_session.sh")
 
@@ -29,5 +29,5 @@ def say_hello(**payload):
 
 if __name__ == "__main__":
     print("Running master client!")
-    rtm_client = RTMClient(token=access_token)
+    rtm_client = RTMClient(token=bot_access_token)
     rtm_client.start()
