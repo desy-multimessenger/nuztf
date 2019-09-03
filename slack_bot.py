@@ -8,12 +8,14 @@ import os
 from gw_scanner import GravWaveScanner
 from gw_multi_process import MultiGwProcessor
 
+slack_token = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".slack_access_token.txt")
+
 try:
-    with open(".slack_access_token.txt", "r") as f:
+    with open(slack_token, "r") as f:
         access_token = f.read()
 except FileNotFoundError:
     access_token = getpass.getpass(prompt='Slack Access Token: ', stream=None)
-    with open(".slack_access_token.txt", "wb") as f:
+    with open(slack_token, "wb") as f:
         f.write(access_token.encode())
 
 
@@ -31,16 +33,31 @@ def upload_fig(fig, web_client, data, filename):
     )
     #fig.close()
 
-def run_on_event(data, web_client):
-    channel_id = data['channel']
-    thread_ts = data['ts']
-    user = data['user']
-    web_client.chat_postMessage(
+def run_on_event(thread_ts, channel_id):
+
+    web_client = WebClient(token=access_token)
+
+    payload = web_client.conversations_history(
         channel=channel_id,
-        text=f"Hi <@{user}>! You are interested in LIGO stuff, right? Let me get right on that for you.",
+        oldest=str(float(thread_ts) - 1.e-6),
+        latest=str(float(thread_ts) + 1.e-6)
+    )
+
+    data = payload["messages"][0]
+
+    print(web_client.conversations_history(
+        channel=channel_id,
+        oldest=str(float(thread_ts) - 1.e-6),
+        latest=str(float(thread_ts) + 1.e-6)
+    ))
+
+    user = data['user']
+    print(web_client.chat_postMessage(
+        channel=channel_id,
+        text="Hi <@{0}>! You are interested in LIGO stuff, right? Let me get right on that for you.".format(user),
         thread_ts=thread_ts,
         icon_emoji=':ligo:'
-    )
+    ))
     split_message = data['text'].split(" ")
 
     gw_name = None
@@ -98,65 +115,79 @@ def run_on_event(data, web_client):
     logger = logging.getLogger("quiet_logger")
     logger.setLevel(logging.ERROR)
 
-    try:
-        gw = MultiGwProcessor(gw_name=gw_name, gw_file=gw_file, rev=rev_no, logger=logger)
-        web_client.chat_postMessage(
-            channel=channel_id,
-            text="Scanning method: {0} \n Effective sky number: {1}".format(gw.scan_method, gw.n_sky),
-            thread_ts=thread_ts,
-            icon_emoji=':ligo:'
-        )
-        fig = gw.plot_skymap()
-        upload_fig(fig, web_client, data, "LIGO_skymap.png")
-        gw.clean_cache()
-        gw.fill_queue()
-        gw.terminate()
-        gw.combine_cache()
-        gw.clean_cache()
-        web_client.files_upload(
-            file=gw.output_path,
-            filename=os.path.basename(gw.output_path),
-            channels=data['channel'],
-            thread_ts=data['ts'],
-            icon_emoji=':ligo:'
-        )
-        fig, overlap = gw.plot_overlap_with_observations()
-        web_client.chat_postMessage(
-            channel=channel_id,
-            text=overlap,
-            thread_ts=thread_ts,
-            icon_emoji=':ligo:'
-        )
-        upload_fig(fig, web_client, data, "LIGO_overlap.png")
-        web_client.chat_postMessage(
-            channel=data['channel'],
-            thread_ts=data['ts'],
-            icon_emoji=':ligo:',
-            text="<@{0}>, I'm all finished. Go find that kilonova!".format(data["user"])
-        )
-        del gw
-    except Exception as e:
-        web_client.chat_postMessage(
-            channel=channel_id,
-            text="Sorry <@{0}>, we need to talk. It's not you, it's me. I have run into an error, and cannot process your request further. I wish you the best of luck in all your future endeavours. \n\n `{1}`. ".format(data["user"], e),
-            thread_ts=thread_ts,
-            icon_emoji=':ligo:'
-        )
+    # try:
+    #     gw = MultiGwProcessor(gw_name=gw_name, gw_file=gw_file, rev=rev_no, logger=logger)
+    #     web_client.chat_postMessage(
+    #         channel=channel_id,
+    #         text="Scanning method: {0} \n Effective sky number: {1}".format(gw.scan_method, gw.n_sky),
+    #         thread_ts=thread_ts,
+    #         icon_emoji=':ligo:'
+    #     )
+    #     fig = gw.plot_skymap()
+    #     upload_fig(fig, web_client, data, "LIGO_skymap.png")
+    #     # gw.clean_cache()
+    #     # gw.fill_queue()
+    #     # gw.terminate()
+    #     # gw.combine_cache()
+    #     # gw.clean_cache()
+    #     # web_client.files_upload(
+    #     #     file=gw.output_path,
+    #     #     filename=os.path.basename(gw.output_path),
+    #     #     channels=data['channel'],
+    #     #     thread_ts=data['ts'],
+    #     #     icon_emoji=':ligo:'
+    #     # )
+    #     # fig, overlap = gw.plot_overlap_with_observations()
+    #     # web_client.chat_postMessage(
+    #     #     channel=channel_id,
+    #     #     text=overlap,
+    #     #     thread_ts=thread_ts,
+    #     #     icon_emoji=':ligo:'
+    #     # )
+    #     # upload_fig(fig, web_client, data, "LIGO_overlap.png")
+    #     web_client.chat_postMessage(
+    #         channel=data['channel'],
+    #         thread_ts=data['ts'],
+    #         icon_emoji=':ligo:',
+    #         text="<@{0}>, I'm all finished. Go find that kilonova!".format(data["user"])
+    #     )
+    #     del gw
+    # except Exception as e:
+    #     web_client.chat_postMessage(
+    #         channel=channel_id,
+    #         text="Sorry <@{0}>, we need to talk. It's not you, it's me. I have run into an error, and cannot process your request further. I wish you the best of luck in all your future endeavours. \n\n `{1}`. ".format(data["user"], e),
+    #         thread_ts=thread_ts,
+    #         icon_emoji=':ligo:'
+    #     )
+    print("Done!")
 
-ampel_bot_user = ["UMNJK00CU", "DMBKJG00K"]
 
-keywords = ["<@{0}>".format(ampel_bot_user), "LIGO", "banana"]
 
-@RTMClient.run_on(event="message")
-def say_hello(**payload):
-    data = payload['data']
-    web_client = payload['web_client']
-    if "user" in data.keys():
-        try:
-            if not np.logical_and(np.sum([x in data['text'] for x in keywords]) == 0, "DMBKJG00K" not in data["user"]):
-                run_on_event(data, web_client)
-        except KeyError:
-            pass 
-# slack_token = os.environ["SLACK_API_TOKEN"]
-rtm_client = RTMClient(token=access_token)
-rtm_client.start()
+# ampel_bot_user = ["UMNJK00CU", "DMBKJG00K"]
+#
+# keywords = ["<@{0}>".format(ampel_bot_user), "LIGO", "banana"]
+#
+# @RTMClient.run_on(event="message")
+# def say_hello(**payload):
+#     data = payload['data']
+#     web_client = payload['web_client']
+#     if "user" in data.keys():
+#         try:
+#             if not np.logical_and(np.sum([x in data['text'] for x in keywords]) == 0, "DMBKJG00K" not in data["user"]):
+#                 run_on_event(data, web_client)
+#         except KeyError:
+#             pass
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-t", "--timestamp", type=float)
+    parser.add_argument("-c", "--channel", type=str)
+
+    cfg = parser.parse_args()
+
+    run_on_event(cfg.timestamp, cfg.channel)
+
+
+
+

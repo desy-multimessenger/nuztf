@@ -1,0 +1,32 @@
+import numpy as np
+import os
+from slack import RTMClient, WebClient
+from slack_bot import access_token
+
+submit_file = os.path.join(os.path.dirname(os.path.abspath(__file__)) + "/spawn_tmux_session.sh")
+
+ampel_bot_user = ["UMNJK00CU", "DMBKJG00K"]
+
+keywords = ["<@{0}>".format(ampel_bot_user), "LIGO", "banana"]
+
+def run_on_event(data):
+    ts = data['ts']
+    channel = data['channel']
+    cmd = "bash {0} {1} {2}".format(submit_file, ts, channel)
+    print(cmd)
+    os.system(cmd)
+
+@RTMClient.run_on(event="message")
+def say_hello(**payload):
+    data = payload['data']
+    if "user" in data.keys():
+        try:
+            if not np.logical_and(np.sum([x in data['text'] for x in keywords]) == 0, "DMBKJG00K" not in data["user"]):
+                run_on_event(data)
+        except KeyError:
+            pass
+
+if __name__ == "__main__":
+    print("Running master client!")
+    rtm_client = RTMClient(token=access_token)
+    rtm_client.start()

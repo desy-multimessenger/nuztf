@@ -325,7 +325,7 @@ class GravWaveScanner(AmpelWizard):
             ra_deg = np.degrees(self.wrap_around_180(np.array([ra])))
             # ra_deg = self.wrap_around_180(np.array(np.degrees(ra)))
             dec_deg = np.degrees(dec)
-            ztf_rad = base_ztf_rad / np.cos(dec)
+            ztf_rad = base_ztf_rad / np.cos(dec - np.radians(30.))
 
             n_obs = 0
 

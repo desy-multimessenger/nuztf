@@ -31,21 +31,27 @@ from ampel.pipeline.t0.DevAlertProcessor import DevAlertProcessor
 from ampel.base.AmpelAlert import AmpelAlert
 import datetime
 import socket
+from pathlib import Path
+
+
+ampel_user = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".AMPEL_user.txt")
 
 try:
-    with open(".AMPEL_user.txt", "r") as f:
+    with open(ampel_user, "r") as f:
         username = f.read()
 except FileNotFoundError:
     username = getpass.getpass(prompt='Username: ', stream=None)
-    with open(".AMPEL_user.txt", "wb") as f:
+    with open(ampel_user, "wb") as f:
         f.write(username.encode())
+
+ampel_pass = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".AMPEL_pass.txt")
         
 try:
-    with open(".AMPEL_pass.txt", "r") as f:
+    with open(ampel_pass, "r") as f:
         password = f.read()
 except FileNotFoundError:
     password = getpass.getpass(prompt='Password: ', stream=None)
-    with open(".AMPEL_pass.txt", "wb") as f:
+    with open(ampel_pass, "wb") as f:
         f.write(password.encode())
 
 if socket.gethostname() == "wgs33.zeuthen.desy.de":
