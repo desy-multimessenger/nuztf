@@ -12,7 +12,8 @@ keywords = ["<@{0}>".format(ampel_bot_user), "LIGO", "banana"]
 def run_on_event(data):
     ts = data['ts']
     channel = data['channel']
-    cmd = "bash {0} {1} {2}".format(submit_file, ts, channel)
+    sid = int(float(ts) * 1.e6)
+    cmd = "bash {0} {1} {2} {3}".format(submit_file, sid, ts, channel)
     print(cmd)
     os.system(cmd)
 

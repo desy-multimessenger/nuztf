@@ -27,8 +27,8 @@ try:
 except HTTPError as e:
     raise(e.message)
 
-base_ligo_dir = os.path.join(Path().absolute(), "LIGO_skymaps")
-ligo_candidate_output_dir = os.path.join(Path().absolute(), "LIGO_candidates")
+base_ligo_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "LIGO_skymaps")
+ligo_candidate_output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "LIGO_candidates")
 
 gw_run_config = {
     "MIN_NDET": 1,  # Default:2
@@ -325,7 +325,7 @@ class GravWaveScanner(AmpelWizard):
             ra_deg = np.degrees(self.wrap_around_180(np.array([ra])))
             # ra_deg = self.wrap_around_180(np.array(np.degrees(ra)))
             dec_deg = np.degrees(dec)
-            ztf_rad = base_ztf_rad / np.cos(dec - np.radians(30.))
+            ztf_rad = base_ztf_rad / (np.cos(dec - np.radians(30.))*np.cos(dec))
 
             n_obs = 0
 
