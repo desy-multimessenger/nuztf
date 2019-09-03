@@ -7,4 +7,4 @@ echo $CODEDIR
 
 export CMD="tmux new-session -d -s $1 $PYTHONPATH $CODEDIR/slack_bot.py -t $2 -c $3"
 echo $CMD
-tmux new-session -d -s $1 $PYTHONPATH $CODEDIR/slack_bot.py -t $2 -c $3
+tmux new-session -d -s $1 "$PYTHONPATH $CODEDIR/slack_bot.py -t $2 -c $3"
