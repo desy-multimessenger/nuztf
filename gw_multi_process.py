@@ -70,7 +70,6 @@ class MultiGwProcessor(GravWaveScanner):
 
         for i, res in enumerate(query_res):
             if self.filter_f_no_prv(res):
-                # if self.filter_ampel(res) is not None:
                 indexes.append(i)
 
         return [query_res[i] for i in indexes]

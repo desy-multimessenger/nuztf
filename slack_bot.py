@@ -134,6 +134,7 @@ def run_on_event(data, web_client):
             icon_emoji=':ligo:',
             text="<@{0}>, I'm all finished. Go find that kilonova!".format(data["user"])
         )
+        del gw
     except Exception as e:
         web_client.chat_postMessage(
             channel=channel_id,
