@@ -32,6 +32,7 @@ from ampel.base.AmpelAlert import AmpelAlert
 import datetime
 import socket
 from pathlib import Path
+import logging
 
 
 ampel_user = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".AMPEL_user.txt")
@@ -178,6 +179,22 @@ class AmpelWizard:
     def filter_ampel(self, res):
         return self.ampel_filter_class.apply(AmpelAlert(res['objectId'], *self.dap._shape(res))) is not None
 
+    def get_avro_by_name(self, ztf_name):
+        ztf_object = ampel_client.get_alerts_for_object(ztf_name, with_history=True)
+        query_res = [i for i in ztf_object]
+        query_res = self.merge_alerts(query_res)
+        return query_res
+
+    def check_ampel_filter(self, ztf_name):
+        lvl = logging.getLogger().getEffectiveLevel()
+        logging.getLogger().setLevel(logging.DEBUG)
+        logging.info("Set logger level to DEBUG")
+        query_res = self.get_avro_by_name(ztf_name)
+        bool_ampel = self.filter_ampel(query_res[0])
+        logging.info("Setting logger back to {0}".format(lvl))
+        logging.getLogger().setLevel(lvl)
+        return bool_ampel
+
     def plot_ztf_observations(self):
         self.get_multi_night_summary().show_gri_fields()
 
@@ -248,7 +265,7 @@ class AmpelWizard:
         objectids = []
         for res in query_res:
             if self.filter_f_no_prv(res):
-                if self.filter_ampel(res) is not None:
+                if self.filter_ampel(res):
                     objectids.append(res["objectId"])
 
         ztf_object = ampel_client.get_alerts_for_object(objectids, with_history=True)
@@ -277,7 +294,7 @@ class AmpelWizard:
         indexes = []
         for i, res in enumerate(query_res):
             if self.fast_filter_f_no_prv(res):
-                if self.filter_ampel(res) is not None:
+                if self.filter_ampel(res):
                     indexes.append(i)
 
         final_res = [query_res[i] for i in indexes]
@@ -318,17 +335,11 @@ class AmpelWizard:
                 jds = [x["candidate"]["jd"] for x in alerts]
                 order = [jds.index(x) for x in sorted(jds)[::-1]]
                 latest = alerts[jds.index(max(jds))]
-                latest["candidate"]["jdstarthist"] = min(jds)
+                latest["candidate"]["jdstarthist"] = min([x["candidate"]["jdstarthist"] for x in alerts])
 
                 for index in order[1:]:
 
                     x = alerts[index]
-
-                    # Check jdstarthist
-                    #
-                    # if np.logical_and(x["candidate"]["jdstarthist"] < latest["candidate"]["jdstarthist"],
-                    #                   x["candidate"]["isdiffpos"] is not None):
-                    #     latest["candidate"]["jdstarthist"] = x["candidate"]["jdstarthist"]
 
                     # Merge previous detections
 

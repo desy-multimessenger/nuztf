@@ -80,6 +80,12 @@ class MultiGwProcessor(GravWaveScanner):
         if res['candidate']['isdiffpos'] not in ["t", "1"]:
             return False
 
+        try:
+            if res['candidate']['drb'] < 0.3:
+                return False
+        except KeyError:
+            pass
+
         # Veto old transients
         if res["candidate"]["jdstarthist"] < self.t_min.jd:
             return False
@@ -186,7 +192,7 @@ class MultiGwProcessor(GravWaveScanner):
         self.obj_names = list(set(self.obj_names))
 
         print("Scanned {0} pixels".format(len(self.scanned_pixels)))
-        print("Found {0} candidates".format(len(self.obj_names)))
+        print("Found {0} candidates passing the first filtering stage.".format(len(self.obj_names)))
 
         ztf_object = ampel_client.get_alerts_for_object(self.obj_names, with_history=True)
 
@@ -198,8 +204,10 @@ class MultiGwProcessor(GravWaveScanner):
 
         for res in tqdm(query_res):
             if self.filter_f_history(res):
-                if self.filter_ampel(res) is not None:
+                if self.filter_ampel(res):
                     self.cache[res["objectId"]] = res
+
+        print("Found {0} candidates passing the final filtering stage.".format(len(self.cache)))
 
         self.create_candidate_summary()
 
@@ -216,8 +224,11 @@ class MultiGwProcessor(GravWaveScanner):
 if __name__ == '__main__':
     import os
     import logging
+    from ampel.pipeline.logging.ExtraLogFormatter import ExtraLogFormatter
 
-    logger = logging.getLogger("quiet_logger")
+    logging.basicConfig()
+    logging.root.handlers[0].setFormatter(ExtraLogFormatter())
+    logger = logging.getLogger()
     logger.setLevel(logging.ERROR)
 
     parser = argparse.ArgumentParser()
@@ -236,4 +247,4 @@ if __name__ == '__main__':
     gw.terminate()
     gw.combine_cache()
     gw.clean_cache()
-    gw.plot_overlap_with_observations()
+    # gw.plot_overlap_with_observations()

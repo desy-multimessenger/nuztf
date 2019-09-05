@@ -40,16 +40,16 @@ gw_run_config = {
     "MAX_MAGDIFF": 1.0,
     "MAX_NBAD": 2,
     "MIN_DIST_TO_SSO": 20,
-    "MIN_GAL_LAT": -1.0,  # Default: 14
+    "MIN_GAL_LAT": 0.,  # Default: 14
     "GAIA_RS": 20,
     "GAIA_PM_SIGNIF": 3,
     "GAIA_PLX_SIGNIF": 3,
     "GAIA_VETO_GMAG_MIN": 9,
     "GAIA_VETO_GMAG_MAX": 20,
     "GAIA_EXCESSNOISE_SIG_MAX": 999,
-    "PS1_SGVETO_RAD": 1,
+    "PS1_SGVETO_RAD": 1.,
     "PS1_SGVETO_SGTH": 0.8,
-    "PS1_CONFUSION_RAD": 3,
+    "PS1_CONFUSION_RAD": 3.,
     "PS1_CONFUSION_SG_TOL": 0.1
 }
 
@@ -382,15 +382,7 @@ class GravWaveScanner(AmpelWizard):
             len(overlapping_fields), area))
         return fig, message
 
-    # def interpolate_map(self, ra_deg, dec_deg):
-    #     colat = np.pi / 2. - np.radians(dec_deg)
-    #     long = np.radians(ra_deg)
-    #     return hp.pixelfunc.get_interp_val(self.prob_map, colat, long)
-
     def interpolate_map(self, ra_deg, dec_deg):
-        # colat = np.pi / 2. - np.radians(dec_deg)
-        # long = np.radians(ra_deg)
-        # coord = SkyCoord(ra_deg * u.deg, dec_deg * u.deg)
         return self.hpm.interpolate_bilinear_skycoord(SkyCoord(ra_deg * u.deg, dec_deg * u.deg), self.data[self.key])
 
     def in_contour(self, ra_deg, dec_deg):
