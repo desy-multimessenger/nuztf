@@ -77,8 +77,8 @@ def run_on_event(thread_ts, channel_id):
                 if x[0] in ["s", "S"]:
                     if np.sum([y.isdigit() for y in x[1:7]]) == 6:
                         gw_name = x
-                elif ".fits" in x:
-                    print(gw_file)
+                elif ".fit" in x:
+                    #print(gw_file)
                     gw_file = x[1:-1]
                 elif "rev" in x:
                     rev_no = int(x.split("=")[1])
