@@ -5,33 +5,18 @@ from ampel.ztf.archive.ArchiveDB import ArchiveDB
 from astropy.time import Time
 import numpy as np
 import matplotlib.pyplot as plt
-import scipy.optimize
-import scipy as scp
-import datetime
-import ztfquery
-import datetime
-import re
 from ztfquery import alert, query
 from matplotlib.backends.backend_pdf import PdfPages
-from matplotlib.patches import Circle
-from matplotlib.collections import PatchCollection
-import csv
-import os,io
-import pickle
-from astropy.coordinates import SkyCoord
-from astropy import units as u
+import os
 import getpass
-import psycopg2
 import sqlalchemy
 import healpy as hp
 from tqdm import tqdm
-import zerorpc
 from ampel.contrib.hu.t0.DecentFilter import DecentFilter
 from ampel.pipeline.t0.DevAlertProcessor import DevAlertProcessor
 from ampel.base.AmpelAlert import AmpelAlert
 import datetime
 import socket
-from pathlib import Path
 import logging
 
 

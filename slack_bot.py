@@ -70,7 +70,7 @@ def run_on_event(thread_ts, channel_id):
     gw_name = None
     gw_file = None
     rev_no = None
-    prob_threshold = 0.9
+    prob_threshold = 0.95
     try:
         for x in split_message:
             if len(x) > 0:
@@ -123,7 +123,8 @@ def run_on_event(thread_ts, channel_id):
     logger.setLevel(logging.ERROR)
 
     try:
-        gw = MultiGwProcessor(gw_name=gw_name, gw_file=gw_file, rev=rev_no, logger=logger)
+        gw = MultiGwProcessor(gw_name=gw_name, gw_file=gw_file, rev=rev_no, logger=logger,
+                              prob_threshold=prob_threshold)
         web_client.chat_postMessage(
             channel=channel_id,
             text="Scanning method: {0} \n Effective sky number: {1}".format(gw.scan_method, gw.n_sky),

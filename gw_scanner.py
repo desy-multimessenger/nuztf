@@ -60,7 +60,7 @@ class RetractionError(Exception):
 
 class GravWaveScanner(AmpelWizard):
 
-    def __init__(self, gw_name=None, gw_file=None, rev=None, logger=None, prob_threshold=0.9, cone_nside=64,
+    def __init__(self, gw_name=None, gw_file=None, rev=None, logger=None, prob_threshold=0.95, cone_nside=64,
                  fast_query=False):
         self.prob_threshold = prob_threshold
 
@@ -320,22 +320,24 @@ class GravWaveScanner(AmpelWizard):
         overlapping_fields = []
 
         base_ztf_rad = 3.5
+        ztf_dec_deg = 30.
 
         for j, (ra, dec) in enumerate(tqdm(self.map_coords)):
             ra_deg = np.degrees(self.wrap_around_180(np.array([ra])))
             # ra_deg = self.wrap_around_180(np.array(np.degrees(ra)))
             dec_deg = np.degrees(dec)
-            ztf_rad = base_ztf_rad / (np.cos(dec - np.radians(30.))*np.cos(dec))
+            ztf_rad = base_ztf_rad / (np.cos(dec - np.radians(ztf_dec_deg))*np.cos(dec))
 
             n_obs = 0
 
             for i, x in enumerate(self.get_multi_night_summary().data["dec"]):
                 if np.logical_and(not dec_deg < float(x) - ztf_rad, not dec_deg > float(x) + ztf_rad):
-                    if np.logical_and(not ra_deg < float(ras[i]) - ztf_rad, not ra_deg > float(ras[i]) + ztf_rad):
-                        n_obs += 1
-                        fid = fields[i]
-                        if fid not in overlapping_fields:
-                            overlapping_fields.append(fields[i])
+                    if abs(dec_deg - ztf_dec_deg) < 70.:
+                        if np.logical_and(not ra_deg < float(ras[i]) - ztf_rad, not ra_deg > float(ras[i]) + ztf_rad):
+                            n_obs += 1
+                            fid = fields[i]
+                            if fid not in overlapping_fields:
+                                overlapping_fields.append(fields[i])
 
             if n_obs > 1:
                 probs.append(self.map_probs[j])
