@@ -17,8 +17,8 @@ class MultiGwProcessor(GravWaveScanner):
     queue = None
     results = dict()
 
-    def __init__(self, n_cpu=os.cpu_count()-1, mp_id=0, **kwargs):
-        GravWaveScanner.__init__(self, **kwargs)
+    def __init__(self, n_cpu=os.cpu_count()-1, mp_id=0, *args, **kwargs):
+        GravWaveScanner.__init__(self, *args, **kwargs)
         self.fill_queue, self.n_sky, self.scan_method = self.optimise_scan_method()
         self.cache_dir = os.path.join(
             ligo_candidate_cache,
@@ -240,8 +240,8 @@ if __name__ == '__main__':
     print("N CPU available", os.cpu_count())
     print("Using {0} CPUs".format(cfg.n_cpu))
 
-    gw = MultiGwProcessor(n_cpu=cfg.n_cpu, gw_name=cfg.name,
-                          logger=logger, prob_threshold=cfg.prob_threshold, fast_query=True)
+    gw = MultiGwProcessor(gw_name=cfg.name, logger=logger, prob_threshold=cfg.prob_threshold,
+                          n_cpu=cfg.n_cpu, fast_query=True)
     gw.clean_cache()
     gw.fill_queue()
     gw.terminate()
