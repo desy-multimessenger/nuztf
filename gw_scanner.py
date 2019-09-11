@@ -41,7 +41,7 @@ gw_run_config = {
     "MAX_NBAD": 2,
     "MIN_DIST_TO_SSO": 20,
     "MIN_GAL_LAT": 0.,  # Default: 14
-    "GAIA_RS": 20,
+    "GAIA_RS": 10.,
     "GAIA_PM_SIGNIF": 3,
     "GAIA_PLX_SIGNIF": 3,
     "GAIA_VETO_GMAG_MIN": 9,
@@ -62,16 +62,18 @@ class GravWaveScanner(AmpelWizard):
 
     def __init__(self, gw_name=None, gw_file=None, rev=None, logger=None, prob_threshold=0.95, cone_nside=64,
                  fast_query=False):
+
         self.prob_threshold = prob_threshold
 
         if gw_file is None:
-            self.gw_path, self.output_path = self.get_superevent(gw_name, rev)
+            self.gw_path, self.output_path, self.gw_name = self.get_superevent(gw_name, rev)
 
         else:
             self.gw_path = "{0}/{1}".format(base_ligo_dir, os.path.basename(gw_file[7:]))
             wget.download(gw_file, self.gw_path)
             self.output_path = "{0}/{1}_{2}.pdf".format(
                 ligo_candidate_output_dir, os.path.basename(gw_file), self.prob_threshold)
+            self.gw_name = os.path.basename(gw_file[7:])
         self.data, t_obs, self.hpm, self.key = self.read_map()
 
         t_min = Time(t_obs, format="isot", scale="utc")
@@ -85,6 +87,11 @@ class GravWaveScanner(AmpelWizard):
                              fast_query=fast_query)
         self.default_t_max = Time.now()
 
+        self.overlap_prob = None
+        self.first_obs = None
+        self.last_obs = None
+        self.n_fields = None
+        self.area = None
 
 
     def filter_f_no_prv(self, res):
@@ -184,7 +191,7 @@ class GravWaveScanner(AmpelWizard):
         output_file = "{0}/{1}_{2}_{3}.pdf".format(ligo_candidate_output_dir, name, latest_voevent["N"],
                                                    self.prob_threshold)
 
-        return savepath, output_file
+        return savepath, output_file, name
 
     def read_map(self, ):
         print("Reading file: {0}".format(self.gw_path))
@@ -303,10 +310,12 @@ class GravWaveScanner(AmpelWizard):
         probs = []
         single_probs = []
 
-        ras = np.degrees(self.wrap_around_180(np.array([
-            np.radians(float(x)) for x in self.get_multi_night_summary().data["ra"]])))
+        mns = self.get_multi_night_summary()
 
-        fields = list(self.get_multi_night_summary().data["field"])
+        ras = np.degrees(self.wrap_around_180(np.array([
+            np.radians(float(x)) for x in mns.data["ra"]])))
+
+        fields = list(mns.data["field"])
 
         plot_ras = []
         plot_decs = []
@@ -355,6 +364,12 @@ class GravWaveScanner(AmpelWizard):
 
         overlapping_fields = list(set(overlapping_fields))
 
+        obs_times = np.array([Time(mns.data["UT_START"].iat[i], format="isot", scale="utc")
+                     for i in range(len(mns.data)) if mns.data["field"].iat[i] in overlapping_fields])
+
+        self.first_obs = min(obs_times)
+        self.last_obs = max(obs_times)
+
         size = hp.max_pixrad(self.ligo_nside, degrees=True)**2
 
         # print(hp.max_pixrad(self.ligo_nside, degrees=True)**2 * np.pi, size)
@@ -371,17 +386,20 @@ class GravWaveScanner(AmpelWizard):
         gray_patch = mpatches.Patch(color='gray', label='Observed once')
         plt.legend(handles=[red_patch, gray_patch])
 
+        self.overlap_prob = 100.*np.sum(probs)
+
         message = "In total, {0} % of the LIGO contour was observed at least once. \n " \
                   "In total, {1} % of the LIGO contour was observed at least twice. \n" \
                   "THIS DOES NOT INCLUDE CHIP GAPS!!!".format(
-            100 * (np.sum(probs) + np.sum(single_probs)), 100*np.sum(probs))
+            100 * (np.sum(probs) + np.sum(single_probs)), self.overlap_prob)
 
         print(message)
 
-        area = (2. * base_ztf_rad)**2 * float(len(overlapping_fields))
+        self.area = (2. * base_ztf_rad)**2 * float(len(overlapping_fields))
+        self.n_fields = len(overlapping_fields)
 
         print("{0} fields were covered, covering approximately {1} sq deg.".format(
-            len(overlapping_fields), area))
+            self.n_fields, self.area))
         return fig, message
 
     def interpolate_map(self, ra_deg, dec_deg):
@@ -390,6 +408,59 @@ class GravWaveScanner(AmpelWizard):
     def in_contour(self, ra_deg, dec_deg):
         return self.interpolate_map(ra_deg, dec_deg) > self.pixel_threshold
 
+    def draft_gcn(self):
+        # candidate_text = parse_candidates(g)
+        # first_obs =
+        text = "Robert Stein (DESY) (and other people, probably) report,\n" \
+               "On behalf of the Zwicky Transient Facility (ZTF) and Global Relay of Observatories Watching Transients Happen (GROWTH) collaborations: \n " \
+               "We observed the localization region of the gravitational wave trigger {0} (LVC et al. GCN XXXXX) with the Palomar 48-inch telescope equipped with the 47 square degree ZTF camera (Bellm et al. 2019, Graham et al. 2019). " \
+               "The tiling was optimally determined and triggered using the GROWTH Target of Opportunity marshal (Coughlin et al. 2019a, Kasliwal et al. 2019b). " \
+               "We started obtaining target-of-opportunity observations in the g-band and r-band beginning at {1}. " \
+               "We covered {2:.1f}% of the enclosed probability based on the bayestar map in {3} sq deg." \
+               "This estimate does not include chip gaps. " \
+               "Each exposure was 30s with a typical depth of XX.X mag. \n " \
+               "The images were processed in real-time through the ZTF reduction and image subtraction pipelines at IPAC to search for potential counterparts (Masci et al. 2019). " \
+               "AMPEL (Nordin et al. 2019) was used to search the alerts database for candidates. " \
+               "We reject stellar sources (Tachibana and Miller 2018) and moving objects, " \
+               "apply machine learning algorithms (Mahabal et al. 2019), and removing candidates with history of " \
+               "variability prior to the merger time. We are left with the following high-significance transient " \
+               "candidates by our pipeline, all lying within the " \
+               "{4}% localization of the bayestar skymap (LVC et al. GCN YYYY). \n\n".format(
+            self.gw_name,
+            self.first_obs,
+            self.overlap_prob,
+            self.area,
+            100*self.prob_threshold)
+
+        text += self.parse_candidates()
+
+        text += "Amongst our candidates, some other crap. \n \n" \
+                "ZTF and GROWTH are worldwide collaborations comprising Caltech, USA; IPAC, USA, WIS, Israel; OKC, Sweden; JSI/UMd, USA; U Washington, USA; DESY, Germany; MOST, Taiwan; UW Milwaukee, USA; LANL USA; Tokyo Tech, Japan; IITB, India; IIA, India; LJMU, UK; TTU, USA; SDSU, USA and USyd, Australia. \n"
+        "ZTF acknowledges the generous support of the NSF under AST MSIP Grant No 1440341. \n"
+        "GROWTH acknowledges generous support of the NSF under PIRE Grant No 1545949. \n "
+        "Alert distribution service provided by DIRAC@UW (Patterson et al. 2019). \n"
+        "Alert database searches are done by AMPEL (Nordin et al. 2019). \n"
+        "Alert filtering and follow-up coordination is being undertaken by the GROWTH marshal system (Kasliwal et al. 2019)."
+        return text
+
+
+    def parse_candidates(self):
+        table = "+--------------------------------------------------------------------------------+\n" \
+                "| ZTF Name     | IAU Name  | RA (deg)   | DEC (deg)  | JD         | Filter | Mag  |\n" \
+                "+--------------------------------------------------------------------------------+\n"
+        for name, res in sorted(self.cache.items()):
+            line = "| {0} | AT20FIXME | {1}{2}| {3}{4}{5}| {6} \n".format(
+                name,
+                res["candidate"]["ra"],
+                str(" ") * (11 - len(str(res["candidate"]["ra"]))),
+                ["-", "+"][int(res["candidate"]["dec"] > 0.)],
+                res["candidate"]["dec"],
+                str(" ") * (10 - len(str(res["candidate"]["dec"]))),
+                res["candidate"]["jd"]
+            )
+            table += line
+
+        return table
 
 if __name__=="__main__":
 
