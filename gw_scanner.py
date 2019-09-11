@@ -443,25 +443,6 @@ class GravWaveScanner(AmpelWizard):
         "Alert filtering and follow-up coordination is being undertaken by the GROWTH marshal system (Kasliwal et al. 2019)."
         return text
 
-
-    def parse_candidates(self):
-        table = "+--------------------------------------------------------------------------------+\n" \
-                "| ZTF Name     | IAU Name  | RA (deg)   | DEC (deg)  | JD         | Filter | Mag  |\n" \
-                "+--------------------------------------------------------------------------------+\n"
-        for name, res in sorted(self.cache.items()):
-            line = "| {0} | AT20FIXME | {1}{2}| {3}{4}{5}| {6} \n".format(
-                name,
-                res["candidate"]["ra"],
-                str(" ") * (11 - len(str(res["candidate"]["ra"]))),
-                ["-", "+"][int(res["candidate"]["dec"] > 0.)],
-                res["candidate"]["dec"],
-                str(" ") * (10 - len(str(res["candidate"]["dec"]))),
-                res["candidate"]["jd"]
-            )
-            table += line
-
-        return table
-
 if __name__=="__main__":
 
     import logging

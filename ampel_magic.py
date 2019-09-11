@@ -168,7 +168,12 @@ class AmpelWizard:
         ztf_object = ampel_client.get_alerts_for_object(ztf_name, with_history=True)
         query_res = [i for i in ztf_object]
         query_res = self.merge_alerts(query_res)
-        return query_res
+        return query_res[0]
+
+    def add_to_cache_by_names(self, *args):
+
+        for ztf_name in args:
+            self.cache[ztf_name] = self.get_avro_by_name(ztf_name)
 
     def check_ampel_filter(self, ztf_name):
         lvl = logging.getLogger().getEffectiveLevel()
@@ -334,6 +339,46 @@ class AmpelWizard:
 
                 merged_list.append(latest)
         return merged_list
+
+    def parse_candidates(self):
+
+        table = "+------------------------------------------------------------------------------+\n" \
+                "| ZTF Name     | IAU Name  | RA (deg)   | DEC (deg)  | Filter | Mag   | MagErr |\n" \
+                "+------------------------------------------------------------------------------+\n"
+        for name, res in sorted(self.cache.items()):
+
+            jds = [x["jd"] for x in res["prv_candidates"]]
+
+            if res["candidate"]["jd"] > max(jds):
+                latest = res["candidate"]
+            else:
+                latest = res["prv_candidates"][jds.index(max(jds))]
+
+            old_flag = ""
+
+            second_det = [x for x in jds if x > min(jds) + 0.01]
+            if len(second_det) > 0:
+                if Time.now().jd - second_det[0] > 1.:
+                    old_flag = "(MORE THAN ONE DAY SINCE SECOND DETECTION)"
+
+
+            line = "| {0} | AT20FIXME | {1}{2}| {3}{4}{5}| {6}      | {7:.2f} | {8:.2f}   | {9}\n".format(
+                name,
+                latest["ra"],
+                str(" ") * (11 - len(str(latest["ra"]))),
+                ["", "+"][int(latest["dec"] > 0.)],
+                latest["dec"],
+                str(" ") * (10 - len(str(latest["dec"]))),
+                ["g", "r", "i"][latest["fid"] - 1],
+                latest["magpsf"],
+                latest["sigmapsf"],
+                old_flag
+            )
+            table += line
+
+        table += "+------------------------------------------------------------------------------+\n\n"
+
+        return table
 
     @staticmethod
     def extract_ra_dec(nside, index):
