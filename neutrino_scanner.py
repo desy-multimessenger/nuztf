@@ -8,17 +8,9 @@ from ligo.gracedb.rest import GraceDb
 import os
 from pathlib import Path
 import requests
+import matplotlib.patches as mpatches
 import lxml.etree
 from astropy.io import fits
-
-# Setup LIGO client
-
-ligo_client = GraceDb()
-
-try:
-    r = ligo_client.ping()
-except HTTPError as e:
-    raise(e.message)
 
 nu_candidate_output_dir = os.path.join(Path().absolute(), "Neutrino_candidates")
 
@@ -52,7 +44,7 @@ class ParsingError(Exception):
 
 class NeutrinoScanner(AmpelWizard):
 
-    def __init__(self, nu_name=None, manual_args=None, gcn_no=None, logger=None, cone_nside=64):
+    def __init__(self, nu_name=None, manual_args=None, gcn_no=None, logger=None, cone_nside=128):
 
         if manual_args is None:
 
@@ -62,10 +54,15 @@ class NeutrinoScanner(AmpelWizard):
             elif gcn_no is None:
                 gcn_no = self.get_latest_gcn()
 
-            nu_name, ra, dec, nu_time = self.parse_gcn(gcn_no)
+            nu_name, author, ra, dec, nu_time = self.parse_gcn(gcn_no)
 
         else:
             (nu_name, ra, dec, nu_time) = manual_args
+            author = None
+
+        self.nu_name = nu_name
+        self.author = author
+        self.gcn_no = gcn_no
 
         print("Neutrino time: {0}".format(nu_time))
 
@@ -74,34 +71,60 @@ class NeutrinoScanner(AmpelWizard):
         self.dec_max = max(dec[1:]) + dec[0]
         self.dec_min = min(dec[1:]) + dec[0]
 
+        print("Coordinates: RA = {0} ({1} - {2})".format(ra[0], self.ra_min, self.ra_max))
+        print("Coordinates: Dec = {0} ({1} - {2})".format(dec[0], self.dec_min, self.dec_max))
+
         self.output_path = "{0}/{1}.pdf".format(nu_candidate_output_dir, nu_name)
         AmpelWizard.__init__(self, t_min=nu_time, run_config=nu_run_config, logger=logger, cone_nside=cone_nside)
-        self.default_t_max = Time(nu_time.jd + 5., format="jd")
+        self.default_t_max = Time.now()
+        self.prob_threshold = 0.9
+        self.area = (self.ra_max - self.ra_min) * (self.dec_max - self.dec_min) * np.cos(np.radians(dec[0]))
+        print("Projected Area: {0}".format(self.area))
 
     @staticmethod
     def gcn_url(gcn_number):
         return "https://gcn.gsfc.nasa.gov/gcn3/{0}.gcn3".format(gcn_number)
 
+    def get_name(self):
+        return self.nu_name
+
+    def get_full_name(self):
+        return "neutrino event {0} ({1} et. al, GCN {2})".format(self.get_name(), self.author, self.gcn_no)
+
+    @staticmethod
+    def get_tiling_line():
+        return ""
+
+    @staticmethod
+    def get_obs_line():
+        return "Each exposure was 300s with a typical depth of 21.0 mag."
+    
+    @staticmethod
+    def remove_variability_line():
+        return ""
+
     @staticmethod
     def strip_numbers(line):
         vals = []
+        line = line.replace("- ", "-")
         for x in line.replace(",", " ").split(" "):
             try:
                 vals.append(float("".join([y for y in x if y not in ["(", "+", ")", "[", "]"]])))
             except ValueError:
                 pass
-
         return vals
-
 
     def parse_gcn(self, gcn_number):
         url = self.gcn_url(gcn_number)
         page = requests.get(url)
         print("Found GCN: {0}".format(url))
-        name = ra = dec = time = None
+        name = author = ra = dec = time = None
         for line in page.text.splitlines():
             if "SUBJECT" in line:
                 name = line.split(" - ")[0].split(": ")[1]
+            elif "FROM" in line:
+                base = line.split("at")[0].split(": ")[1].split(" ")
+                author = [x for x in base if x != ""][1]
             elif np.logical_and(np.sum([x in line for x in ["Ra", "RA"]]) > 0, ra is None):
                 ra = self.strip_numbers(line)
             elif np.logical_and(np.sum([x in line for x in ["Dec", "DEC"]]) > 0, dec is None):
@@ -114,10 +137,10 @@ class NeutrinoScanner(AmpelWizard):
 
         try:
 
-            if np.sum([x is not None for x in [name, ra, dec, time]]) == 4:
+            if np.sum([x is not None for x in [name, author, ra, dec, time]]) == 5:
                 if np.logical_and(len(ra) == 3, len(dec) == 3):
 
-                    return name, ra, dec, time
+                    return name, author, ra, dec, time
 
         except:
             pass
@@ -176,18 +199,23 @@ class NeutrinoScanner(AmpelWizard):
     def filter_f_no_prv(self, res):
         # Positive detection
         if res['candidate']['isdiffpos'] in ["t", "1"]:
-            if self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
-                return True
+            # if self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
+            return True
+
+        # print("{0} has no positive detections".format(res["objectId"]))
 
         return False
 
     def filter_f_history(self, res):
+
+        # print("Checking {0}".format(res["objectId"]))
 
         # Require 2 detections
 
         n_detections = len([x for x in res["prv_candidates"] if x["isdiffpos"] is not None])
 
         if n_detections < 1:
+            # print("{0} has insufficient detection".format(res["objectId"]))
             return False
 
         if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
@@ -237,6 +265,107 @@ class NeutrinoScanner(AmpelWizard):
         )
 
         return np.logical_and(in_ra, in_dec)
+
+    def plot_overlap_with_observations(self):
+        fig = plt.figure()
+        plt.subplot(projection="aitoff")
+
+        probs = []
+        single_probs = []
+
+        mns = self.get_multi_night_summary()
+
+        ras = np.degrees(self.wrap_around_180(np.array([
+            np.radians(float(x)) for x in mns.data["ra"]])))
+
+        fields = list(mns.data["field"])
+
+        plot_ras = []
+        plot_decs = []
+
+        single_ras = []
+        single_decs = []
+
+        veto_ras = []
+        veto_decs = []
+
+        overlapping_fields = []
+
+        base_ztf_rad = 3.5
+        ztf_dec_deg = 30.
+
+        prob_cone = 1./float(len(self.cone_coords))
+
+        for j, (ra, dec) in enumerate(tqdm(self.cone_coords)):
+            ra_deg = np.degrees(self.wrap_around_180(np.array([ra])))
+            # ra_deg = self.wrap_around_180(np.array(np.degrees(ra)))
+            dec_deg = np.degrees(dec)
+            ztf_rad = base_ztf_rad / (np.cos(dec - np.radians(ztf_dec_deg))*np.cos(dec))
+
+            n_obs = 0
+
+            for i, x in enumerate(self.get_multi_night_summary().data["dec"]):
+                if np.logical_and(not dec_deg < float(x) - ztf_rad, not dec_deg > float(x) + ztf_rad):
+                    if abs(dec_deg - ztf_dec_deg) < 70.:
+                        if np.logical_and(not ra_deg < float(ras[i]) - ztf_rad, not ra_deg > float(ras[i]) + ztf_rad):
+                            n_obs += 1
+                            fid = fields[i]
+                            if fid not in overlapping_fields:
+                                overlapping_fields.append(fields[i])
+
+            if n_obs > 1:
+                probs.append(prob_cone)
+                plot_ras.append(ra)
+                plot_decs.append(dec)
+
+            elif n_obs > 0:
+                single_probs.append(prob_cone)
+                single_ras.append(ra)
+                single_decs.append(dec)
+
+            else:
+                veto_ras.append(ra)
+                veto_decs.append(dec)
+
+        overlapping_fields = list(set(overlapping_fields))
+
+        obs_times = np.array([Time(mns.data["UT_START"].iat[i], format="isot", scale="utc")
+                     for i in range(len(mns.data)) if mns.data["field"].iat[i] in overlapping_fields])
+
+        self.first_obs = min(obs_times)
+        self.last_obs = max(obs_times)
+
+        size = hp.max_pixrad(self.cone_nside, degrees=True)**2
+
+        # print(hp.max_pixrad(self.ligo_nside, degrees=True)**2 * np.pi, size)
+
+        plt.scatter(self.wrap_around_180(np.array([plot_ras])), plot_decs,
+                    c=probs, vmin=0., vmax=prob_cone, s=size)
+
+        plt.scatter(self.wrap_around_180(np.array([single_ras])), single_decs,
+                    c=single_probs, vmin=0., vmax=prob_cone, s=size, cmap='gray')
+
+        plt.scatter(self.wrap_around_180(np.array([veto_ras])), veto_decs, color="red", s=size)
+
+        red_patch = mpatches.Patch(color='red', label='Not observed')
+        gray_patch = mpatches.Patch(color='gray', label='Observed once')
+        plt.legend(handles=[red_patch, gray_patch])
+
+        self.overlap_prob = 90.*np.sum(probs)
+
+        message = "In total, {0} % of the contour was observed at least once. \n " \
+                  "In total, {1} % of the contour was observed at least twice. \n" \
+                  "THIS DOES NOT INCLUDE CHIP GAPS!!!".format(
+            90. * (np.sum(probs) + np.sum(single_probs)), self.overlap_prob)
+
+        print(message)
+
+        self.area = (2. * base_ztf_rad)**2 * float(len(overlapping_fields))
+        self.n_fields = len(overlapping_fields)
+
+        print("{0} fields were covered, covering approximately {1} sq deg.".format(
+            self.n_fields, self.area))
+        return fig, message
 
 
 if __name__=="__main__":

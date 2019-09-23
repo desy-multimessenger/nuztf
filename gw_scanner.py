@@ -69,8 +69,15 @@ class GravWaveScanner(AmpelWizard):
             self.gw_path, self.output_path, self.gw_name = self.get_superevent(gw_name, rev)
 
         else:
-            self.gw_path = "{0}/{1}".format(base_ligo_dir, os.path.basename(gw_file[7:]))
-            wget.download(gw_file, self.gw_path)
+            basename = os.path.basename(gw_file)
+            self.gw_path = "{0}/{1}".format(base_ligo_dir, basename)
+            if basename[:7] == "https://":
+                self.gw_path = "{0}/{1}".format(base_ligo_dir, os.path.basename(gw_file[7:]))
+                wget.download(gw_file, self.gw_path)
+
+            print(self.gw_path)
+            input("?")
+
             self.output_path = "{0}/{1}_{2}.pdf".format(
                 ligo_candidate_output_dir, os.path.basename(gw_file), self.prob_threshold)
             self.gw_name = os.path.basename(gw_file[7:])
@@ -87,12 +94,20 @@ class GravWaveScanner(AmpelWizard):
                              fast_query=fast_query)
         self.default_t_max = Time.now()
 
-        self.overlap_prob = None
-        self.first_obs = None
-        self.last_obs = None
-        self.n_fields = None
-        self.area = None
+    def get_name(self):
+        return self.gw_name
 
+    @staticmethod
+    def get_tiling_line():
+        return "The tiling was optimally determined and triggered using the GROWTH Target of Opportunity marshal (Coughlin et al. 2019a, Kasliwal et al. 2019b). "
+
+    def get_obs_line(self):
+        return "Each exposure was 30s with a typical depth of 20.5 mag."
+
+    @staticmethod
+    def remove_variability_line():
+        return ", and removing candidates with history of " \
+               "variability prior to the merger time"
 
     def filter_f_no_prv(self, res):
 
@@ -280,11 +295,6 @@ class GravWaveScanner(AmpelWizard):
 
         return cone_ids, cone_coords
 
-    @staticmethod
-    def wrap_around_180(ra):
-        ra[ra > np.pi] -= 2 * np.pi
-        return ra
-
     def plot_skymap(self):
         fig = plt.figure()
         plt.subplot(211, projection="aitoff")
@@ -407,41 +417,6 @@ class GravWaveScanner(AmpelWizard):
 
     def in_contour(self, ra_deg, dec_deg):
         return self.interpolate_map(ra_deg, dec_deg) > self.pixel_threshold
-
-    def draft_gcn(self):
-        # candidate_text = parse_candidates(g)
-        # first_obs =
-        text = "Robert Stein (DESY) (and other people, probably) report,\n" \
-               "On behalf of the Zwicky Transient Facility (ZTF) and Global Relay of Observatories Watching Transients Happen (GROWTH) collaborations: \n " \
-               "We observed the localization region of the gravitational wave trigger {0} (LVC et al. GCN XXXXX) with the Palomar 48-inch telescope equipped with the 47 square degree ZTF camera (Bellm et al. 2019, Graham et al. 2019). " \
-               "The tiling was optimally determined and triggered using the GROWTH Target of Opportunity marshal (Coughlin et al. 2019a, Kasliwal et al. 2019b). " \
-               "We started obtaining target-of-opportunity observations in the g-band and r-band beginning at {1}. " \
-               "We covered {2:.1f}% of the enclosed probability based on the bayestar map in {3} sq deg." \
-               "This estimate does not include chip gaps. " \
-               "Each exposure was 30s with a typical depth of XX.X mag. \n " \
-               "The images were processed in real-time through the ZTF reduction and image subtraction pipelines at IPAC to search for potential counterparts (Masci et al. 2019). " \
-               "AMPEL (Nordin et al. 2019) was used to search the alerts database for candidates. " \
-               "We reject stellar sources (Tachibana and Miller 2018) and moving objects, " \
-               "apply machine learning algorithms (Mahabal et al. 2019), and removing candidates with history of " \
-               "variability prior to the merger time. We are left with the following high-significance transient " \
-               "candidates by our pipeline, all lying within the " \
-               "{4}% localization of the bayestar skymap (LVC et al. GCN YYYY). \n\n".format(
-            self.gw_name,
-            self.first_obs,
-            self.overlap_prob,
-            self.area,
-            100*self.prob_threshold)
-
-        text += self.parse_candidates()
-
-        text += "Amongst our candidates, some other crap. \n \n" \
-                "ZTF and GROWTH are worldwide collaborations comprising Caltech, USA; IPAC, USA, WIS, Israel; OKC, Sweden; JSI/UMd, USA; U Washington, USA; DESY, Germany; MOST, Taiwan; UW Milwaukee, USA; LANL USA; Tokyo Tech, Japan; IITB, India; IIA, India; LJMU, UK; TTU, USA; SDSU, USA and USyd, Australia. \n"
-        "ZTF acknowledges the generous support of the NSF under AST MSIP Grant No 1440341. \n"
-        "GROWTH acknowledges generous support of the NSF under PIRE Grant No 1545949. \n "
-        "Alert distribution service provided by DIRAC@UW (Patterson et al. 2019). \n"
-        "Alert database searches are done by AMPEL (Nordin et al. 2019). \n"
-        "Alert filtering and follow-up coordination is being undertaken by the GROWTH marshal system (Kasliwal et al. 2019)."
-        return text
 
 if __name__=="__main__":
 

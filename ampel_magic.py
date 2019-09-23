@@ -161,6 +161,30 @@ class AmpelWizard:
             print("Scanning in fast mode!")
             self.query_ampel = self.fast_query_ampel
 
+        self.overlap_prob = None
+        self.first_obs = None
+        self.last_obs = None
+        self.n_fields = None
+        self.area = None
+
+    def get_name(self):
+        raise NotImplementedError
+
+    def get_full_name(self):
+        raise NotImplementedError
+
+    @staticmethod
+    def get_tiling_line():
+        raise NotImplementedError
+
+    @staticmethod
+    def get_obs_line():
+        raise NotImplementedError
+
+    @staticmethod
+    def remove_variability_line():
+        raise NotImplementedError
+
     def filter_ampel(self, res):
         return self.ampel_filter_class.apply(AmpelAlert(res['objectId'], *self.dap._shape(res))) is not None
 
@@ -242,6 +266,11 @@ class AmpelWizard:
 
     def find_cone_coords(self):
         raise NotImplementedError
+
+    @staticmethod
+    def wrap_around_180(ra):
+        ra[ra > np.pi] -= 2 * np.pi
+        return ra
 
     def query_ampel(self, ra, dec, rad, t_max=None):
 
@@ -368,7 +397,7 @@ class AmpelWizard:
                 str(" ") * (11 - len(str(latest["ra"]))),
                 ["", "+"][int(latest["dec"] > 0.)],
                 latest["dec"],
-                str(" ") * (10 - len(str(latest["dec"]))),
+                str(" ") * (11 - len(str(latest["dec"]))),
                 ["g", "r", "i"][latest["fid"] - 1],
                 latest["magpsf"],
                 latest["sigmapsf"],
@@ -379,6 +408,46 @@ class AmpelWizard:
         table += "+------------------------------------------------------------------------------+\n\n"
 
         return table
+
+
+    def draft_gcn(self):
+        # candidate_text = parse_candidates(g)
+        # first_obs =
+        text = "Robert Stein (DESY) (and other people, probably) report,\n" \
+               "On behalf of the Zwicky Transient Facility (ZTF) and Global Relay of Observatories Watching Transients Happen (GROWTH) collaborations: \n " \
+               "We observed the localization region of the {0} with the Palomar 48-inch telescope, equipped with the 47 square degree ZTF camera (Bellm et al. 2019, Graham et al. 2019). {1}" \
+               "We started obtaining target-of-opportunity observations in the g-band and r-band beginning at {2}," \
+               "approximately {3:.1f} hours after event time. " \
+               "We covered {4:.1f}% of the enclosed probability based on the bayestar map in {5} sq deg." \
+               "This estimate does not include chip gaps. " \
+               "{6} \n " \
+               "The images were processed in real-time through the ZTF reduction and image subtraction pipelines at IPAC to search for potential counterparts (Masci et al. 2019). " \
+               "AMPEL (Nordin et al. 2019) was used to search the alerts database for candidates. " \
+               "We reject stellar sources (Tachibana and Miller 2018) and moving objects, " \
+               "apply machine learning algorithms (Mahabal et al. 2019) {7}. We are left with the following high-significance transient " \
+               "candidates by our pipeline, all lying within the " \
+               "{4}% localization of the bayestar skymap (LVC et al. GCN YYYY). \n\n".format(
+            self.get_full_name(),
+            self.get_tiling_line(),
+            self.first_obs,
+            (self.first_obs.jd - self.t_min.jd) * 24.,
+            self.overlap_prob,
+            self.area,
+            self.get_obs_line(),
+            self.remove_variability_line(),
+            100*self.prob_threshold
+        )
+
+        text += self.parse_candidates()
+
+        text += "Amongst our candidates, some other crap. \n \n" \
+                "ZTF and GROWTH are worldwide collaborations comprising Caltech, USA; IPAC, USA, WIS, Israel; OKC, Sweden; JSI/UMd, USA; U Washington, USA; DESY, Germany; MOST, Taiwan; UW Milwaukee, USA; LANL USA; Tokyo Tech, Japan; IITB, India; IIA, India; LJMU, UK; TTU, USA; SDSU, USA and USyd, Australia. \n"
+        "ZTF acknowledges the generous support of the NSF under AST MSIP Grant No 1440341. \n"
+        "GROWTH acknowledges generous support of the NSF under PIRE Grant No 1545949. \n "
+        "Alert distribution service provided by DIRAC@UW (Patterson et al. 2019). \n"
+        "Alert database searches are done by AMPEL (Nordin et al. 2019). \n"
+        "Alert filtering and follow-up coordination is being undertaken by the GROWTH marshal system (Kasliwal et al. 2019)."
+        return text
 
     @staticmethod
     def extract_ra_dec(nside, index):
