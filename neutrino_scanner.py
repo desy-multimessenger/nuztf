@@ -98,7 +98,7 @@ class NeutrinoScanner(AmpelWizard):
     @staticmethod
     def get_obs_line():
         return "Each exposure was 300s with a typical depth of 21.0 mag."
-    
+
     @staticmethod
     def remove_variability_line():
         return ""

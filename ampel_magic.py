@@ -5,7 +5,7 @@ from ampel.ztf.archive.ArchiveDB import ArchiveDB
 from astropy.time import Time
 import numpy as np
 import matplotlib.pyplot as plt
-from ztfquery import alert, query
+from ztfquery import alert, query, fields
 from matplotlib.backends.backend_pdf import PdfPages
 import os
 import getpass
@@ -220,6 +220,8 @@ class AmpelWizard:
             mask = times > self.t_min
             self.mns.data = self.mns.data[mask]
         return self.mns
+
+    # def simulate_observations(self, fields):
 
     def scan_cones(self, t_max=None, max_cones=None):
 

@@ -17,6 +17,8 @@ import fitsio
 from astropy import units as u
 import wget
 from numpy.lib.recfunctions import append_fields
+import pandas
+from ztfquery import fields as ztfquery_fields
 
 # Setup LIGO client
 
@@ -74,9 +76,6 @@ class GravWaveScanner(AmpelWizard):
             if basename[:7] == "https://":
                 self.gw_path = "{0}/{1}".format(base_ligo_dir, os.path.basename(gw_file[7:]))
                 wget.download(gw_file, self.gw_path)
-
-            print(self.gw_path)
-            input("?")
 
             self.output_path = "{0}/{1}_{2}.pdf".format(
                 ligo_candidate_output_dir, os.path.basename(gw_file), self.prob_threshold)
@@ -313,14 +312,33 @@ class GravWaveScanner(AmpelWizard):
         plt.title("CONE REGION")
         return fig
 
-    def plot_overlap_with_observations(self):
+    def plot_overlap_with_observations(self, fields=None):
         fig = plt.figure()
         plt.subplot(projection="aitoff")
 
         probs = []
         single_probs = []
 
-        mns = self.get_multi_night_summary()
+        if fields is None:
+            mns = self.get_multi_night_summary()
+
+        else:
+
+            class MNS:
+                def __init__(self, data):
+                    self.data = pandas.DataFrame(data, columns=["field", "ra", "dec", "UT_START"])
+
+            data = []
+
+            for f in fields:
+                ra, dec = ztfquery_fields.field_to_coords(f)[0]
+                t = Time(Time.now().jd + 1., format="jd").utc
+                t.format = "isot"
+                t = t.value
+                for _ in range(2):
+                    data.append([f, ra, dec, t])
+
+            mns = MNS(data)
 
         ras = np.degrees(self.wrap_around_180(np.array([
             np.radians(float(x)) for x in mns.data["ra"]])))
@@ -349,7 +367,7 @@ class GravWaveScanner(AmpelWizard):
 
             n_obs = 0
 
-            for i, x in enumerate(self.get_multi_night_summary().data["dec"]):
+            for i, x in enumerate(mns.data["dec"]):
                 if np.logical_and(not dec_deg < float(x) - ztf_rad, not dec_deg > float(x) + ztf_rad):
                     if abs(dec_deg - ztf_dec_deg) < 70.:
                         if np.logical_and(not ra_deg < float(ras[i]) - ztf_rad, not ra_deg > float(ras[i]) + ztf_rad):
