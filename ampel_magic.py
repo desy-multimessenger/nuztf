@@ -3,9 +3,11 @@
 
 from ampel.ztf.archive.ArchiveDB import ArchiveDB
 from astropy.time import Time
+from astropy import units as u
+from astropy.coordinates import SkyCoord
 import numpy as np
 import matplotlib.pyplot as plt
-from ztfquery import alert, query, fields
+from ztfquery import alert, query
 from matplotlib.backends.backend_pdf import PdfPages
 import os
 import getpass
@@ -195,7 +197,6 @@ class AmpelWizard:
         return query_res[0]
 
     def add_to_cache_by_names(self, *args):
-
         for ztf_name in args:
             self.cache[ztf_name] = self.get_avro_by_name(ztf_name)
 
@@ -204,7 +205,7 @@ class AmpelWizard:
         logging.getLogger().setLevel(logging.DEBUG)
         logging.info("Set logger level to DEBUG")
         query_res = self.get_avro_by_name(ztf_name)
-        bool_ampel = self.filter_ampel(query_res[0])
+        bool_ampel = self.filter_ampel(query_res)
         logging.info("Setting logger back to {0}".format(lvl))
         logging.getLogger().setLevel(lvl)
         return bool_ampel
@@ -473,3 +474,62 @@ class AmpelWizard:
                 fig.text(0, 0, name)
                 pdf.savefig()
                 plt.close()
+
+    @staticmethod
+    def parse_ztf_filter(fid):
+        return ["g", "r", "i"][fid - 1]
+
+    def tns_summary(self):
+        for name, res in sorted(self.cache.items()):
+            detections = [x for x in res["prv_candidates"] + [res["candidate"]] if x["isdiffpos"] is not None]
+            detection_jds = [x["jd"] for x in detections]
+            first_detection = detections[detection_jds.index(min(detection_jds))]
+            latest = [x for x in res["prv_candidates"] + [res["candidate"]] if x["isdiffpos"] is not None][-1]
+            last_upper_limit = [x for x in res["prv_candidates"] if
+                                np.logical_and(x["isdiffpos"] is None, x["jd"] < first_detection["jd"])][-1]
+            print("Candidate:", name, res["candidate"]["ra"], res["candidate"]["dec"], first_detection["jd"])
+            print("Last Upper Limit:", last_upper_limit["jd"], self.parse_ztf_filter(last_upper_limit["fid"]),
+                  last_upper_limit["diffmaglim"])
+            print("First Detection:", first_detection["jd"], self.parse_ztf_filter(first_detection["fid"]),
+                  first_detection["magpsf"], first_detection["sigmapsf"])
+            print("First observed {0} hours after merger".format(24. * (first_detection["jd"] - g.t_min.jd)))
+            print("It has risen", -latest["magpsf"] + last_upper_limit["diffmaglim"],
+                  self.parse_ztf_filter(latest["fid"]), self.parse_ztf_filter(last_upper_limit["fid"]))
+            print([x["jd"] for x in res["prv_candidates"] + [res["candidate"]] if x["isdiffpos"] is not None])
+            print("\n")
+
+
+    def candidate_text(self, name, first_detection, lul_lim, lul_jd):
+        raise NotImplementedError
+
+    def text_summary(self):
+        text = ""
+        for name, res in sorted(self.cache.items()):
+            detections = [x for x in res["prv_candidates"] + [res["candidate"]] if x["isdiffpos"] is not None]
+            detection_jds = [x["jd"] for x in detections]
+            first_detection = detections[detection_jds.index(min(detection_jds))]
+            latest = [x for x in res["prv_candidates"] + [res["candidate"]] if x["isdiffpos"] is not None][-1]
+            last_upper_limit = [x for x in res["prv_candidates"] if
+                                np.logical_and(x["isdiffpos"] is None, x["jd"] < first_detection["jd"])][-1]
+
+            text += self.candidate_text(name, first_detection["jd"], last_upper_limit["diffmaglim"],
+                                        last_upper_limit["jd"])
+            # print("Candidate:", name, res["candidate"]["ra"], res["candidate"]["dec"], first_detection["jd"])
+            # print("Last Upper Limit:", last_upper_limit["jd"], self.parse_ztf_filter(last_upper_limit["fid"]),
+            #       last_upper_limit["diffmaglim"])
+            # print("First Detection:", first_detection["jd"], self.parse_ztf_filter(first_detection["fid"]),
+            #       first_detection["magpsf"], first_detection["sigmapsf"])
+            # print("First observed {0} hours after merger".format(24. * (first_detection["jd"] - g.t_min.jd)))
+            # print("It has risen", -latest["magpsf"] + last_upper_limit["diffmaglim"],
+            #       self.parse_ztf_filter(latest["fid"]), self.parse_ztf_filter(last_upper_limit["fid"]))
+            # print([x["jd"] for x in res["prv_candidates"] + [res["candidate"]] if x["isdiffpos"] is not None])
+            # print("\n")
+
+            c = SkyCoord(res["candidate"]["ra"], res["candidate"]["dec"], unit="deg")
+            g_lat = c.galactic.b.degree
+            if abs(g_lat) < 15.:
+                text += "It is located at a galactic latitude of {0:.2f} degrees. ".format(
+                    g_lat
+                )
+            text += "\n "
+        return text
