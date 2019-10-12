@@ -82,7 +82,7 @@ class MultiNightSummary(query._ZTFTableHandler_):
         if end_date is None:
             end_time = datetime.datetime.now()
         else:
-            end_time = datetime.datetime.strptime(end_date, date_format).time()
+            end_time = datetime.datetime.strptime(end_date, date_format)
 
         if start_time > end_time:
             raise ValueError("Start time {0} occurs after end time {1}.".format(start_time, end_time))
@@ -102,14 +102,18 @@ class MultiNightSummary(query._ZTFTableHandler_):
                 new_ns = self.get_ztf_data(night)
 
                 if ns is None:
-                    ns = new_ns
+                    if hasattr(new_ns, "data"):
+                        ns = new_ns
 
-                if new_ns is not None:
+                try:
                     ns.data = ns.data.append(new_ns.data)
-                else:
+                except AttributeError:
                     missing_nights.append(night)
             except ValueError:
                 pass
+
+        if ns is None:
+            raise Exception("No data found. The following were missing nights: \n {0}".format(missing_nights))
 
         return ns.data, missing_nights
 
@@ -213,9 +217,17 @@ class AmpelWizard:
     def plot_ztf_observations(self):
         self.get_multi_night_summary().show_gri_fields()
 
-    def get_multi_night_summary(self):
+    def get_multi_night_summary(self, max_days=None):
+
+        if max_days is not None:
+            date_1 = datetime.datetime.strptime(self.mns_time, "%Y%m%d")
+            end_date = date_1 + datetime.timedelta(days=max_days)
+            end_date = end_date.strftime("%Y%m%d")
+        else:
+            end_date = None
+
         if self.mns is None:
-            self.mns = MultiNightSummary(start_date=self.mns_time)
+            self.mns = MultiNightSummary(start_date=self.mns_time, end_date=end_date)
             times = np.array([Time(self.mns.data["UT_START"].iat[i], format="isot", scale="utc")
                      for i in range(len(self.mns.data))])
             mask = times > self.t_min
@@ -492,7 +504,7 @@ class AmpelWizard:
                   last_upper_limit["diffmaglim"])
             print("First Detection:", first_detection["jd"], self.parse_ztf_filter(first_detection["fid"]),
                   first_detection["magpsf"], first_detection["sigmapsf"])
-            print("First observed {0} hours after merger".format(24. * (first_detection["jd"] - g.t_min.jd)))
+            print("First observed {0} hours after merger".format(24. * (first_detection["jd"] - self.t_min.jd)))
             print("It has risen", -latest["magpsf"] + last_upper_limit["diffmaglim"],
                   self.parse_ztf_filter(latest["fid"]), self.parse_ztf_filter(last_upper_limit["fid"]))
             print([x["jd"] for x in res["prv_candidates"] + [res["candidate"]] if x["isdiffpos"] is not None])
