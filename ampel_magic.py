@@ -214,8 +214,8 @@ class AmpelWizard:
         logging.getLogger().setLevel(lvl)
         return bool_ampel
 
-    def plot_ztf_observations(self):
-        self.get_multi_night_summary().show_gri_fields()
+    def plot_ztf_observations(self, **kwargs):
+        self.get_multi_night_summary().show_gri_fields(**kwargs)
 
     def get_multi_night_summary(self, max_days=None):
 

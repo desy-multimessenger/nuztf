@@ -88,7 +88,7 @@ class GravWaveScanner(AmpelWizard):
         print("Reading map")
 
         self.pixel_threshold = self.find_pixel_threshold(self.data[self.key])
-        self.map_coords, self.map_probs, self.ligo_nside, self.pixel_area = self.unpack_skymap()
+        self.map_coords, self.pixel_nos, self.map_probs, self.ligo_nside, self.pixel_area = self.unpack_skymap()
         AmpelWizard.__init__(self, run_config=gw_run_config, t_min=t_min, logger=logger, cone_nside=cone_nside,
                              fast_query=fast_query)
         self.default_t_max = Time.now()
@@ -270,11 +270,14 @@ class GravWaveScanner(AmpelWizard):
 
         map_coords = []
 
+        pixel_nos = []
+
         print("Checking which pixels are within the contour:")
 
         for i in tqdm(range(hp.nside2npix(ligo_nside))):
             if mask[i]:
                 map_coords.append(self.extract_ra_dec(ligo_nside, i))
+                pixel_nos.append(i)
 
         pixel_area = hp.nside2pixarea(ligo_nside, degrees=True) * float(len(map_coords))
 
@@ -283,7 +286,7 @@ class GravWaveScanner(AmpelWizard):
         map_coords = np.array(map_coords, dtype=np.dtype([("ra", np.float),
                                                           ("dec", np.float)]))
 
-        return map_coords, self.data[self.key][mask], ligo_nside, pixel_area
+        return map_coords, pixel_nos, self.data[self.key][mask], ligo_nside, pixel_area
 
     def find_cone_coords(self):
         cone_ids = []
@@ -373,14 +376,17 @@ class GravWaveScanner(AmpelWizard):
             ra_deg = np.degrees(self.wrap_around_180(np.array([ra])))
             # ra_deg = self.wrap_around_180(np.array(np.degrees(ra)))
             dec_deg = np.degrees(dec)
-            ztf_rad = base_ztf_rad / (np.cos(dec - np.radians(ztf_dec_deg))*np.cos(dec))
+            # (np.cos(dec - np.radians(ztf_dec_deg))
+            ztf_rad = base_ztf_rad
+            ztf_height = 3.7
 
             n_obs = 0
 
             for i, x in enumerate(mns.data["dec"]):
-                if np.logical_and(not dec_deg < float(x) - ztf_rad, not dec_deg > float(x) + ztf_rad):
+                if np.logical_and(not dec_deg < float(x) - ztf_height, not dec_deg > float(x) + ztf_height):
                     if abs(dec_deg - ztf_dec_deg) < 70.:
-                        if np.logical_and(not ra_deg < float(ras[i]) - ztf_rad, not ra_deg > float(ras[i]) + ztf_rad):
+                        if np.logical_and(not ra_deg < float(ras[i]) - ztf_rad/ np.cos(dec),
+                                          not ra_deg > float(ras[i]) + ztf_rad/ np.cos(dec)):
                             n_obs += 1
                             fid = fields[i]
                             if fid not in overlapping_fields:
