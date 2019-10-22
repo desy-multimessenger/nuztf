@@ -168,6 +168,7 @@ class AmpelWizard:
             self.query_ampel = self.fast_query_ampel
 
         self.overlap_prob = None
+        self.overlap_fields = None
         self.first_obs = None
         self.last_obs = None
         self.n_fields = None
@@ -189,6 +190,9 @@ class AmpelWizard:
 
     @staticmethod
     def remove_variability_line():
+        raise NotImplementedError
+
+    def get_overlap_line(self):
         raise NotImplementedError
 
     def filter_ampel(self, res):
@@ -431,23 +435,20 @@ class AmpelWizard:
         text = "Robert Stein (DESY) (and other people, probably) report,\n" \
                "On behalf of the Zwicky Transient Facility (ZTF) and Global Relay of Observatories Watching Transients Happen (GROWTH) collaborations: \n " \
                "We observed the localization region of the {0} with the Palomar 48-inch telescope, equipped with the 47 square degree ZTF camera (Bellm et al. 2019, Graham et al. 2019). {1}" \
-               "We started obtaining target-of-opportunity observations in the g-band and r-band beginning at {2}," \
-               "approximately {3:.1f} hours after event time. " \
-               "We covered {4:.1f}% of the enclosed probability based on the bayestar map in {5} sq deg." \
-               "This estimate does not include chip gaps. " \
-               "{6} \n " \
+               "We started obtaining target-of-opportunity observations in the g-band and r-band beginning at {2}, " \
+               "approximately {3:.1f} hours after event time. {4}" \
+               "{5} \n " \
                "The images were processed in real-time through the ZTF reduction and image subtraction pipelines at IPAC to search for potential counterparts (Masci et al. 2019). " \
                "AMPEL (Nordin et al. 2019) was used to search the alerts database for candidates. " \
                "We reject stellar sources (Tachibana and Miller 2018) and moving objects, " \
-               "apply machine learning algorithms (Mahabal et al. 2019) {7}. We are left with the following high-significance transient " \
+               "apply machine learning algorithms (Mahabal et al. 2019) {6}. We are left with the following high-significance transient " \
                "candidates by our pipeline, all lying within the " \
                "{4}% localization of the bayestar skymap (LVC et al. GCN YYYY). \n\n".format(
             self.get_full_name(),
             self.get_tiling_line(),
             self.first_obs,
             (self.first_obs.jd - self.t_min.jd) * 24.,
-            self.overlap_prob,
-            self.area,
+            self.get_overlap_line(),
             self.get_obs_line(),
             self.remove_variability_line(),
             100*self.prob_threshold

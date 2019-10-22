@@ -19,6 +19,7 @@ import wget
 from numpy.lib.recfunctions import append_fields
 import pandas
 from ztfquery import fields as ztfquery_fields
+from gwemopt.ztf_tiling import get_quadrant_ipix
 
 # Setup LIGO client
 
@@ -105,6 +106,12 @@ class GravWaveScanner(AmpelWizard):
 
     def get_obs_line(self):
         return "Each exposure was 30s with a typical depth of 20.5 mag."
+
+    def get_overlap_line(self):
+        return "We covered {0:.1f}% of the enclosed probability " \
+               "based on the bayestar map in {1} sq deg." \
+               "This estimate accounts for chip gaps. ".format(
+            self.overlap_prob, self.area)
 
     @staticmethod
     def remove_variability_line():
@@ -325,7 +332,7 @@ class GravWaveScanner(AmpelWizard):
         plt.title("CONE REGION")
         return fig
 
-    def plot_overlap_with_observations(self, fields=None):
+    def plot_overlap_with_observations(self, fields=None, pid=None, first_det_window_days=None):
         fig = plt.figure()
         plt.subplot(projection="aitoff")
 
@@ -333,7 +340,148 @@ class GravWaveScanner(AmpelWizard):
         single_probs = []
 
         if fields is None:
-            mns = self.get_multi_night_summary()
+            mns = self.get_multi_night_summary(first_det_window_days)
+
+        else:
+
+            class MNS:
+                def __init__(self, data):
+                    self.data = pandas.DataFrame(data, columns=["field", "ra", "dec", "UT_START"])
+
+            data = []
+
+            for f in fields:
+                ra, dec = ztfquery_fields.field_to_coords(f)[0]
+                t = Time(Time.now().jd + 1., format="jd").utc
+                t.format = "isot"
+                t = t.value
+                for _ in range(2):
+                    data.append([f, ra, dec, t])
+
+            mns = MNS(data)
+
+        data = mns.data.copy()
+
+        if pid is not None:
+            pid_mask = data["pid"] == str(pid)
+            data = data[pid_mask]
+
+        obs_times = np.array([Time(data["UT_START"].iat[i], format="isot", scale="utc")
+                              for i in range(len(data))])
+
+        if first_det_window_days is not None:
+            first_det_mask = [x < Time(self.t_min.jd + first_det_window_days, format="jd").utc for x in obs_times]
+            data = data[first_det_mask]
+            obs_times = obs_times[first_det_mask]
+
+        pix_obs_times = dict()
+
+        print("Unpacking observations")
+
+        for i, obs_time in enumerate(tqdm(obs_times)):
+            pix = get_quadrant_ipix(self.ligo_nside, data["ra"].iat[i], data["dec"].iat[i])
+
+            flat_pix = []
+
+            for sub_list in pix:
+                for p in sub_list:
+                    flat_pix.append(p)
+
+            flat_pix = list(set(flat_pix))
+
+            t = obs_time.jd
+            for p in flat_pix:
+                if p not in pix_obs_times.keys():
+                    pix_obs_times[p] = [t]
+                else:
+                    pix_obs_times[p] += [t]
+
+        plot_pixels = []
+        probs = []
+        single_pixels = []
+        single_probs = []
+        veto_pixels = []
+        times = []
+
+        print("Checking skymap")
+
+        # hp.nest2ring(gw.ligo_nside,
+
+        for i, p in enumerate(tqdm(hp.nest2ring(self.ligo_nside, self.pixel_nos))):
+
+            if p in pix_obs_times.keys():
+
+                obs = pix_obs_times[p]
+
+                if max(obs) - min(obs) > 0.01:
+                    plot_pixels.append(p)
+                    probs.append(self.map_probs[i])
+                else:
+                    single_pixels.append(p)
+                    single_probs.append(self.map_probs[i])
+
+                times += obs
+            else:
+                veto_pixels.append(p)
+
+        self.overlap_prob = np.sum(probs) * 100.
+
+        size = hp.max_pixrad(self.ligo_nside) ** 2 * 50.
+
+        print(size, self.ligo_nside)
+
+        veto_pos = np.array([hp.pixelfunc.pix2ang(self.ligo_nside, i, lonlat=True) for i in veto_pixels]).T
+
+        plt.scatter(self.wrap_around_180(np.radians(veto_pos[0])), np.radians(veto_pos[1]),
+                    color="red", s=size)
+
+        single_pos = np.array([hp.pixelfunc.pix2ang(self.ligo_nside, i, lonlat=True) for i in single_pixels]).T
+
+        plt.scatter(self.wrap_around_180(np.radians(single_pos[0])), np.radians(single_pos[1]),
+                    c=single_probs, vmin=0., vmax=max(self.data[self.key]), s=size, cmap='gray')
+
+        plot_pos = np.array([hp.pixelfunc.pix2ang(self.ligo_nside, i, lonlat=True) for i in plot_pixels]).T
+
+        if len(plot_pos) > 0:
+            plt.scatter(self.wrap_around_180(np.radians(plot_pos[0])), np.radians(plot_pos[1]),
+                        c=probs, vmin=0., vmax=max(self.data[self.key]), s=size)
+
+        red_patch = mpatches.Patch(color='red', label='Not observed')
+        gray_patch = mpatches.Patch(color='gray', label='Observed once')
+        plt.legend(handles=[red_patch, gray_patch])
+
+        message = "In total, {0} % of the LIGO contour was observed at least once. \n " \
+                  "In total, {1} % of the LIGO contour was observed at least twice. \n" \
+                  "This estimate accounts for chip gaps.".format(
+            100 * (np.sum(probs) + np.sum(single_probs)), self.overlap_prob)
+
+        all_pix = single_pixels + plot_pixels
+
+        n_pixels = len(single_pixels + plot_pixels)
+
+        self.area = hp.pixelfunc.nside2pixarea(self.ligo_nside, degrees=True) * n_pixels
+
+        self.first_obs = Time(min(times), format="jd")
+        self.last_obs = Time(max(times), format="jd")
+
+        print("Observations started at {0}".format(self.first_obs.jd))
+
+        #     area = (2. * base_ztf_rad)**2 * float(len(overlapping_fields))
+        #     n_fields = len(overlapping_fields)
+
+        print("{0} pixels were covered, covering approximately {1} sq deg.".format(
+            n_pixels, self.area))
+        return fig, message
+
+    def simple_plot_overlap_with_observations(self, fields=None, first_det_window_days=None):
+        fig = plt.figure()
+        plt.subplot(projection="aitoff")
+
+        probs = []
+        single_probs = []
+
+        if fields is None:
+            mns = self.get_multi_night_summary(first_det_window_days)
 
         else:
 
@@ -385,8 +533,8 @@ class GravWaveScanner(AmpelWizard):
             for i, x in enumerate(mns.data["dec"]):
                 if np.logical_and(not dec_deg < float(x) - ztf_height, not dec_deg > float(x) + ztf_height):
                     if abs(dec_deg - ztf_dec_deg) < 70.:
-                        if np.logical_and(not ra_deg < float(ras[i]) - ztf_rad/ np.cos(dec),
-                                          not ra_deg > float(ras[i]) + ztf_rad/ np.cos(dec)):
+                        if np.logical_and(not ra_deg < float(ras[i]) - ztf_rad/ abs(np.cos(dec)),
+                                          not ra_deg > float(ras[i]) + ztf_rad/ abs(np.cos(dec))):
                             n_obs += 1
                             fid = fields[i]
                             if fid not in overlapping_fields:
@@ -441,6 +589,7 @@ class GravWaveScanner(AmpelWizard):
 
         self.area = (2. * base_ztf_rad)**2 * float(len(overlapping_fields))
         self.n_fields = len(overlapping_fields)
+        self.overlap_fields = overlapping_fields
 
         print("{0} fields were covered, covering approximately {1} sq deg.".format(
             self.n_fields, self.area))
