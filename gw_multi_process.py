@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 from ampel_magic import ampel_client
 from tqdm import tqdm
+from astropy.time import Time
 
 
 ligo_candidate_cache = os.path.join(Path().absolute(), "LIGO_cache")
@@ -154,9 +155,10 @@ class MultiGwProcessor(GravWaveScanner):
 
         print("Added {0} candidates since {1}".format(n_tot, time_steps[0]))
 
-    def fill_queue_space(self):
+    def fill_queue_space(self, t_max=None):
 
-        t_max = self.default_t_max
+        if t_max is None:
+            t_max = self.default_t_max
 
         mts = len(list(self.cone_ids))
         n_tot = 0

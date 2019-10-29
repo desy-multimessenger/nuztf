@@ -141,6 +141,9 @@ class AmpelWizard:
         self.cone_nside = cone_nside
         self.t_min = t_min
 
+        if not hasattr(self, "prob_threshold"):
+            self.prob_threshold = None
+
         if base_config is None:
             base_config = {'catsHTM.default': "tcp://127.0.0.1:27020"}
 
@@ -437,24 +440,23 @@ class AmpelWizard:
                "We observed the localization region of the {0} with the Palomar 48-inch telescope, equipped with the 47 square degree ZTF camera (Bellm et al. 2019, Graham et al. 2019). {1}" \
                "We started obtaining target-of-opportunity observations in the g-band and r-band beginning at {2}, " \
                "approximately {3:.1f} hours after event time. {4}" \
-               "{5} \n " \
+               "{5} \n \n" \
                "The images were processed in real-time through the ZTF reduction and image subtraction pipelines at IPAC to search for potential counterparts (Masci et al. 2019). " \
                "AMPEL (Nordin et al. 2019) was used to search the alerts database for candidates. " \
-               "We reject stellar sources (Tachibana and Miller 2018) and moving objects, " \
+               "We reject stellar sources (Tachibana and Miller 2018) and moving objects, and" \
                "apply machine learning algorithms (Mahabal et al. 2019) {6}. We are left with the following high-significance transient " \
                "candidates by our pipeline, all lying within the " \
-               "{4}% localization of the bayestar skymap (LVC et al. GCN YYYY). \n\n".format(
+               "{7}% localization of the bayestar skymap (LVC et al. GCN YYYY). \n\n{8} \n\n".format(
             self.get_full_name(),
             self.get_tiling_line(),
-            self.first_obs,
+            self.first_obs.utc,
             (self.first_obs.jd - self.t_min.jd) * 24.,
             self.get_overlap_line(),
             self.get_obs_line(),
             self.remove_variability_line(),
-            100*self.prob_threshold
+            100*self.prob_threshold,
+            self.parse_candidates()
         )
-
-        text += self.parse_candidates()
 
         text += "Amongst our candidates, some other crap. \n \n" \
                 "ZTF and GROWTH are worldwide collaborations comprising Caltech, USA; IPAC, USA, WIS, Israel; OKC, Sweden; JSI/UMd, USA; U Washington, USA; DESY, Germany; MOST, Taiwan; UW Milwaukee, USA; LANL USA; Tokyo Tech, Japan; IITB, India; IIA, India; LJMU, UK; TTU, USA; SDSU, USA and USyd, Australia. \n"

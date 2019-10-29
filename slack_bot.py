@@ -71,6 +71,7 @@ def run_on_event(thread_ts, channel_id):
     gw_file = None
     rev_no = None
     prob_threshold = 0.95
+    n_days = None
     try:
         for x in split_message:
             if len(x) > 0:
@@ -83,7 +84,9 @@ def run_on_event(thread_ts, channel_id):
                 elif "rev" in x:
                     rev_no = int(x.split("=")[1])
                 elif "prob_threshold" in x:
-                    prob_threshold = float(x.split("=")[1])     
+                    prob_threshold = float(x.split("=")[1])
+                elif "n_days" in x:
+                    n_days = float(x.split("=")[1])
 
 
 
@@ -108,6 +111,11 @@ def run_on_event(thread_ts, channel_id):
             message += "No revision number has been specified. I will just take the most recent revision for this event. "
     
         message += "The LIGO Skymap will be scanned up to {0}% of the probability.".format(100. * prob_threshold)
+
+        if n_days is not None:
+            message += "No time range has been specified. I will scan from merger time to now."
+        else:
+            message += "I will scan for objects first detected between merger time and {0} days after".format(n_days)
 
     except:
         message = "Sorry <@{0}>, I have run into a parsing error with your message. All your bases are belong to us. \n {1}".format(data["channel"], split_message)
@@ -134,7 +142,13 @@ def run_on_event(thread_ts, channel_id):
         fig = gw.plot_skymap()
         upload_fig(fig, data, "LIGO_skymap.png", channel_id, thread_ts)
         gw.clean_cache()
-        gw.fill_queue()
+
+        if n_days is not None:
+            t_max = Time(gw.t_min.jd, format="jd")
+        else:
+            t_max = None
+
+        gw.fill_queue(t_max)
         gw.terminate()
         gw.combine_cache()
         gw.clean_cache()

@@ -46,6 +46,8 @@ class NeutrinoScanner(AmpelWizard):
 
     def __init__(self, nu_name=None, manual_args=None, gcn_no=None, logger=None, cone_nside=128):
 
+        self.prob_threshold = 0.9
+
         if manual_args is None:
 
             if nu_name is not None:
