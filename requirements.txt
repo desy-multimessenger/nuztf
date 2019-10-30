@@ -1,3 +1,4 @@
+gwemopt
 wget
 healpy
 jupyter
