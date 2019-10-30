@@ -112,10 +112,10 @@ def run_on_event(thread_ts, channel_id):
     
         message += "The LIGO Skymap will be scanned up to {0}% of the probability.".format(100. * prob_threshold)
 
-        if n_days is not None:
-            message += "No time range has been specified. I will scan from merger time to now."
+        if n_days is None:
+            message += "No time range has been specified. I will scan from merger time to now. "
         else:
-            message += "I will scan for objects first detected between merger time and {0} days after".format(n_days)
+            message += "I will scan for objects first detected between merger time and {0} days after ".format(n_days)
 
     except:
         message = "Sorry <@{0}>, I have run into a parsing error with your message. All your bases are belong to us. \n {1}".format(data["channel"], split_message)
