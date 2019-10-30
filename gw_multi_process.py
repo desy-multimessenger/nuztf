@@ -18,9 +18,9 @@ class MultiGwProcessor(GravWaveScanner):
     queue = None
     results = dict()
 
-    def __init__(self, n_cpu=os.cpu_count()-1, mp_id=0, *args, **kwargs):
+    def __init__(self, n_cpu=os.cpu_count()-1, mp_id=0, n_days=None, *args, **kwargs):
         GravWaveScanner.__init__(self, *args, **kwargs)
-        self.fill_queue, self.n_sky, self.scan_method = self.optimise_scan_method()
+        self.fill_queue, self.n_sky, self.scan_method = self.optimise_scan_method(n_days)
         self.cache_dir = os.path.join(
             ligo_candidate_cache,
             os.path.splitext(os.path.basename(self.output_path))[0]
@@ -108,13 +108,18 @@ class MultiGwProcessor(GravWaveScanner):
         with open(path, "wb") as f:
             pickle.dump(self.obj_names, f)
 
-    def optimise_scan_method(self):
+    def optimise_scan_method(self, n_days=None):
 
-        length_window = self.default_t_max.jd - self.t_min.jd
+        if n_days is None:
+            t_max = self.default_t_max
+        else:
+            t_max = Time(self.t_min.jd + n_days, fomat="jd")
+
+        length_window = t_max.jd - self.t_min.jd
 
         survey_start_jd = 2458000.
 
-        full_ztf = self.default_t_max.jd - survey_start_jd
+        full_ztf = t_max.jd - survey_start_jd
 
         n_skys_time = length_window * 1./4.
 
@@ -133,9 +138,10 @@ class MultiGwProcessor(GravWaveScanner):
 
         return f, n_sky, method
 
-    def fill_queue_time(self):
+    def fill_queue_time(self, t_max=None):
 
-        t_max = self.default_t_max
+        if t_max is None:
+            t_max = self.default_t_max
 
         time_steps = np.arange(self.t_min.jd, t_max.jd, step=0.005)
         mts = len(time_steps)

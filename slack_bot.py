@@ -131,7 +131,7 @@ def run_on_event(thread_ts, channel_id):
     logger.setLevel(logging.ERROR)
 
     try:
-        gw = MultiGwProcessor(gw_name=gw_name, gw_file=gw_file, rev=rev_no, logger=logger,
+        gw = MultiGwProcessor(n_days=n_days, gw_name=gw_name, gw_file=gw_file, rev=rev_no, logger=logger,
                               prob_threshold=prob_threshold)
         web_client.chat_postMessage(
             channel=channel_id,
