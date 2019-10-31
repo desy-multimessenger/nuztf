@@ -113,7 +113,7 @@ class MultiGwProcessor(GravWaveScanner):
         if n_days is None:
             t_max = self.default_t_max
         else:
-            t_max = Time(self.t_min.jd + n_days, fomat="jd")
+            t_max = Time(self.t_min.jd + n_days, format="jd")
 
         length_window = t_max.jd - self.t_min.jd
 

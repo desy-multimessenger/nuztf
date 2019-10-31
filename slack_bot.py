@@ -8,6 +8,7 @@ import os
 from gw_scanner import GravWaveScanner
 from gw_multi_process import MultiGwProcessor
 import sys
+from astropy.time import Time
 
 slack_token = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".slack_access_token.txt")
 
@@ -115,7 +116,7 @@ def run_on_event(thread_ts, channel_id):
         if n_days is None:
             message += "No time range has been specified. I will scan from merger time to now. "
         else:
-            message += "I will scan for objects first detected between merger time and {0} days after ".format(n_days)
+            message += "I will scan for objects first detected between merger time and {0} days after merger. ".format(n_days)
 
     except:
         message = "Sorry <@{0}>, I have run into a parsing error with your message. All your bases are belong to us. \n {1}".format(data["channel"], split_message)
@@ -144,7 +145,7 @@ def run_on_event(thread_ts, channel_id):
         gw.clean_cache()
 
         if n_days is not None:
-            t_max = Time(gw.t_min.jd, format="jd")
+            t_max = Time(gw.t_min.jd + n_days, format="jd")
         else:
             t_max = None
 
@@ -181,6 +182,7 @@ def run_on_event(thread_ts, channel_id):
             thread_ts=thread_ts,
             icon_emoji=':ligo:'
         )
+        raise
 
     # Session will not die until multi-processes have been terminated
 
