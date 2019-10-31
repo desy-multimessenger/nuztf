@@ -161,7 +161,7 @@ def run_on_event(thread_ts, channel_id):
             thread_ts=thread_ts,
             icon_emoji=':ligo:'
         )
-        fig, overlap = gw.plot_overlap_with_observations()
+        fig, overlap = gw.plot_overlap_with_observations(first_det_window_days=n_days)
         web_client.chat_postMessage(
             channel=channel_id,
             text=overlap,
