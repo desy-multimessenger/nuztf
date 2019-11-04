@@ -20,8 +20,9 @@ class MultiGwProcessor(GravWaveScanner):
     results = dict()
 
     def __init__(self, n_cpu=os.cpu_count()-1, mp_id=0, n_days=None, *args, **kwargs):
-        GravWaveScanner.__init__(self, *args, **kwargs)
-        self.fill_queue, self.n_sky, self.scan_method, self.default_t_max = self.optimise_scan_method(n_days)
+        GravWaveScanner.__init__(self, n_days, *args, **kwargs)
+        self.fill_queue, self.n_sky, self.scan_method = self.optimise_scan_method()
+
         self.cache_dir = os.path.join(
             ligo_candidate_cache,
             os.path.splitext(os.path.basename(self.output_path))[0]
@@ -80,29 +81,29 @@ class MultiGwProcessor(GravWaveScanner):
 
         # Positive detection
         if res['candidate']['isdiffpos'] not in ["t", "1"]:
-            # logging.debug("Negative subtraction")
+            # print("Negative subtraction")
             return False
 
         try:
             if res['candidate']['drb'] < 0.3:
-                # logging.debug("DRB too low")
+                # print("DRB too low")
                 return False
         except KeyError:
             pass
 
         # Veto old transients
         if res["candidate"]["jdstarthist"] < self.t_min.jd:
-            # logging.debug("Transient is too old")
+            # print("Transient is too old")
             return False
 
         # Check contour
         if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
-            # logging.debug("Not in contour")
+            # print("Not in contour")
             return False
 
         # Require 2 detections separated by 15 mins
         if (res["candidate"]["jdendhist"] - res["candidate"]["jdstarthist"]) < 0.01:
-            # logging.debug("Time...")
+            # print("Time...")
             return False
 
         return True
@@ -114,12 +115,10 @@ class MultiGwProcessor(GravWaveScanner):
         with open(path, "wb") as f:
             pickle.dump(self.obj_names, f)
 
-    def optimise_scan_method(self, n_days=None):
+    def optimise_scan_method(self, t_max=None):
 
-        if n_days is None:
-            t_max = self.default_t_max
-        else:
-            t_max = Time(self.t_min.jd + n_days, format="jd")
+        if t_max is None:
+            t_max = Time.now()
 
         length_window = t_max.jd - self.t_min.jd
 
@@ -147,7 +146,7 @@ class MultiGwProcessor(GravWaveScanner):
     def fill_queue_time(self, t_max=None):
 
         if t_max is None:
-            t_max = self.default_t_max
+            t_max = Time.now()
 
         time_steps = np.arange(self.t_min.jd, t_max.jd, step=0.005)
         mts = len(time_steps)
@@ -170,7 +169,7 @@ class MultiGwProcessor(GravWaveScanner):
     def fill_queue_space(self, t_max=None):
 
         if t_max is None:
-            t_max = self.default_t_max
+            t_max = Time.now()
 
         mts = len(list(self.cone_ids))
         n_tot = 0
@@ -207,6 +206,7 @@ class MultiGwProcessor(GravWaveScanner):
 
         print("Scanned {0} pixels".format(len(self.scanned_pixels)))
         print("Found {0} candidates passing the first filtering stage.".format(len(self.obj_names)))
+        print(self.obj_names)
 
         ztf_object = ampel_client.get_alerts_for_object(self.obj_names, with_history=True)
 
@@ -220,6 +220,10 @@ class MultiGwProcessor(GravWaveScanner):
             if self.filter_f_history(res):
                 if self.filter_ampel(res):
                     self.cache[res["objectId"]] = res
+                else:
+                    print("Failed Ampel")
+            else:
+                print("Failed History")
 
         print("Found {0} candidates passing the final filtering stage.".format(len(self.cache)))
 

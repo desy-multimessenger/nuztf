@@ -143,13 +143,7 @@ def run_on_event(thread_ts, channel_id):
         fig = gw.plot_skymap()
         upload_fig(fig, data, "LIGO_skymap.png", channel_id, thread_ts)
         gw.clean_cache()
-
-        if n_days is not None:
-            t_max = Time(gw.t_min.jd + n_days, format="jd")
-        else:
-            t_max = None
-
-        gw.fill_queue(t_max)
+        gw.fill_queue()
         gw.terminate()
         gw.combine_cache()
         gw.clean_cache()

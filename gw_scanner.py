@@ -65,7 +65,7 @@ class RetractionError(Exception):
 class GravWaveScanner(AmpelWizard):
 
     def __init__(self, gw_name=None, gw_file=None, rev=None, logger=None, prob_threshold=0.95, cone_nside=64,
-                 fast_query=False):
+                 fast_query=False, n_days=None):
 
         self.prob_threshold = prob_threshold
 
@@ -93,7 +93,12 @@ class GravWaveScanner(AmpelWizard):
         self.map_coords, self.pixel_nos, self.map_probs, self.ligo_nside, self.pixel_area = self.unpack_skymap()
         AmpelWizard.__init__(self, run_config=gw_run_config, t_min=t_min, logger=logger, cone_nside=cone_nside,
                              fast_query=fast_query)
-        self.default_t_max = Time.now()
+
+        # By default, accept things detected within 72 hours of merger
+        if n_days is None:
+            n_days = 3.
+
+        self.default_t_max = Time(self.t_min.jd + n_days, format="jd")
 
     def get_name(self):
         return self.gw_name
@@ -173,7 +178,7 @@ class GravWaveScanner(AmpelWizard):
             return False
 
         # Veto new transients
-        if res["candidate"]["jdstarthist"] > (self.t_min.jd + 3.):
+        if res["candidate"]["jdstarthist"] > self.default_t_max.jd:
             logging.debug("Transient is too new")
             return False
 
