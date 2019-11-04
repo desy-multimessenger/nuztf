@@ -20,7 +20,7 @@ class MultiGwProcessor(GravWaveScanner):
     results = dict()
 
     def __init__(self, n_cpu=os.cpu_count()-1, mp_id=0, n_days=None, *args, **kwargs):
-        GravWaveScanner.__init__(self, n_days, *args, **kwargs)
+        GravWaveScanner.__init__(self, n_days=n_days, *args, **kwargs)
         self.fill_queue, self.n_sky, self.scan_method = self.optimise_scan_method()
 
         self.cache_dir = os.path.join(
