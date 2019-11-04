@@ -374,6 +374,7 @@ class AmpelWizard:
                 merged_list.append(alerts[0])
             else:
                 jds = [x["candidate"]["jd"] for x in alerts]
+                print(jds)
                 order = [jds.index(x) for x in sorted(jds)[::-1]]
                 latest = alerts[jds.index(max(jds))]
                 latest["candidate"]["jdstarthist"] = min([x["candidate"]["jdstarthist"] for x in alerts])

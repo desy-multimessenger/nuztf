@@ -10,6 +10,7 @@ from pathlib import Path
 from ampel_magic import ampel_client
 from tqdm import tqdm
 from astropy.time import Time
+import logging
 
 
 ligo_candidate_cache = os.path.join(Path().absolute(), "LIGO_cache")
@@ -20,7 +21,7 @@ class MultiGwProcessor(GravWaveScanner):
 
     def __init__(self, n_cpu=os.cpu_count()-1, mp_id=0, n_days=None, *args, **kwargs):
         GravWaveScanner.__init__(self, *args, **kwargs)
-        self.fill_queue, self.n_sky, self.scan_method = self.optimise_scan_method(n_days)
+        self.fill_queue, self.n_sky, self.scan_method, self.default_t_max = self.optimise_scan_method(n_days)
         self.cache_dir = os.path.join(
             ligo_candidate_cache,
             os.path.splitext(os.path.basename(self.output_path))[0]
@@ -79,24 +80,29 @@ class MultiGwProcessor(GravWaveScanner):
 
         # Positive detection
         if res['candidate']['isdiffpos'] not in ["t", "1"]:
+            # logging.debug("Negative subtraction")
             return False
 
         try:
             if res['candidate']['drb'] < 0.3:
+                # logging.debug("DRB too low")
                 return False
         except KeyError:
             pass
 
         # Veto old transients
         if res["candidate"]["jdstarthist"] < self.t_min.jd:
+            # logging.debug("Transient is too old")
             return False
 
         # Check contour
         if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
+            # logging.debug("Not in contour")
             return False
 
         # Require 2 detections separated by 15 mins
         if (res["candidate"]["jdendhist"] - res["candidate"]["jdstarthist"]) < 0.01:
+            # logging.debug("Time...")
             return False
 
         return True
@@ -136,7 +142,7 @@ class MultiGwProcessor(GravWaveScanner):
 
         print("Scanning method: {0} \n N_sky: {1}".format(method, n_sky))
 
-        return f, n_sky, method
+        return f, n_sky, method, t_max
 
     def fill_queue_time(self, t_max=None):
 

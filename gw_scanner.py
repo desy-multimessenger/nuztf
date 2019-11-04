@@ -20,6 +20,7 @@ from numpy.lib.recfunctions import append_fields
 import pandas
 from ztfquery import fields as ztfquery_fields
 from gwemopt.ztf_tiling import get_quadrant_ipix
+import logging
 
 # Setup LIGO client
 
@@ -85,8 +86,8 @@ class GravWaveScanner(AmpelWizard):
 
         t_min = Time(t_obs, format="isot", scale="utc")
 
-        print("MERGER TIME: {0}".format(t_min))
-        print("Reading map")
+        logging.info("MERGER TIME: {0}".format(t_min))
+        logging.info("Reading map")
 
         self.pixel_threshold = self.find_pixel_threshold(self.data[self.key])
         self.map_coords, self.pixel_nos, self.map_probs, self.ligo_nside, self.pixel_area = self.unpack_skymap()
@@ -134,51 +135,63 @@ class GravWaveScanner(AmpelWizard):
 
         # Positive detection
         if res['candidate']['isdiffpos'] not in ["t", "1"]:
+            logging.debug("Negative subtraction")
             return False
 
         # Veto old transients
         if res["candidate"]["jdstarthist"] < self.t_min.jd:
+            logging.debug("Transient is too old")
             return False
 
         # Check contour
         if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
+            logging.debug("Outside of contour")
             return False
 
         return True
 
-    def fast_filter_f_no_prv(self, res):
-
-        # Positive detection
-        if res['candidate']['isdiffpos'] not in ["t", "1"]:
-            return False
-
-        # Veto old transients
-        if res["candidate"]["jdstarthist"] < self.t_min.jd:
-            return False
-
-        # Require 2 detections separated by 15 mins
-        if (res["candidate"]["jdendhist"] - res["candidate"]["jdstarthist"]) < 0.01:
-            return False
-
-        return True
+    # def fast_filter_f_no_prv(self, res):
+    #
+    #     # Positive detection
+    #     if res['candidate']['isdiffpos'] not in ["t", "1"]:
+    #         return False
+    #
+    #     # Veto old transients
+    #     if res["candidate"]["jdstarthist"] < self.t_min.jd:
+    #         return False
+    #
+    #     # Require 2 detections separated by 15 mins
+    #     if (res["candidate"]["jdendhist"] - res["candidate"]["jdstarthist"]) < 0.01:
+    #         return False
+    #
+    #     return True
 
     def filter_f_history(self, res):
         # Veto old transients
         if res["candidate"]["jdstarthist"] < self.t_min.jd:
+            logging.debug("Transient is too old")
+            return False
+
+        # Veto new transients
+        if res["candidate"]["jdstarthist"] > (self.t_min.jd + 3.):
+            logging.debug("Transient is too new")
             return False
 
         # Require 2 detections separated by 15 mins
         if (res["candidate"]["jdendhist"] - res["candidate"]["jdstarthist"]) < 0.01:
+            logging.debug("Not passed mover cut")
             return False
 
         # Require 2 positive detections
         old_detections = [x for x in res["prv_candidates"] if np.logical_and(
             x["isdiffpos"] is not None,
-            np.logical_and(x["jd"] > self.t_min.jd, x["jd"] < self.default_t_max.jd))]
+            x["jd"] > self.t_min.jd
+        )]
 
         pos_detections = [x for x in old_detections if x['isdiffpos'] in ["t", "1"]]
 
         if len(pos_detections) < 1:
+            logging.debug("Does not have two detections")
             return False
 
         return True
