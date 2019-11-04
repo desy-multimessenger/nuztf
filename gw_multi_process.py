@@ -20,6 +20,9 @@ class MultiGwProcessor(GravWaveScanner):
     results = dict()
 
     def __init__(self, n_cpu=os.cpu_count()-1, mp_id=0, n_days=None, *args, **kwargs):
+
+        print("Running on {0} CPUs".format(n_cpu))
+
         GravWaveScanner.__init__(self, n_days=n_days, *args, **kwargs)
         self.fill_queue, self.n_sky, self.scan_method = self.optimise_scan_method()
 
@@ -146,7 +149,7 @@ class MultiGwProcessor(GravWaveScanner):
     def fill_queue_time(self, t_max=None):
 
         if t_max is None:
-            t_max = Time.now()
+            t_max = Time(self.default_t_max.jd + 7., format="jd")
 
         time_steps = np.arange(self.t_min.jd, t_max.jd, step=0.005)
         mts = len(time_steps)
