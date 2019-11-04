@@ -141,7 +141,7 @@ class MultiGwProcessor(GravWaveScanner):
 
         print("Scanning method: {0} \n N_sky: {1}".format(method, n_sky))
 
-        return f, n_sky, method, t_max
+        return f, n_sky, method
 
     def fill_queue_time(self, t_max=None):
 
