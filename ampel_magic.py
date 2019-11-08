@@ -486,7 +486,7 @@ class AmpelWizard:
         with PdfPages(self.output_path) as pdf:
             for (name, old_alert) in tqdm(sorted(self.cache.items())):
                 mock_alert = self.reassemble_alert(old_alert)
-                fig = alert.display_alert(mock_alert)
+                fig = alert.display_alert(mock_alert, show_ps_stamp=True)
                 fig.text(0, 0, name)
                 pdf.savefig()
                 plt.close()
