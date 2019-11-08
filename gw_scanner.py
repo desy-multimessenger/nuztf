@@ -75,7 +75,8 @@ class GravWaveScanner(AmpelWizard):
         else:
             basename = os.path.basename(gw_file)
             self.gw_path = "{0}/{1}".format(base_ligo_dir, basename)
-            if basename[:7] == "https://":
+            if gw_file[:8] == "https://":
+                print("Downloading from: {0}".format(gw_file))
                 self.gw_path = "{0}/{1}".format(base_ligo_dir, os.path.basename(gw_file[7:]))
                 wget.download(gw_file, self.gw_path)
 
