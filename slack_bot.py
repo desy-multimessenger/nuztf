@@ -167,6 +167,18 @@ def run_on_event(thread_ts, channel_id):
             channel=channel_id,
             thread_ts=thread_ts,
             icon_emoji=':ligo:',
+            text="Here's a draft GCN:"
+        )
+        web_client.chat_postMessage(
+            channel=channel_id,
+            thread_ts=thread_ts,
+            icon_emoji=':ligo:',
+            text=gw.draft_gcn()
+        )
+        web_client.chat_postMessage(
+            channel=channel_id,
+            thread_ts=thread_ts,
+            icon_emoji=':ligo:',
             text="<@{0}>, I'm all finished. Go find that kilonova!".format(data["user"])
         )
     except Exception as e:
