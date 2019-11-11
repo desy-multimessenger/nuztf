@@ -436,10 +436,10 @@ class AmpelWizard:
     def draft_gcn(self):
         # candidate_text = parse_candidates(g)
         # first_obs =
-        text = "Robert Stein (DESY) (and other people, probably) report,\n" \
+        text = "Robert Stein (DESY), ............. report,\n" \
                "On behalf of the Zwicky Transient Facility (ZTF) and Global Relay of Observatories Watching Transients Happen (GROWTH) collaborations: \n " \
                "We observed the localization region of the {0} with the Palomar 48-inch telescope, equipped with the 47 square degree ZTF camera (Bellm et al. 2019, Graham et al. 2019). {1}" \
-               "We started obtaining target-of-opportunity observations in the g-band and r-band beginning at {2}, " \
+               "We started obtaining target-of-opportunity observations in the g-band and r-band beginning at {2} UTC, " \
                "approximately {3:.1f} hours after event time. {4}" \
                "{5} \n \n" \
                "The images were processed in real-time through the ZTF reduction and image subtraction pipelines at IPAC to search for potential counterparts (Masci et al. 2019). " \
@@ -447,7 +447,8 @@ class AmpelWizard:
                "We reject stellar sources (Tachibana and Miller 2018) and moving objects, and" \
                "apply machine learning algorithms (Mahabal et al. 2019) {6}. We are left with the following high-significance transient " \
                "candidates by our pipeline, all lying within the " \
-               "{7}% localization of the bayestar skymap (LVC et al. GCN YYYY). \n\n{8} \n\n".format(
+               "{7}% localization of the bayestar skymap (LVC et al. GCN YYYY). \n\n{8} \n\n" \
+               "Amongst our candidates, {9}. \n \n".format(
             self.get_full_name(),
             self.get_tiling_line(),
             self.first_obs.utc,
@@ -456,11 +457,11 @@ class AmpelWizard:
             self.get_obs_line(),
             self.remove_variability_line(),
             100*self.prob_threshold,
-            self.parse_candidates()
+            self.parse_candidates(),
+            self.text_summary()
         )
 
-        text += "Amongst our candidates, some other crap. \n \n" \
-                "ZTF and GROWTH are worldwide collaborations comprising Caltech, USA; IPAC, USA, WIS, Israel; OKC, Sweden; JSI/UMd, USA; U Washington, USA; DESY, Germany; MOST, Taiwan; UW Milwaukee, USA; LANL USA; Tokyo Tech, Japan; IITB, India; IIA, India; LJMU, UK; TTU, USA; SDSU, USA and USyd, Australia. \n"
+        text += "ZTF and GROWTH are worldwide collaborations comprising Caltech, USA; IPAC, USA, WIS, Israel; OKC, Sweden; JSI/UMd, USA; U Washington, USA; DESY, Germany; MOST, Taiwan; UW Milwaukee, USA; LANL USA; Tokyo Tech, Japan; IITB, India; IIA, India; LJMU, UK; TTU, USA; SDSU, USA and USyd, Australia. \n"
         "ZTF acknowledges the generous support of the NSF under AST MSIP Grant No 1440341. \n"
         "GROWTH acknowledges generous support of the NSF under PIRE Grant No 1545949. \n "
         "Alert distribution service provided by DIRAC@UW (Patterson et al. 2019). \n"

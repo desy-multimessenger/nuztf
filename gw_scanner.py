@@ -16,7 +16,7 @@ import matplotlib.patches as mpatches
 import fitsio
 from astropy import units as u
 import wget
-from numpy.lib.recfunctions import append_fields
+from numpy.lib.recfunctions import append_fields, drop_fields
 import pandas
 from ztfquery import fields as ztfquery_fields
 from gwemopt.ztf_tiling import get_quadrant_ipix
@@ -121,7 +121,7 @@ class GravWaveScanner(AmpelWizard):
 
     def get_overlap_line(self):
         return "We covered {0:.1f}% of the enclosed probability " \
-               "based on the bayestar map in {1} sq deg. " \
+               "based on the bayestar map in {1:.1f} sq deg. " \
                "This estimate accounts for chip gaps. ".format(
             self.overlap_prob, self.area)
 
@@ -265,7 +265,21 @@ class GravWaveScanner(AmpelWizard):
         else:
             raise Exception("No recognised probability key in map. This is probably a weird one, right?")
 
+        if not isinstance(data[0], float):
+            probs = np.array(data["PROB"]).flatten()
+            # # print(data)
+            # # print(drop_fields(data, "PROB"))
+            # print(data.dtype.names)
+            # data = drop_fields(data, "PROB", asrecarray=True)
+            # print(type(data))
+            data = np.array(probs, dtype=np.dtype([("PROB", np.float)]))
+
+        if h["ORDERING"] == "RING":
+            data["PROB"] = hp.pixelfunc.reorder(data["PROB"], inp="RING", out="NESTED")
+            h["ORDERING"] = "NESTED"
+
         hpm = HEALPix(nside=h["NSIDE"], order=h["ORDERING"], frame='icrs')
+
         # with fits.open(self.gw_path) as hdul:
         #     print("Opened file")
         #     t_obs = hdul[0].header
@@ -276,6 +290,7 @@ class GravWaveScanner(AmpelWizard):
         return data, t_obs, hpm, key
 
     def find_pixel_threshold(self, data):
+
         ranked_pixels = np.sort(data)[::-1]
         int_sum = 0.0
         pixel_threshold = 0.0

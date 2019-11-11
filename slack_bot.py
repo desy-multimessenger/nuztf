@@ -9,6 +9,8 @@ from gw_scanner import GravWaveScanner
 from gw_multi_process import MultiGwProcessor
 import sys
 from astropy.time import Time
+import traceback
+import time
 
 slack_token = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".slack_access_token.txt")
 
@@ -105,13 +107,15 @@ def run_on_event(thread_ts, channel_id):
         if message == "":
             message = "No file was specified. I will just assume that you want the most recent LIGO event. "
 
-        if rev_no is not None:
-            if gw_name is not None:
-                message += "You have specified revision number {0}. ".format(rev_no)
-        else:
-            message += "No revision number has been specified. I will just take the most recent revision for this event. "
+        if gw_file is None:
+
+            if rev_no is not None:
+                if gw_name is not None:
+                    message += "You have specified revision number {0}. ".format(rev_no)
+            else:
+                message += "No revision number has been specified. I will just take the most recent revision for this event. "
     
-        message += "The LIGO Skymap will be scanned up to {0}% of the probability.".format(100. * prob_threshold)
+        message += "The LIGO Skymap will be scanned up to {0}% of the probability. ".format(100. * prob_threshold)
 
         if n_days is None:
             message += "No time range has been specified. I will scan from merger time to now. "
@@ -142,19 +146,19 @@ def run_on_event(thread_ts, channel_id):
         )
         fig = gw.plot_skymap()
         upload_fig(fig, data, "LIGO_skymap.png", channel_id, thread_ts)
-        gw.clean_cache()
-        gw.fill_queue()
-        gw.terminate()
-        gw.combine_cache()
-        gw.clean_cache()
+        # gw.clean_cache()
+        # gw.fill_queue()
+        # gw.terminate()
+        # gw.combine_cache()
+        # gw.clean_cache()
         wc = WebClient(token=bot_access_token)
-        wc.files_upload(
-            file=gw.output_path,
-            filename=os.path.basename(gw.output_path),
-            channels=channel_id,
-            thread_ts=thread_ts,
-            icon_emoji=':ligo:'
-        )
+        # wc.files_upload(
+        #     file=gw.output_path,
+        #     filename=os.path.basename(gw.output_path),
+        #     channels=channel_id,
+        #     thread_ts=thread_ts,
+        #     icon_emoji=':ligo:'
+        # )
         fig, overlap = gw.plot_overlap_with_observations(first_det_window_days=n_days)
         web_client.chat_postMessage(
             channel=channel_id,
@@ -188,6 +192,14 @@ def run_on_event(thread_ts, channel_id):
             thread_ts=thread_ts,
             icon_emoji=':ligo:'
         )
+        traceback.print_exc()
+        time.sleep(120)
+        # web_client.chat_postMessage(
+        #     channel=channel_id,
+        #     text="`{0}`".format(traceback.print_tb(err.__traceback__)),
+        #     thread_ts=thread_ts,
+        #     icon_emoji=':ligo:'
+        # )
         raise
 
     # Session will not die until multi-processes have been terminated
