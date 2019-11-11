@@ -146,19 +146,19 @@ def run_on_event(thread_ts, channel_id):
         )
         fig = gw.plot_skymap()
         upload_fig(fig, data, "LIGO_skymap.png", channel_id, thread_ts)
-        # gw.clean_cache()
-        # gw.fill_queue()
-        # gw.terminate()
-        # gw.combine_cache()
-        # gw.clean_cache()
+        gw.clean_cache()
+        gw.fill_queue()
+        gw.terminate()
+        gw.combine_cache()
+        gw.clean_cache()
         wc = WebClient(token=bot_access_token)
-        # wc.files_upload(
-        #     file=gw.output_path,
-        #     filename=os.path.basename(gw.output_path),
-        #     channels=channel_id,
-        #     thread_ts=thread_ts,
-        #     icon_emoji=':ligo:'
-        # )
+        wc.files_upload(
+            file=gw.output_path,
+            filename=os.path.basename(gw.output_path),
+            channels=channel_id,
+            thread_ts=thread_ts,
+            icon_emoji=':ligo:'
+        )
         fig, overlap = gw.plot_overlap_with_observations(first_det_window_days=n_days)
         web_client.chat_postMessage(
             channel=channel_id,
@@ -194,12 +194,6 @@ def run_on_event(thread_ts, channel_id):
         )
         traceback.print_exc()
         time.sleep(120)
-        # web_client.chat_postMessage(
-        #     channel=channel_id,
-        #     text="`{0}`".format(traceback.print_tb(err.__traceback__)),
-        #     thread_ts=thread_ts,
-        #     icon_emoji=':ligo:'
-        # )
         raise
 
     # Session will not die until multi-processes have been terminated
