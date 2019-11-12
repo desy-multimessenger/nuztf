@@ -444,8 +444,6 @@ class GravWaveScanner(AmpelWizard):
 
         print("Checking skymap")
 
-        # hp.nest2ring(gw.ligo_nside,
-
         for i, p in enumerate(tqdm(hp.nest2ring(self.ligo_nside, self.pixel_nos))):
 
             if p in pix_obs_times.keys():
@@ -466,8 +464,6 @@ class GravWaveScanner(AmpelWizard):
         self.overlap_prob = np.sum(probs) * 100.
 
         size = hp.max_pixrad(self.ligo_nside) ** 2 * 50.
-
-        print(size, self.ligo_nside)
 
         veto_pos = np.array([hp.pixelfunc.pix2ang(self.ligo_nside, i, lonlat=True) for i in veto_pixels]).T
 

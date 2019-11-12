@@ -82,6 +82,16 @@ class MultiGwProcessor(GravWaveScanner):
 
     def filter_f_no_prv(self, res):
 
+        # Veto old transients
+        if res["candidate"]["jdstarthist"] < self.t_min.jd:
+            # print("Transient is too old")
+            return False
+
+        # Veto new transients
+        if res["candidate"]["jdstarthist"] > self.default_t_max.jd:
+            logging.debug("Transient is too new")
+            return False
+
         # Positive detection
         if res['candidate']['isdiffpos'] not in ["t", "1"]:
             # print("Negative subtraction")
@@ -93,11 +103,6 @@ class MultiGwProcessor(GravWaveScanner):
                 return False
         except KeyError:
             pass
-
-        # Veto old transients
-        if res["candidate"]["jdstarthist"] < self.t_min.jd:
-            # print("Transient is too old")
-            return False
 
         # Check contour
         if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
