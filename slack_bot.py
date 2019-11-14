@@ -43,7 +43,7 @@ def upload_fig(fig, data, filename, channel_id, thread_ts):
         filename=filename,
         channels=channel_id,
         thread_ts = thread_ts,
-        icon_emoji=':ligo:',
+        icon_emoji=':ampel-mm:',
         text="<@{0}>, here's the file {1} I've uploaded for you!".format(data["user"], filename)
     )
     #fig.close()
@@ -64,9 +64,9 @@ def run_on_event(thread_ts, channel_id):
 
     web_client.chat_postMessage(
         channel=channel_id,
-        text="Hi <@{0}>! You are interested in LIGO stuff, right? Let me get right on that for you.".format(user),
+        text="Hi <@{0}>! You are interested in Ampel multi-messenger stuff, right? Let me get right on that for you.".format(user),
         thread_ts=thread_ts,
-        icon_emoji=':ligo:'
+        icon_emoji=':ampel-mm:'
     )
     split_message = data['text'].split(" ")
 
@@ -115,7 +115,7 @@ def run_on_event(thread_ts, channel_id):
             else:
                 message += "No revision number has been specified. I will just take the most recent revision for this event. "
     
-        message += "The LIGO Skymap will be scanned up to {0}% of the probability. ".format(100. * prob_threshold)
+        message += "The Skymap will be scanned up to {0}% of the probability. ".format(100. * prob_threshold)
 
         if n_days is None:
             message += "No time range has been specified. I will scan from merger time to now. "
@@ -129,7 +129,7 @@ def run_on_event(thread_ts, channel_id):
         channel=channel_id,
         text=message,
         thread_ts=thread_ts,
-        icon_emoji=':ligo:'
+        icon_emoji=':ampel-mm:'
     )
 
     logger = logging.getLogger("quiet_logger")
@@ -142,7 +142,7 @@ def run_on_event(thread_ts, channel_id):
             channel=channel_id,
             text="Scanning method: {0} \n Effective sky number: {1}".format(gw.scan_method, gw.n_sky),
             thread_ts=thread_ts,
-            icon_emoji=':ligo:'
+            icon_emoji=':ampel-mm:'
         )
         fig = gw.plot_skymap()
         upload_fig(fig, data, "LIGO_skymap.png", channel_id, thread_ts)
@@ -157,40 +157,40 @@ def run_on_event(thread_ts, channel_id):
             filename=os.path.basename(gw.output_path),
             channels=channel_id,
             thread_ts=thread_ts,
-            icon_emoji=':ligo:'
+            icon_emoji=':ampel-mm:'
         )
         fig, overlap = gw.plot_overlap_with_observations(first_det_window_days=n_days)
         web_client.chat_postMessage(
             channel=channel_id,
             text=overlap,
             thread_ts=thread_ts,
-            icon_emoji=':ligo:'
+            icon_emoji=':ampel-mm:'
         )
         upload_fig(fig, data, "LIGO_overlap.png", channel_id, thread_ts)
         web_client.chat_postMessage(
             channel=channel_id,
             thread_ts=thread_ts,
-            icon_emoji=':ligo:',
+            icon_emoji=':ampel-mm:',
             text="Here's a draft GCN:"
         )
         web_client.chat_postMessage(
             channel=channel_id,
             thread_ts=thread_ts,
-            icon_emoji=':ligo:',
+            icon_emoji=':ampel-mm:',
             text=gw.draft_gcn()
         )
         web_client.chat_postMessage(
             channel=channel_id,
             thread_ts=thread_ts,
-            icon_emoji=':ligo:',
-            text="<@{0}>, I'm all finished. Go find that kilonova!".format(data["user"])
+            icon_emoji=':ampel-mm:',
+            text="<@{0}>, I'm all finished. Go find that counterpart!".format(data["user"])
         )
     except Exception as e:
         web_client.chat_postMessage(
             channel=channel_id,
             text="Sorry <@{0}>, we need to talk. It's not you, it's me. I have run into an error, and cannot process your request further. I wish you the best of luck in all your future endeavours. \n\n `{1}`. ".format(data["user"], e),
             thread_ts=thread_ts,
-            icon_emoji=':ligo:'
+            icon_emoji=':ampel-mm:'
         )
         traceback.print_exc()
         time.sleep(120)

@@ -7,7 +7,7 @@ submit_file = os.path.join(os.path.dirname(os.path.abspath(__file__)) + "/spawn_
 
 ampel_bot_user = ["UMNJK00CU", "DMBKJG00K"]
 
-keywords = ["<@{0}>".format(ampel_bot_user), "LIGO", "banana"]
+keywords = ["<@{0}>".format(ampel_bot_user), "LIGO", "banana", "GRB", "Fermi", "Ampel"]
 
 def run_on_event(data):
     ts = data['ts']
