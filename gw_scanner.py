@@ -488,7 +488,7 @@ class GravWaveScanner(AmpelWizard):
         message = "In total, {0} % of the LIGO contour was observed at least once. \n " \
                   "In total, {1} % of the LIGO contour was observed at least twice. \n" \
                   "This estimate accounts for chip gaps.".format(
-            100 * (np.sum(probs) + np.sum(single_probs)), self.overlap_prob)
+            100 * (np.sum(probs) + np.sum(single_probs)), 100.*np.sum(probs))
 
         all_pix = single_pixels + plot_pixels
 

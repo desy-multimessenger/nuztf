@@ -185,7 +185,7 @@ class AmpelWizard:
 
     @staticmethod
     def get_tiling_line():
-        raise NotImplementedError
+        return ""
 
     @staticmethod
     def get_obs_line():
