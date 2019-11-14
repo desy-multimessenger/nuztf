@@ -107,21 +107,21 @@ class GravWaveScanner(AmpelWizard):
     def get_full_name(self):
         return self.gw_name
 
-    def get_tiling_line(self):
-
-        too_bool = len(["ToO" in x for x in self.get_multi_night_summary().data.qcomment])> 0
-
-        if too_bool:
-            return "The tiling was optimally determined and triggered using the GROWTH Target of Opportunity marshal (Coughlin et al. 2019a, Kasliwal et al. 2019b). "
-        else:
-            return ""
+    # def get_tiling_line(self):
+    #
+    #     too_bool = len(["ToO" in x for x in self.get_multi_night_summary().data.qcomment])> 0
+    #
+    #     if too_bool:
+    #         return "The tiling was optimally determined and triggered using the GROWTH Target of Opportunity marshal (Coughlin et al. 2019a, Kasliwal et al. 2019b). "
+    #     else:
+    #         return ""
 
     def get_obs_line(self):
         return "Each exposure was 30s with a typical depth of 20.5 mag."
 
     def get_overlap_line(self):
         return "We covered {0:.1f}% of the enclosed probability " \
-               "based on the bayestar map in {1:.1f} sq deg. " \
+               "based on the map in {1:.1f} sq deg. " \
                "This estimate accounts for chip gaps. ".format(
             self.overlap_prob, self.area)
 
@@ -461,7 +461,7 @@ class GravWaveScanner(AmpelWizard):
             else:
                 veto_pixels.append(p)
 
-        self.overlap_prob = np.sum(probs) * 100.
+        self.overlap_prob = np.sum(probs + single_probs) * 100.
 
         size = hp.max_pixrad(self.ligo_nside) ** 2 * 50.
 
