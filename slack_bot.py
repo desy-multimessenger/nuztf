@@ -54,8 +54,8 @@ def run_on_event(thread_ts, channel_id):
 
     payload = web_client.conversations_history(
         channel=channel_id,
-        oldest=str(float(thread_ts) - 1.e-6),
-        latest=str(float(thread_ts) + 1.e-6)
+        oldest=str(float(thread_ts) - 1),
+        latest=str(float(thread_ts) + 1)
     )
 
     data = payload["messages"][0]
