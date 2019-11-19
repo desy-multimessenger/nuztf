@@ -391,7 +391,7 @@ class GravWaveScanner(AmpelWizard):
 
             for f in fields:
                 ra, dec = ztfquery_fields.field_to_coords(f)[0]
-                t = Time(Time.now().jd + 1., format="jd").utc
+                t = Time(self.t_min.jd + 0.1, format="jd").utc
                 t.format = "isot"
                 t = t.value
                 for _ in range(2):
@@ -472,8 +472,10 @@ class GravWaveScanner(AmpelWizard):
 
         single_pos = np.array([hp.pixelfunc.pix2ang(self.ligo_nside, i, lonlat=True) for i in single_pixels]).T
 
-        plt.scatter(self.wrap_around_180(np.radians(single_pos[0])), np.radians(single_pos[1]),
-                    c=single_probs, vmin=0., vmax=max(self.data[self.key]), s=size, cmap='gray')
+        if len(single_pos) > 0:
+
+            plt.scatter(self.wrap_around_180(np.radians(single_pos[0])), np.radians(single_pos[1]),
+                        c=single_probs, vmin=0., vmax=max(self.data[self.key]), s=size, cmap='gray')
 
         plot_pos = np.array([hp.pixelfunc.pix2ang(self.ligo_nside, i, lonlat=True) for i in plot_pixels]).T
 

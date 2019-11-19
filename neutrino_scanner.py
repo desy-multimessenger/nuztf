@@ -93,9 +93,9 @@ class NeutrinoScanner(AmpelWizard):
     def get_full_name(self):
         return "neutrino event {0} ({1} et. al, GCN {2})".format(self.get_name(), self.author, self.gcn_no)
 
-    @staticmethod
-    def get_tiling_line():
-        return ""
+    # @staticmethod
+    # def get_tiling_line():
+    #     return ""
 
     @staticmethod
     def get_obs_line():
