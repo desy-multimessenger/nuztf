@@ -391,10 +391,10 @@ class GravWaveScanner(AmpelWizard):
 
             for f in fields:
                 ra, dec = ztfquery_fields.field_to_coords(f)[0]
-                t = Time(self.t_min.jd + 0.1, format="jd").utc
-                t.format = "isot"
-                t = t.value
-                for _ in range(2):
+                for i in range(2):
+                    t = Time(self.t_min.jd + 0.1*i, format="jd").utc
+                    t.format = "isot"
+                    t = t.value
                     data.append([f, ra, dec, t])
 
             mns = MNS(data)
@@ -417,6 +417,8 @@ class GravWaveScanner(AmpelWizard):
 
         print("Unpacking observations")
 
+        overlapping_fields = []
+
         for i, obs_time in enumerate(tqdm(obs_times)):
             pix = get_quadrant_ipix(self.ligo_nside, data["ra"].iat[i], data["dec"].iat[i])
 
@@ -434,6 +436,8 @@ class GravWaveScanner(AmpelWizard):
                     pix_obs_times[p] = [t]
                 else:
                     pix_obs_times[p] += [t]
+
+        self.overlap_fields = overlapping_fields
 
         plot_pixels = []
         probs = []
@@ -462,6 +466,8 @@ class GravWaveScanner(AmpelWizard):
                 veto_pixels.append(p)
 
         self.overlap_prob = np.sum(probs + single_probs) * 100.
+
+        print(plot_pixels, probs)
 
         size = hp.max_pixrad(self.ligo_nside) ** 2 * 50.
 
@@ -502,6 +508,8 @@ class GravWaveScanner(AmpelWizard):
         self.last_obs = Time(max(times), format="jd")
 
         print("Observations started at {0}".format(self.first_obs.jd))
+
+        self.overlap_fields = overlapping_fields
 
         #     area = (2. * base_ztf_rad)**2 * float(len(overlapping_fields))
         #     n_fields = len(overlapping_fields)
