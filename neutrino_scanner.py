@@ -109,9 +109,10 @@ class NeutrinoScanner(AmpelWizard):
     def strip_numbers(line):
         vals = []
         line = line.replace("- ", "-")
-        for x in line.replace(",", " ").split(" "):
+
+        for x in line.replace(",", " ").replace("/", " ").split(" "):
             try:
-                vals.append(float("".join([y for y in x if y not in ["(", "+", ")", "[", "]"]])))
+                vals.append(float("".join([y for y in x if y not in ["(", "+", ")", "[", "]", "/"]])))
             except ValueError:
                 pass
         return vals
@@ -146,6 +147,8 @@ class NeutrinoScanner(AmpelWizard):
 
         except:
             pass
+
+        print(name, author, ra, dec, time)
 
         raise ParsingError("Error parsing GCN {0}".format(url))
 
