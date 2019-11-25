@@ -10,6 +10,7 @@ ampel_bot_user = ["UMNJK00CU", "DMBKJG00K"]
 keywords = ["<@{0}>".format(ampel_bot_user), "LIGO", "banana", "GRB", "Fermi", "Ampel"]
 
 def run_on_event(data):
+    print(data)
     ts = data['ts']
     channel = data['channel']
     sid = int(float(ts) * 1.e6)
