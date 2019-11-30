@@ -23,10 +23,17 @@ In order to use the ampel tunnel, you need to have a separate shell that opens a
 
 However, you need to make sure that your ~/.ssh/config file is configured directly for this to work.
 
-In additioin, you need a second port to connect to ampel resources. 
+In addition, you need a second port to connect to ampel resources and a third port to connect to the Catalog database 
 
-THIS IS IN ADDITION TO THE PORT CONNDECTING TO THE ARCHIVE DATABASE!
+THIS IS IN ADDITION TO THE PORT CONNECTING TO THE ARCHIVE DATABASE!
 
 Open a new terminal, and into that terminal, run the following command:
 
 ```ssh -L27020:localhost:27020 ztf-wgs.zeuthen.desy.de```
+
+THIS IS YET ANOTHER TUNNEL, NEEDED FOR USING EXTCAT TO QUERY CATALOGS
+
+Open another new terminal (sorry), and within this terminal, run the following command:
+
+```ssh -L27018:localhost:27018 ztf-wgs.zeuthen.desy.de```
+

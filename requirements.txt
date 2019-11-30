@@ -1,3 +1,5 @@
+extcats
+pymongo
 gwemopt
 wget
 healpy
