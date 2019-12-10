@@ -80,8 +80,9 @@ class NeutrinoScanner(AmpelWizard):
         AmpelWizard.__init__(self, t_min=nu_time, run_config=nu_run_config, logger=logger, cone_nside=cone_nside)
         self.default_t_max = Time.now()
         self.prob_threshold = 0.9
-        self.area = (self.ra_max - self.ra_min) * (self.dec_max - self.dec_min) * np.cos(np.radians(dec[0]))
+        self.area = (self.ra_max - self.ra_min) * (self.dec_max - self.dec_min) * abs(np.cos(np.radians(dec[0])))
         print("Projected Area: {0}".format(self.area))
+        self.map_coords, self.pixel_nos, self.nside = self.unpack_map()
 
     @staticmethod
     def gcn_url(gcn_number):
@@ -92,6 +93,12 @@ class NeutrinoScanner(AmpelWizard):
 
     def get_full_name(self):
         return "neutrino event {0} ({1} et. al, GCN {2})".format(self.get_name(), self.author, self.gcn_no)
+
+    def get_overlap_line(self):
+        return "We covered {0:.1f}% of the enclosed probability " \
+               "based on the map in {1:.1f} sq deg. " \
+               "This estimate does not account for chip gaps. ".format(
+            self.overlap_prob, self.area)
 
     # @staticmethod
     # def get_tiling_line():
@@ -271,106 +278,121 @@ class NeutrinoScanner(AmpelWizard):
 
         return np.logical_and(in_ra, in_dec)
 
-    def plot_overlap_with_observations(self):
-        fig = plt.figure()
-        plt.subplot(projection="aitoff")
+    def unpack_map(self):
 
-        probs = []
-        single_probs = []
+        # nside = self.cone_nside
+        nside = 64
+        map_coords = []
+        pixel_nos = []
 
-        mns = self.get_multi_night_summary()
+        for i in tqdm(range(hp.nside2npix(nside))):
+            ra, dec = self.extract_ra_dec(nside, i)
+            if self.in_contour(np.radians(ra), np.radians(dec)):
+                map_coords.append((ra, dec))
+                pixel_nos.append(i)
 
-        ras = np.degrees(self.wrap_around_180(np.array([
-            np.radians(float(x)) for x in mns.data["ra"]])))
+        return map_coords, pixel_nos, nside
 
-        fields = list(mns.data["field"])
-
-        plot_ras = []
-        plot_decs = []
-
-        single_ras = []
-        single_decs = []
-
-        veto_ras = []
-        veto_decs = []
-
-        overlapping_fields = []
-
-        base_ztf_rad = 3.5
-        ztf_dec_deg = 30.
-
-        prob_cone = 1./float(len(self.cone_coords))
-
-        for j, (ra, dec) in enumerate(tqdm(self.cone_coords)):
-            ra_deg = np.degrees(self.wrap_around_180(np.array([ra])))
-            # ra_deg = self.wrap_around_180(np.array(np.degrees(ra)))
-            dec_deg = np.degrees(dec)
-            ztf_rad = base_ztf_rad / (np.cos(dec - np.radians(ztf_dec_deg))*np.cos(dec))
-
-            n_obs = 0
-
-            for i, x in enumerate(self.get_multi_night_summary().data["dec"]):
-                if np.logical_and(not dec_deg < float(x) - ztf_rad, not dec_deg > float(x) + ztf_rad):
-                    if abs(dec_deg - ztf_dec_deg) < 70.:
-                        if np.logical_and(not ra_deg < float(ras[i]) - ztf_rad, not ra_deg > float(ras[i]) + ztf_rad):
-                            n_obs += 1
-                            fid = fields[i]
-                            if fid not in overlapping_fields:
-                                overlapping_fields.append(fields[i])
-
-            if n_obs > 1:
-                probs.append(prob_cone)
-                plot_ras.append(ra)
-                plot_decs.append(dec)
-
-            elif n_obs > 0:
-                single_probs.append(prob_cone)
-                single_ras.append(ra)
-                single_decs.append(dec)
-
-            else:
-                veto_ras.append(ra)
-                veto_decs.append(dec)
-
-        overlapping_fields = list(set(overlapping_fields))
-
-        obs_times = np.array([Time(mns.data["UT_START"].iat[i], format="isot", scale="utc")
-                     for i in range(len(mns.data)) if mns.data["field"].iat[i] in overlapping_fields])
-
-        self.first_obs = min(obs_times)
-        self.last_obs = max(obs_times)
-
-        size = hp.max_pixrad(self.cone_nside, degrees=True)**2
-
-        # print(hp.max_pixrad(self.ligo_nside, degrees=True)**2 * np.pi, size)
-
-        plt.scatter(self.wrap_around_180(np.array([plot_ras])), plot_decs,
-                    c=probs, vmin=0., vmax=prob_cone, s=size)
-
-        plt.scatter(self.wrap_around_180(np.array([single_ras])), single_decs,
-                    c=single_probs, vmin=0., vmax=prob_cone, s=size, cmap='gray')
-
-        plt.scatter(self.wrap_around_180(np.array([veto_ras])), veto_decs, color="red", s=size)
-
-        red_patch = mpatches.Patch(color='red', label='Not observed')
-        gray_patch = mpatches.Patch(color='gray', label='Observed once')
-        plt.legend(handles=[red_patch, gray_patch])
-
-        self.overlap_prob = 90.*np.sum(probs)
-
-        message = "In total, {0} % of the contour was observed at least once. \n " \
-                  "In total, {1} % of the contour was observed at least twice. \n" \
-                  "THIS DOES NOT INCLUDE CHIP GAPS!!!".format(
-            90. * (np.sum(probs) + np.sum(single_probs)), self.overlap_prob)
-
-        print(message)
-
-        self.area = (2. * base_ztf_rad)**2 * float(len(overlapping_fields))
-        self.n_fields = len(overlapping_fields)
-
-        print("{0} fields were covered, covering approximately {1} sq deg.".format(
-            self.n_fields, self.area))
-        return fig, message
+    # def plot_overlap_with_observations(self):
+    #     fig = plt.figure()
+    #     plt.subplot(projection="aitoff")
+    #
+    #     probs = []
+    #     single_probs = []
+    #
+    #     mns = self.get_multi_night_summary()
+    #
+    #     ras = np.degrees(self.wrap_around_180(np.array([
+    #         np.radians(float(x)) for x in mns.data["ra"]])))
+    #
+    #     fields = list(mns.data["field"])
+    #
+    #     plot_ras = []
+    #     plot_decs = []
+    #
+    #     single_ras = []
+    #     single_decs = []
+    #
+    #     veto_ras = []
+    #     veto_decs = []
+    #
+    #     overlapping_fields = []
+    #
+    #     base_ztf_rad = 3.5
+    #     ztf_dec_deg = 30.
+    #
+    #     prob_cone = 1./float(len(self.cone_coords))
+    #
+    #     for j, (ra, dec) in enumerate(tqdm(self.cone_coords)):
+    #         ra_deg = np.degrees(self.wrap_around_180(np.array([ra])))
+    #         # ra_deg = self.wrap_around_180(np.array(np.degrees(ra)))
+    #         dec_deg = np.degrees(dec)
+    #         ztf_rad = base_ztf_rad / (np.cos(dec - np.radians(ztf_dec_deg))*np.cos(dec))
+    #
+    #         n_obs = 0
+    #
+    #         for i, x in enumerate(self.get_multi_night_summary().data["dec"]):
+    #             if np.logical_and(not dec_deg < float(x) - ztf_rad, not dec_deg > float(x) + ztf_rad):
+    #                 if abs(dec_deg - ztf_dec_deg) < 70.:
+    #                     if np.logical_and(not ra_deg < float(ras[i]) - ztf_rad, not ra_deg > float(ras[i]) + ztf_rad):
+    #                         n_obs += 1
+    #                         fid = fields[i]
+    #                         if fid not in overlapping_fields:
+    #                             overlapping_fields.append(fields[i])
+    #
+    #         if n_obs > 1:
+    #             probs.append(prob_cone)
+    #             plot_ras.append(ra)
+    #             plot_decs.append(dec)
+    #
+    #         elif n_obs > 0:
+    #             single_probs.append(prob_cone)
+    #             single_ras.append(ra)
+    #             single_decs.append(dec)
+    #
+    #         else:
+    #             veto_ras.append(ra)
+    #             veto_decs.append(dec)
+    #
+    #     overlapping_fields = list(set(overlapping_fields))
+    #
+    #     obs_times = np.array([Time(mns.data["UT_START"].iat[i], format="isot", scale="utc")
+    #                  for i in range(len(mns.data)) if mns.data["field"].iat[i] in overlapping_fields])
+    #
+    #     self.first_obs = min(obs_times)
+    #     self.last_obs = max(obs_times)
+    #
+    #     size = hp.max_pixrad(self.cone_nside, degrees=True)**2
+    #
+    #     # print(hp.max_pixrad(self.ligo_nside, degrees=True)**2 * np.pi, size)
+    #
+    #     plt.scatter(self.wrap_around_180(np.array([plot_ras])), plot_decs,
+    #                 c=probs, vmin=0., vmax=prob_cone, s=size)
+    #
+    #     plt.scatter(self.wrap_around_180(np.array([single_ras])), single_decs,
+    #                 c=single_probs, vmin=0., vmax=prob_cone, s=size, cmap='gray')
+    #
+    #     plt.scatter(self.wrap_around_180(np.array([veto_ras])), veto_decs, color="red", s=size)
+    #
+    #     red_patch = mpatches.Patch(color='red', label='Not observed')
+    #     gray_patch = mpatches.Patch(color='gray', label='Observed once')
+    #     plt.legend(handles=[red_patch, gray_patch])
+    #
+    #     self.overlap_prob = 90.*np.sum(probs)
+    #
+    #     message = "In total, {0} % of the contour was observed at least once. \n " \
+    #               "In total, {1} % of the contour was observed at least twice. \n" \
+    #               "THIS DOES NOT INCLUDE CHIP GAPS!!!".format(
+    #         90. * (np.sum(probs) + np.sum(single_probs)), self.overlap_prob)
+    #
+    #     print(message)
+    #
+    #     self.area = (2. * base_ztf_rad)**2 * float(len(overlapping_fields))
+    #     self.n_fields = len(overlapping_fields)
+    #
+    #     print("{0} fields were covered, covering approximately {1} sq deg.".format(
+    #         self.n_fields, self.area))
+    #     return fig, message
 
 
 if __name__=="__main__":

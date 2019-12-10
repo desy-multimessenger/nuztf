@@ -17,15 +17,13 @@ from tqdm import tqdm
 from ampel.contrib.hu.t0.DecentFilter import DecentFilter
 from ampel.pipeline.t0.DevAlertProcessor import DevAlertProcessor
 from ampel.base.AmpelAlert import AmpelAlert
-import pymongo
-from extcats import CatalogQuery
 import datetime
 import socket
 import logging
+from gwemopt.ztf_tiling import get_quadrant_ipix
 
 
 ampel_user = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".AMPEL_user.txt")
-extcat_user = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".EXTCAT_user.txt")
 
 try:
     with open(ampel_user, "r") as f:
@@ -35,16 +33,7 @@ except FileNotFoundError:
     with open(ampel_user, "wb") as f:
         f.write(username.encode())
 
-try:
-    with open(extcat_user, "r") as f:
-        username_extcat = f.read()
-except FileNotFoundError:
-    username_extcat = getpass.getpass(prompt='Username for extcat: ', stream=None)
-    with open(extcat_user, "wb") as f:
-        f.write(username_extcat.encode())
-
 ampel_pass = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".AMPEL_pass.txt")
-extcat_pass = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".EXTCAT_pass.txt")
         
 try:
     with open(ampel_pass, "r") as f:
@@ -54,14 +43,6 @@ except FileNotFoundError:
     with open(ampel_pass, "wb") as f:
         f.write(password.encode())
 
-try:
-    with open(extcat_pass, "r") as f:
-        password_extcat = f.read()
-except FileNotFoundError:
-    password_extcat = getpass.getpass(prompt='Password for extcat: ', stream=None)
-    with open(extcat_pass, "wb") as f:
-        f.write(password_extcat.encode())
-
 if socket.gethostname() == "wgs33.zeuthen.desy.de":
     port = 5433
 else:
@@ -70,12 +51,10 @@ else:
 try:
     ampel_client = ArchiveDB('postgresql://{0}:{1}@localhost:{2}/ztfarchive'.format(username, password, port))
 except sqlalchemy.exc.OperationalError as e:
-    print("---------------------------------------------------------------------------")
     print("You can't access the archive database without first opening the port.")
     print("Open a new terminal, and into that terminal, run the following command:")
     print("ssh -L5432:localhost:5433 ztf-wgs.zeuthen.desy.de")
     print("If that command doesn't work, you are either not a desy user or you have a problem in your ssh config.")
-    print("---------------------------------------------------------------------------")
     raise e
 
 
@@ -123,9 +102,17 @@ class MultiNightSummary(query._ZTFTableHandler_):
             try:
                 new_ns = self.get_ztf_data(night)
 
+                # print(night)
+                # print(ns is None)
+                # print(hasattr(new_ns, "data"))
+                # print(new_ns.data, new_ns.data is None)
+
                 if ns is None:
                     if hasattr(new_ns, "data"):
-                        ns = new_ns
+                        if new_ns.data is not None:
+                            ns = new_ns
+
+
 
                 try:
                     ns.data = ns.data.append(new_ns.data)
@@ -133,6 +120,8 @@ class MultiNightSummary(query._ZTFTableHandler_):
                     missing_nights.append(night)
             except ValueError:
                 pass
+
+        print(ns, missing_nights)
 
         if ns is None:
             raise Exception("No data found. The following were missing nights: \n {0}".format(missing_nights))
@@ -167,14 +156,11 @@ class AmpelWizard:
             self.prob_threshold = None
 
         if base_config is None:
-            base_config = {'catsHTM.default': "tcp://127.0.0.1:27020", 'extcats.reader': "mongodb://{}:{}@127.0.0.1:27018".format(username_extcat, password_extcat)}
-
-        self.external_catalogs = pymongo.MongoClient(base_config['extcats.reader'])      
+            base_config = {'catsHTM.default': "tcp://127.0.0.1:27020"}
 
         self.ampel_filter_class = filter_class(set(), base_config=base_config,
                                                run_config=filter_class.RunConfig(**run_config),
-                                               logger=logger)   
-
+                                               logger=logger)
         self.dap = DevAlertProcessor(self.ampel_filter_class)
 
         if not hasattr(self, "output_path"):
@@ -345,9 +331,7 @@ class AmpelWizard:
         for res in query_res:
             if self.filter_f_history(res):
                 final_res.append(res)
-        print('##########################')
-        print(final_res)
-        print('##########################')
+
         return final_res
 
     def fast_query_ampel(self, ra, dec, rad, t_max=None):
@@ -419,27 +403,10 @@ class AmpelWizard:
                 merged_list.append(latest)
         return merged_list
 
-    def query_tns(self, ra, dec, searchradius_arcsec=3):
-        try:
-            extcat_query = CatalogQuery.CatalogQuery(cat_name="TNS", ra_key=None, dec_key=None, dbclient=self.external_catalogs)
-        except pymongo.errors.ServerSelectionTimeoutError as e:
-            print("---------------------------------------------------------------------------")
-            print("You cannot query the external catalogs without first opening the database port.")
-            print("Open a new terminal, and within that terminal, run the following command:")
-            print("ssh -L27018:localhost:27018 ztf-wgs.zeuthen.desy.de")
-            print("If that command doesn't work, you are either not a desy user or you have a problem in your ssh config.")
-            print("---------------------------------------------------------------------------")
-            raise e 
-        try:
-            query_result = extcat_query.findwithin_2Dsphere(ra=ra, dec=dec, rs_arcsec=searchradius_arcsec, find_one = False)
-            return "{} {}".format(query_result[0]['name_prefix'],query_result[0]['name'])
-        except TypeError:
-            return " no entry "
-
     def parse_candidates(self):
 
         table = "+------------------------------------------------------------------------------+\n" \
-                "| ZTF Name     | IAU Name   | RA (deg)   | DEC (deg)  | Filter | Mag   | MagErr |\n" \
+                "| ZTF Name     | IAU Name  | RA (deg)   | DEC (deg)  | Filter | Mag   | MagErr |\n" \
                 "+------------------------------------------------------------------------------+\n"
         for name, res in sorted(self.cache.items()):
 
@@ -458,9 +425,8 @@ class AmpelWizard:
                     old_flag = "(MORE THAN ONE DAY SINCE SECOND DETECTION)"
 
 
-            line = "| {0} | {1} | {2}{3}| {4}{5}{6}| {7}      | {8:.2f} | {9:.2f}   | {10}\n".format(
+            line = "| {0} | AT20FIXME | {1}{2}| {3}{4}{5}| {6}      | {7:.2f} | {8:.2f}   | {9}\n".format(
                 name,
-                self.query_tns(latest["ra"], latest["dec"], searchradius_arcsec=3),
                 latest["ra"],
                 str(" ") * (11 - len(str(latest["ra"]))),
                 ["", "+"][int(latest["dec"] > 0.)],
