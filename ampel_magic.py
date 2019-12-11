@@ -22,7 +22,8 @@ from extcats import CatalogQuery
 import datetime
 import socket
 import logging
-
+from gwemopt.ztf_tiling import get_quadrant_ipix
+import matplotlib.patches as mpatches
 
 ampel_user = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".AMPEL_user.txt")
 extcat_user = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".EXTCAT_user.txt")
@@ -125,7 +126,8 @@ class MultiNightSummary(query._ZTFTableHandler_):
 
                 if ns is None:
                     if hasattr(new_ns, "data"):
-                        ns = new_ns
+                        if new_ns.data is not None:
+                            ns = new_ns
 
                 try:
                     ns.data = ns.data.append(new_ns.data)
@@ -345,9 +347,6 @@ class AmpelWizard:
         for res in query_res:
             if self.filter_f_history(res):
                 final_res.append(res)
-        print('##########################')
-        print(final_res)
-        print('##########################')
         return final_res
 
     def fast_query_ampel(self, ra, dec, rad, t_max=None):
@@ -438,9 +437,9 @@ class AmpelWizard:
 
     def parse_candidates(self):
 
-        table = "+------------------------------------------------------------------------------+\n" \
-                "| ZTF Name     | IAU Name   | RA (deg)   | DEC (deg)  | Filter | Mag   | MagErr |\n" \
-                "+------------------------------------------------------------------------------+\n"
+        table = "+--------------------------------------------------------------------------------+\n" \
+                "| ZTF Name     | IAU Name   | RA (deg)   | DEC (deg)   | Filter | Mag   | MagErr |\n" \
+                "+--------------------------------------------------------------------------------+\n"
         for name, res in sorted(self.cache.items()):
 
             jds = [x["jd"] for x in res["prv_candidates"]]
@@ -473,7 +472,7 @@ class AmpelWizard:
             )
             table += line
 
-        table += "+------------------------------------------------------------------------------+\n\n"
+        table += "+--------------------------------------------------------------------------------+\n\n"
 
         return table
 
@@ -481,6 +480,7 @@ class AmpelWizard:
     def draft_gcn(self):
         # candidate_text = parse_candidates(g)
         # first_obs =
+
         text = "Astronomer Name (Institute of Somewhere), ............. report,\n" \
                "On behalf of the Zwicky Transient Facility (ZTF) and Global Relay of Observatories Watching Transients Happen (GROWTH) collaborations: \n " \
                "We observed the localization region of the {0} with the Palomar 48-inch telescope, equipped with the 47 square degree ZTF camera (Bellm et al. 2019, Graham et al. 2019). {1}" \
@@ -802,8 +802,6 @@ class AmpelWizard:
         veto_pixels = []
         times = []
 
-        print("Checking skymap")
-
         for i, p in enumerate(tqdm(hp.nest2ring(nside, self.pixel_nos))):
 
             if p in pix_obs_times.keys():
@@ -823,14 +821,14 @@ class AmpelWizard:
 
         self.overlap_prob = np.sum(probs + single_probs) * 100.
 
-        print(plot_pixels, probs)
-
         size = hp.max_pixrad(nside) ** 2 * 50.
 
         veto_pos = np.array([hp.pixelfunc.pix2ang(nside, i, lonlat=True) for i in veto_pixels]).T
 
-        plt.scatter(self.wrap_around_180(np.radians(veto_pos[0])), np.radians(veto_pos[1]),
-                    color="red", s=size)
+        if len(veto_pos) > 0:
+
+            plt.scatter(self.wrap_around_180(np.radians(veto_pos[0])), np.radians(veto_pos[1]),
+                        color="red", s=size)
 
         single_pos = np.array([hp.pixelfunc.pix2ang(nside, i, lonlat=True) for i in single_pixels]).T
 
@@ -861,7 +859,9 @@ class AmpelWizard:
         self.area = hp.pixelfunc.nside2pixarea(nside, degrees=True) * n_pixels
 
         self.first_obs = Time(min(times), format="jd")
+        self.first_obs.utc.format = "isot"
         self.last_obs = Time(max(times), format="jd")
+        self.last_obs.utc.format = "isot"
 
         print("Observations started at {0}".format(self.first_obs.jd))
 
