@@ -1,7 +1,7 @@
 import numpy as np
 import os
-from slack import RTMClient, WebClient
-from slack_bot import bot_access_token
+from slack import RTMClient
+from slack_bot import bot_access_token, access_token
 
 submit_file = os.path.join(os.path.dirname(os.path.abspath(__file__)) + "/spawn_tmux_session.sh")
 
