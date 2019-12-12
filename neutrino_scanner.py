@@ -286,7 +286,7 @@ class NeutrinoScanner(AmpelWizard):
     def unpack_map(self):
 
         # nside = self.cone_nside
-        nside = 64
+        nside = 1024
         map_coords = []
         pixel_nos = []
 

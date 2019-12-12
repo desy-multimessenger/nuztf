@@ -347,6 +347,7 @@ class AmpelWizard:
         for res in query_res:
             if self.filter_f_history(res):
                 final_res.append(res)
+
         return final_res
 
     def fast_query_ampel(self, ra, dec, rad, t_max=None):
@@ -400,7 +401,6 @@ class AmpelWizard:
                 merged_list.append(alerts[0])
             else:
                 jds = [x["candidate"]["jd"] for x in alerts]
-                print(jds)
                 order = [jds.index(x) for x in sorted(jds)[::-1]]
                 latest = alerts[jds.index(max(jds))]
                 latest["candidate"]["jdstarthist"] = min([x["candidate"]["jdstarthist"] for x in alerts])
@@ -571,11 +571,17 @@ class AmpelWizard:
             detection_jds = [x["jd"] for x in detections]
             first_detection = detections[detection_jds.index(min(detection_jds))]
             latest = [x for x in res["prv_candidates"] + [res["candidate"]] if x["isdiffpos"] is not None][-1]
-            last_upper_limit = [x for x in res["prv_candidates"] if
-                                np.logical_and(x["isdiffpos"] is None, x["jd"] < first_detection["jd"])][-1]
+            try:
+                last_upper_limit = [x for x in res["prv_candidates"] if
+                                    np.logical_and(x["isdiffpos"] is None, x["jd"] < first_detection["jd"])][-1]
 
-            text += self.candidate_text(name, first_detection["jd"], last_upper_limit["diffmaglim"],
-                                        last_upper_limit["jd"])
+                text += self.candidate_text(name, first_detection["jd"], last_upper_limit["diffmaglim"],
+                                            last_upper_limit["jd"])
+
+            # No pre-detection upper limit
+
+            except IndexError:
+                text += self.candidate_text(name, first_detection["jd"], None, None)
             # print("Candidate:", name, res["candidate"]["ra"], res["candidate"]["dec"], first_detection["jd"])
             # print("Last Upper Limit:", last_upper_limit["jd"], self.parse_ztf_filter(last_upper_limit["fid"]),
             #       last_upper_limit["diffmaglim"])
