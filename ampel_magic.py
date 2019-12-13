@@ -87,7 +87,7 @@ class MultiNightSummary(query._ZTFTableHandler_):
     def __init__(self, start_date=None, end_date=None):
         self.nights = self.find_nights(start_date, end_date)
 
-        print("Using {0} Nightly Sumaries between {1} and {2}".format(
+        print("Using {0} Nightly Summaries between {1} and {2}".format(
             len(self.nights), self.nights[0], self.nights[-1]))
 
         self.data, self.missing_nights = self.stack_nights()
@@ -559,7 +559,7 @@ class AmpelWizard:
                "{5} \n \n" \
                "The images were processed in real-time through the ZTF reduction and image subtraction pipelines at IPAC to search for potential counterparts (Masci et al. 2019). " \
                "AMPEL (Nordin et al. 2019) was used to search the alerts database for candidates. " \
-               "We reject stellar sources (Tachibana and Miller 2018) and moving objects, and" \
+               "We reject stellar sources (Tachibana and Miller 2018) and moving objects, and " \
                "apply machine learning algorithms (Mahabal et al. 2019) {6}. We are left with the following high-significance transient " \
                "candidates by our pipeline, all lying within the " \
                "{7}% localization of the skymap. \n\n{8} \n\n" \
@@ -923,8 +923,8 @@ class AmpelWizard:
         gray_patch = mpatches.Patch(color='gray', label='Observed once')
         plt.legend(handles=[red_patch, gray_patch])
 
-        message = "In total, {0} % of the LIGO contour was observed at least once. \n " \
-                  "In total, {1} % of the LIGO contour was observed at least twice. \n" \
+        message = "In total, {0:.2f} % of the LIGO contour was observed at least once. \n " \
+                  "In total, {1:.2f} % of the LIGO contour was observed at least twice. \n" \
                   "This estimate accounts for chip gaps.".format(
             100 * (np.sum(probs) + np.sum(single_probs)), 100.*np.sum(probs))
 
