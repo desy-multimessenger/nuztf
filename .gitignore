@@ -1,5 +1,7 @@
 .AMPEL_user.txt
 .AMPEL_pass.txt
+.EXTCAT_user.txt
+.EXTCAT_pass.txt
 .slack_access_token.txt
 .slack_bot_access_token.txt
 summary/*
