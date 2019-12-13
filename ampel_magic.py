@@ -5,6 +5,7 @@ from ampel.ztf.archive.ArchiveDB import ArchiveDB
 from astropy.time import Time
 from astropy import units as u
 from astropy.coordinates import SkyCoord
+from astropy.cosmology import Planck15 as cosmo
 import numpy as np
 import matplotlib.pyplot as plt
 from ztfquery import alert, query
@@ -17,6 +18,7 @@ from tqdm import tqdm
 from ampel.contrib.hu.t0.DecentFilter import DecentFilter
 from ampel.pipeline.t0.DevAlertProcessor import DevAlertProcessor
 from ampel.base.AmpelAlert import AmpelAlert
+from ampel.contrib.hu import catshtm_server
 import pymongo
 from extcats import CatalogQuery
 import datetime
@@ -176,6 +178,8 @@ class AmpelWizard:
         self.ampel_filter_class = filter_class(set(), base_config=base_config,
                                                run_config=filter_class.RunConfig(**run_config),
                                                logger=logger)   
+
+        self.catshtm = catshtm_server.get_client(base_config['catsHTM.default'])
 
         self.dap = DevAlertProcessor(self.ampel_filter_class)
 
@@ -418,28 +422,80 @@ class AmpelWizard:
                 merged_list.append(latest)
         return merged_list
 
+    @staticmethod
+    def catalogerror():
+        print("#--------------------------------------------------------------------------")
+        print("You cannot query the external catalogs without first opening the database port.")
+        print("Open a new terminal, and within that terminal, run the following command:")
+        print("ssh -L27018:localhost:27018 ztf-wgs.zeuthen.desy.de")
+        print("If that command doesn't work, you are either not a desy user or you have a problem in your ssh config.")
+        print("---------------------------------------------------------------------------")
+
+    @staticmethod
+    def calculate_abs_mag(mag, redshift):
+        luminosity_distance = cosmo.luminosity_distance(redshift).value * 10**6
+        abs_mag = mag - 5 * (np.log10(luminosity_distance) - 1)
+        return(abs_mag)
+
     def query_tns(self, ra, dec, searchradius_arcsec=3):
         try:
             extcat_query = CatalogQuery.CatalogQuery(cat_name="TNS", ra_key=None, dec_key=None, dbclient=self.external_catalogs)
         except pymongo.errors.ServerSelectionTimeoutError as e:
-            print("---------------------------------------------------------------------------")
-            print("You cannot query the external catalogs without first opening the database port.")
-            print("Open a new terminal, and within that terminal, run the following command:")
-            print("ssh -L27018:localhost:27018 ztf-wgs.zeuthen.desy.de")
-            print("If that command doesn't work, you are either not a desy user or you have a problem in your ssh config.")
-            print("---------------------------------------------------------------------------")
+            catalogerror()
             raise e 
         try:
             query_result = extcat_query.findwithin_2Dsphere(ra=ra, dec=dec, rs_arcsec=searchradius_arcsec, find_one = False)
-            return "{} {}".format(query_result[0]['name_prefix'],query_result[0]['name'])
+            name = "{} {}".format(query_result[0]['name_prefix'],query_result[0]['name'])
+            discovery_date = "{}".format(query_result[0]['discoverydate'])
+            discovery_group = "{}".format(query_result[0]['source_group']['group_name'])
+            return name, discovery_date, discovery_group
         except TypeError:
-            return " no entry "
+            return None
+
+    def query_ps1(self, ra, dec, searchradius_arcsec=10):
+        try:
+            extcat_query = CatalogQuery.CatalogQuery(cat_name="PS1_DR1", ra_key="raMean", dec_key="decMean", dbclient=self.external_catalogs)
+        except pymongo.errors.ServerSelectionTimeoutError as e:
+            catalogerror()
+            raise e 
+        try:
+            query_result = extcat_query.findwithin_HEALPix(ra=ra, dec=dec, rs_arcsec=searchradius_arcsec)
+            return query_result
+        except TypeError:
+            return None
+
+    def query_sdss(self, ra, dec, searchradius_arcsec=30):
+        try:
+            extcat_query = CatalogQuery.CatalogQuery(cat_name="SDSS_spec", ra_key="ra", dec_key="dec", dbclient=self.external_catalogs)
+        except pymongo.errors.ServerSelectionTimeoutError as e:
+            catalogerror()
+            raise e 
+        try:
+            query_result = extcat_query.findwithin_2Dsphere(ra=ra, dec=dec, rs_arcsec=searchradius_arcsec)
+            return query_result 
+        except TypeError:
+            return None
+
+    def query_ned(self, ra, dec, searchradius_arcsec=30, findclosest=True):
+        try:
+            extcat_query = CatalogQuery.CatalogQuery(cat_name="NEDz_extcats", ra_key="RA", dec_key="Dec", dbclient=self.external_catalogs)
+        except pymongo.errors.ServerSelectionTimeoutError as e:
+            catalogerror()
+            raise e 
+        try:
+            if findclosest:
+                query_result = extcat_query.findclosest(ra=ra, dec=dec, rs_arcsec=searchradius_arcsec, method="2dsphere")
+            else:
+                query_result = extcat_query.findwithin_2Dsphere(ra=ra, dec=dec, rs_arcsec=searchradius_arcsec)
+            return query_result
+        except TypeError:
+            return None
 
     def parse_candidates(self):
 
-        table = "+--------------------------------------------------------------------------------+\n" \
-                "| ZTF Name     | IAU Name   | RA (deg)   | DEC (deg)   | Filter | Mag   | MagErr |\n" \
-                "+--------------------------------------------------------------------------------+\n"
+        table = "+------------------------------------------------------------------------------------------------------+\n" \
+                "| ZTF Name     | IAU Name   | RA (deg)   | DEC (deg)   | Filter | Mag   | MagErr | Host z   | Abs. Mag |\n" \
+                "+------------------------------------------------------------------------------------------------------+\n"
         for name, res in sorted(self.cache.items()):
 
             jds = [x["jd"] for x in res["prv_candidates"]]
@@ -456,10 +512,22 @@ class AmpelWizard:
                 if Time.now().jd - second_det[0] > 1.:
                     old_flag = "(MORE THAN ONE DAY SINCE SECOND DETECTION)"
 
+            try:
+                tns_result = self.query_tns(latest["ra"], latest["dec"], searchradius_arcsec=3)[0]
+            except TypeError:
+                tns_result = " -------- "
+            try:
+                host_redshift = float(self.query_ned(latest["ra"], latest["dec"], searchradius_arcsec=60, findclosest=True)[0]["z"])
+                host_redshift_abbreviated = "{:.6f}".format(host_redshift)
+                abs_mag = self.calculate_abs_mag(latest["magpsf"], host_redshift)
+                abs_mag_abbreviated = "{:.2f}  ".format(abs_mag)
+            except TypeError:
+                host_redshift_abbreviated = "--------"
+                abs_mag_abbreviated = "--------"
 
-            line = "| {0} | {1} | {2}{3}| {4}{5}{6}| {7}      | {8:.2f} | {9:.2f}   | {10}\n".format(
+            line = "| {0} | {1} | {2}{3}| {4}{5}{6}| {7}      | {8:.2f} | {9:.2f}   | {10} | {11} | {12} \n".format(
                 name,
-                self.query_tns(latest["ra"], latest["dec"], searchradius_arcsec=3),
+                tns_result,
                 latest["ra"],
                 str(" ") * (11 - len(str(latest["ra"]))),
                 ["", "+"][int(latest["dec"] > 0.)],
@@ -468,11 +536,13 @@ class AmpelWizard:
                 ["g", "r", "i"][latest["fid"] - 1],
                 latest["magpsf"],
                 latest["sigmapsf"],
+                host_redshift_abbreviated,
+                abs_mag_abbreviated,
                 old_flag
             )
             table += line
 
-        table += "+--------------------------------------------------------------------------------+\n\n"
+        table += "+------------------------------------------------------------------------------------------------------+\n\n"
 
         return table
 
