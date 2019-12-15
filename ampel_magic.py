@@ -447,7 +447,10 @@ class AmpelWizard:
             query_result = extcat_query.findwithin_2Dsphere(ra=ra, dec=dec, rs_arcsec=searchradius_arcsec, find_one = False)
             name = "{} {}".format(query_result[0]['name_prefix'],query_result[0]['name'])
             discovery_date = "{}".format(query_result[0]['discoverydate'])
-            discovery_group = "{}".format(query_result[0]['source_group']['group_name'])
+            try:
+                discovery_group = "{}".format(query_result[0]['source_group']['group_name'])
+            except KeyError:
+                discovery_group = None
             return name, discovery_date, discovery_group
         except TypeError:
             return None
