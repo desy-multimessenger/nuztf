@@ -247,7 +247,9 @@ class AmpelWizard:
         logging.getLogger().setLevel(logging.DEBUG)
         logging.info("Set logger level to DEBUG")
         query_res = self.get_avro_by_name(ztf_name)
+        self.filter_f_no_prv(query_res)
         bool_ampel = self.filter_ampel(query_res)
+        self.filter_f_history(query_res)
         logging.info("Setting logger back to {0}".format(lvl))
         logging.getLogger().setLevel(lvl)
         return bool_ampel

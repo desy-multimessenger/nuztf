@@ -140,17 +140,17 @@ class GravWaveScanner(AmpelWizard):
 
         # Positive detection
         if res['candidate']['isdiffpos'] not in ["t", "1"]:
-            logging.debug("Negative subtraction")
+            logging.debug("Negative subtraction.")
             return False
 
         # Veto old transients
         if res["candidate"]["jdstarthist"] < self.t_min.jd:
-            logging.debug("Transient is too old")
+            logging.debug("Transient is too old. (jdstarthist history predates event)")
             return False
 
         # Check contour
         if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
-            logging.debug("Outside of contour")
+            logging.debug("Outside of event contour.")
             return False
 
         return True
@@ -174,12 +174,12 @@ class GravWaveScanner(AmpelWizard):
     def filter_f_history(self, res):
         # Veto old transients
         if res["candidate"]["jdstarthist"] < self.t_min.jd:
-            logging.debug("Transient is too old")
+            logging.debug("Transient is too old. (jdstarthist history predates event)")
             return False
 
         # Veto new transients
         if res["candidate"]["jdstarthist"] > self.default_t_max.jd:
-            logging.debug("Transient is too new")
+            logging.debug("Transient is too new. (jdstarthist too late after event)")
             return False
 
         # Require 2 detections separated by 15 mins
