@@ -11,6 +11,7 @@ import requests
 import matplotlib.patches as mpatches
 import lxml.etree
 from astropy.io import fits
+import logging
 
 nu_candidate_output_dir = os.path.join(Path().absolute(), "Neutrino_candidates")
 
@@ -18,7 +19,7 @@ nu_run_config = {
     "MIN_NDET": 1,  # Default:2
     "MIN_TSPAN": -1,  # Default 0, but that rejects everything!
     "MAX_TSPAN": 365,
-    "MIN_RB": 0.3,
+    "MIN_RB": 0.0,
     "MAX_FWHM": 5.5,
     "MAX_ELONG": 1.4,
     "MAX_MAGDIFF": 1.0,
@@ -214,28 +215,45 @@ class NeutrinoScanner(AmpelWizard):
 
 
     def filter_f_no_prv(self, res):
+
         # Positive detection
-        if res['candidate']['isdiffpos'] in ["t", "1"]:
-            # if self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
-            return True
+        if res['candidate']['isdiffpos'] not in ["t", "1"]:
+            logging.debug("Negative subtraction")
+            return False
 
-        # print("{0} has no positive detections".format(res["objectId"]))
+        try:
+            if res['candidate']['drb'] < 0.3:
+                logging.debug("DRB too low")
+                return False
+        except KeyError:
+            pass
 
-        return False
+        # Check contour
+        if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
+            logging.debug("Not in contour")
+            return False
+
+        # Require 2 detections separated by 15 mins
+        if (res["candidate"]["jdendhist"] - res["candidate"]["jdstarthist"]) < 0.01:
+            logging.debug("Does not have 2 detections separated  by >15 mins")
+            return False
+
+        return True
 
     def filter_f_history(self, res):
 
-        # print("Checking {0}".format(res["objectId"]))
+        print("Checking {0}".format(res["objectId"]))
 
-        # Require 2 detections
-
+        # # Require 2 detections
+        #
         n_detections = len([x for x in res["prv_candidates"] if x["isdiffpos"] is not None])
 
         if n_detections < 1:
-            # print("{0} has insufficient detection".format(res["objectId"]))
+            logging.debug("{0} has insufficient detection".format(res["objectId"]))
             return False
 
         if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
+            logging.debug("{0} not in contour".format(res["objectId"]))
             return False
 
         return True

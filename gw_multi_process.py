@@ -84,7 +84,7 @@ class MultiGwProcessor(GravWaveScanner):
 
         # Veto old transients
         if res["candidate"]["jdstarthist"] < self.t_min.jd:
-            # print("Transient is too old")
+            logging.debug("Transient is too old")
             return False
 
         # Veto new transients
@@ -94,24 +94,24 @@ class MultiGwProcessor(GravWaveScanner):
 
         # Positive detection
         if res['candidate']['isdiffpos'] not in ["t", "1"]:
-            # print("Negative subtraction")
+            logging.debug("Negative subtraction")
             return False
 
         try:
             if res['candidate']['drb'] < 0.3:
-                # print("DRB too low")
+                logging.debug("DRB too low")
                 return False
         except KeyError:
             pass
 
         # Check contour
         if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
-            # print("Not in contour")
+            logging.debug("Not in contour")
             return False
 
         # Require 2 detections separated by 15 mins
         if (res["candidate"]["jdendhist"] - res["candidate"]["jdstarthist"]) < 0.01:
-            # print("Time...")
+            logging.debug("Does not have 2 detections separated  by >15 mins")
             return False
 
         return True

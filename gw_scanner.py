@@ -153,6 +153,8 @@ class GravWaveScanner(AmpelWizard):
             logging.debug("Outside of event contour.")
             return False
 
+        logging.debug("Passed filter f (no prv)")
+
         return True
 
     # def fast_filter_f_no_prv(self, res):
