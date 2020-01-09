@@ -945,10 +945,16 @@ class AmpelWizard:
 
         self.area = hp.pixelfunc.nside2pixarea(nside, degrees=True) * n_pixels
 
-        self.first_obs = Time(min(times), format="jd")
-        self.first_obs.utc.format = "isot"
-        self.last_obs = Time(max(times), format="jd")
-        self.last_obs.utc.format = "isot"
+        try:
+
+            self.first_obs = Time(min(times), format="jd")
+            self.first_obs.utc.format = "isot"
+            self.last_obs = Time(max(times), format="jd")
+            self.last_obs.utc.format = "isot"
+
+        except ValueError:
+            raise Exception("No observations of this field were found at any time after {0:.2f} JD. "
+                            "Coverage overlap is 0%!".format(self.t_min.jd))
 
         print("Observations started at {0}".format(self.first_obs.jd))
 
