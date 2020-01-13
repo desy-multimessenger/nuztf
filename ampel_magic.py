@@ -76,7 +76,7 @@ except sqlalchemy.exc.OperationalError as e:
     print("---------------------------------------------------------------------------")
     print("You can't access the archive database without first opening the port.")
     print("Open a new terminal, and into that terminal, run the following command:")
-    print("ssh -L5432:localhost:5433 ztf-wgs.zeuthen.desy.de")
+    print("ssh -L5432:localhost:5433 -L27020:localhost:27020 -L27018:localhost:27018 -L27026:localhost:27026 ztf-wgs.zeuthen.desy.de")
     print("If that command doesn't work, you are either not a desy user or you have a problem in your ssh config.")
     print("---------------------------------------------------------------------------")
     raise e
