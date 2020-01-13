@@ -82,7 +82,7 @@ class GravWaveScanner(AmpelWizard):
             self.output_path = "{0}/{1}_{2}.pdf".format(
                 ligo_candidate_output_dir, os.path.basename(gw_file), self.prob_threshold)
             self.gw_name = os.path.basename(gw_file[7:])
-        self.data, t_obs, self.hpm, self.key = self.read_map()
+        self.data, t_obs, self.hpm, self.key, self.dist, self.dist_unc = self.read_map()
 
         t_min = Time(t_obs, format="isot", scale="utc")
 
@@ -252,6 +252,8 @@ class GravWaveScanner(AmpelWizard):
     def read_map(self, ):
         print("Reading file: {0}".format(self.gw_path))
         data, h = fitsio.read(self.gw_path, header=True)#columns=["PROB"],
+        dist = h["DISTMEAN"]
+        dist_unc = h["DISTSTD"]
         if "DATE-OBS" not in h:
             t_obs = fitsio.read_header(self.gw_path)["DATE-OBS"]
         else:
@@ -288,7 +290,7 @@ class GravWaveScanner(AmpelWizard):
         #     print("read merger time")
         #     data = hdul[1].data
         #     print("Read data")
-        return data, t_obs, hpm, key
+        return data, t_obs, hpm, key, dist, dist_unc
 
     def find_pixel_threshold(self, data):
 
