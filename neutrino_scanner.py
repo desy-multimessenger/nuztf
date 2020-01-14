@@ -241,9 +241,6 @@ class NeutrinoScanner(AmpelWizard):
         return True
 
     def filter_f_history(self, res):
-
-        print("Checking {0}".format(res["objectId"]))
-
         # # Require 2 detections
         #
         n_detections = len([x for x in res["prv_candidates"] if x["isdiffpos"] is not None])
