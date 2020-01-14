@@ -18,7 +18,11 @@ from tqdm import tqdm
 from ampel.contrib.hu.t0.DecentFilter import DecentFilter
 from ampel.pipeline.t0.DevAlertProcessor import DevAlertProcessor
 from ampel.base.AmpelAlert import AmpelAlert
+from ampel.base.LightCurve import LightCurve
+from ampel.base.PhotoData import PhotoData
+from ampel.base.flags.PhotoFlags import PhotoFlags
 from ampel.contrib.hu import catshtm_server
+from ampel.contrib.photoz.t2 import T2PhotoZ as pz
 import pymongo
 from extcats import CatalogQuery
 import datetime
@@ -171,9 +175,11 @@ class AmpelWizard:
             self.prob_threshold = None
 
         if base_config is None:
-            base_config = {'catsHTM.default': "tcp://127.0.0.1:27020", 'extcats.reader': "mongodb://{}:{}@127.0.0.1:27018".format(username_extcat, password_extcat)}
+            base_config = {'catsHTM.default': "tcp://127.0.0.1:27020", 'extcats.reader': "mongodb://{}:{}@127.0.0.1:27018".format(username_extcat, password_extcat), 'annz.default': "tcp://127.0.0.1:27026"}
 
-        self.external_catalogs = pymongo.MongoClient(base_config['extcats.reader'])      
+        self.external_catalogs = pymongo.MongoClient(base_config['extcats.reader'])   
+
+        self.photoz = pz.PhotoZ(logger=logger, base_config=base_config)   
 
         self.ampel_filter_class = filter_class(set(), base_config=base_config,
                                                run_config=filter_class.RunConfig(**run_config),
@@ -502,6 +508,25 @@ class AmpelWizard:
         except TypeError:
             return None
 
+    def get_photoz(self, ra, dec, mag):
+        data = {'jd': 0, 'fid': 0, 'magpsf': 0, 'diffmaglim': 0, 'sigmapsf': 0, 'dec': dec, 'ra': ra}
+        pp = PhotoData(data, flags=PhotoFlags.INST_ZTF | PhotoFlags.SRC_IPAC)
+        lc = LightCurve(None, [pp])
+        result = self.photoz.run(lc)
+        z = result['annz_best']
+        mean = result['mean']
+        # lower_bound = result['interval'][0]
+        # upper_bound = result['interval'][1]
+        # error_lower = z - lower_bound
+        # error_upper = upper_bound - z
+        # z_up_2_sigma = z + 2*error_upper
+        # z_down_2_sigma = z - 2*error_lower
+        absmag = self.calculate_abs_mag(mag, z)
+        # absmag_up_2_sigma = self.calculate_abs_mag(mag, z_up_2_sigma)
+        # absmag_down_2_sigma = self.calculate_abs_mag(mag, z_down_2_sigma)
+        return {'photoz_best': z, 'photoz_mean': mean}
+
+
     def parse_candidates(self):
 
         table = "+------------------------------------------------------------------------------------------------------+\n" \
@@ -554,6 +579,8 @@ class AmpelWizard:
             table += line
 
         table += "+------------------------------------------------------------------------------------------------------+\n\n"
+        photoz = self.get_photoz(latest["ra"], latest["dec"], latest["magpsf"],)['photoz_best']
+        table += "{}".format(photoz)
 
         return table
 
