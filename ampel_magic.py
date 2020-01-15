@@ -685,7 +685,10 @@ class AmpelWizard:
 
     def simple_plot_overlap_with_observations(self, fields=None, first_det_window_days=None):
 
-        nside = hp.pixelfunc.nside2npix(len(self.map_coords))
+        try:
+            nside = self.ligo_nside
+        except AttributeError:
+            nside = self.nside
 
         fig = plt.figure()
         plt.subplot(projection="aitoff")
