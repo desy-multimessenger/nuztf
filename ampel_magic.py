@@ -516,16 +516,16 @@ class AmpelWizard:
         z = result['annz_best']
         mean = result['mean']
         dist = result['distance']
-        # lower_bound = result['interval'][0]
-        # upper_bound = result['interval'][1]
+        lower_bound = result['interval'][0]
+        upper_bound = result['interval'][1]
         # error_lower = z - lower_bound
         # error_upper = upper_bound - z
-        # z_up_2_sigma = z + 2*error_upper
-        # z_down_2_sigma = z - 2*error_lower
+        # z_up_2_sigma = z + error_upper
+        # z_down_2_sigma = z - error_lower
         absmag = self.calculate_abs_mag(mag, z)
         # absmag_up_2_sigma = self.calculate_abs_mag(mag, z_up_2_sigma)
         # absmag_down_2_sigma = self.calculate_abs_mag(mag, z_down_2_sigma)
-        return {'photoz_best': z, 'photoz_mean': mean, 'angular_dist': dist}
+        return {'photoz_best': z, 'photoz_mean': mean, 'angular_dist': dist, 'z_upper': upper_bound, 'z_lower': lower_bound}
 
 
     def parse_candidates(self):
@@ -689,9 +689,9 @@ class AmpelWizard:
             if specz_query:
                 specz = float(specz_query["z"])
                 absmag = self.calculate_abs_mag(latest["magpsf"], specz)
-                z_dist = Distance(z = specz, cosmology=cosmo)
+                z_dist = Distance(z = specz, cosmology=cosmo).value
                 z_dist_unc = None
-                text += "It has a spec-z of {:.3f}, resulting in an abs. mag of {:.1f}. ".format(specz, absmag)
+                text += "It has a spec-z of {:.3f} [{:.0f} Mpc] and an abs. mag of {:.1f}.".format(specz, z_dist, absmag)
                 if self.dist:
                     gw_dist_interval = [self.dist - self.dist_unc, self.dist + self.dist_unc]
             else:
@@ -699,11 +699,14 @@ class AmpelWizard:
             if not specz:
                 photoz_query = self.get_photoz(latest["ra"], latest["dec"], latest["magpsf"])
                 photoz = photoz_query['photoz_best']
+                photoz_lower_bound = photoz_query['z_lower']
+                photoz_upper_bound = photoz_query['z_upper']
                 angular_dist = photoz_query['angular_dist']
                 if angular_dist < 20:
-                    z_dist = Distance(z = photoz, cosmology=cosmo)
-                    # z_dist_unc = 
-                    text += "It has a phot-z of {:.2f}. ".format(photoz)
+                    z_dist = Distance(z = photoz, cosmology=cosmo).value
+                    z_dist_upper = Distance(z = photoz_upper_bound).value
+                    z_dist_lower = Distance(z = photoz_lower_bound).value
+                    text += "It has a phot-z of {:.2f} [{:.0f} - {:.0f} Mpc].".format(photoz, z_dist_lower, z_dist_upper)
             # print("Candidate:", name, res["candidate"]["ra"], res["candidate"]["dec"], first_detection["jd"])
             # print("Last Upper Limit:", last_upper_limit["jd"], self.parse_ztf_filter(last_upper_limit["fid"]),
             #       last_upper_limit["diffmaglim"])
