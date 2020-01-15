@@ -130,10 +130,14 @@ class GravWaveScanner(AmpelWizard):
                "variability prior to the merger time"
 
     def candidate_text(self, name, first_detection, lul_lim, lul_jd):
-        text = "{0}, first detected {1:.1f} hours after merger, " \
-        "was not detected {2:.1f} days prior to a depth of {3:.2f}. ".format(
-            name, 24. * (first_detection - self.t_min.jd), first_detection - lul_jd, lul_lim
-        )
+
+        try:
+            text = "{0}, first detected {1:.1f} hours after merger, " \
+            "was not detected {2:.1f} days prior to a depth of {3:.2f}. ".format(
+                name, 24. * (first_detection - self.t_min.jd), first_detection - lul_jd, lul_lim
+            )
+        except TypeError:
+            text = "{0} had upper limit problems. PLEASE FILL IN NUMBERS BY HAND!!!"
         return text
 
     def filter_f_no_prv(self, res):
