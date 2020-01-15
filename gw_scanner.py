@@ -256,8 +256,14 @@ class GravWaveScanner(AmpelWizard):
     def read_map(self, ):
         print("Reading file: {0}".format(self.gw_path))
         data, h = fitsio.read(self.gw_path, header=True)#columns=["PROB"],
-        dist = h["DISTMEAN"]
-        dist_unc = h["DISTSTD"]
+        if "DISTMEAN" not in h:
+            dist = np.nan
+        else:
+            dist = h["DISTMEAN"]
+        if "DISTSTD" not in h:
+            dist_unc = np.nan
+        else:
+            dist_unc = h["DISTSTD"]
         if "DATE-OBS" not in h:
             t_obs = fitsio.read_header(self.gw_path)["DATE-OBS"]
         else:
