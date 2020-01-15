@@ -257,11 +257,11 @@ class GravWaveScanner(AmpelWizard):
         print("Reading file: {0}".format(self.gw_path))
         data, h = fitsio.read(self.gw_path, header=True)#columns=["PROB"],
         if "DISTMEAN" not in h:
-            dist = np.nan
+            dist = None
         else:
             dist = h["DISTMEAN"]
         if "DISTSTD" not in h:
-            dist_unc = np.nan
+            dist_unc = None
         else:
             dist_unc = h["DISTSTD"]
         if "DATE-OBS" not in h:

@@ -4,7 +4,7 @@
 from ampel.ztf.archive.ArchiveDB import ArchiveDB
 from astropy.time import Time
 from astropy import units as u
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, Distance
 from astropy.cosmology import Planck15 as cosmo
 import numpy as np
 import matplotlib.pyplot as plt
@@ -515,6 +515,7 @@ class AmpelWizard:
         result = self.photoz.run(lc)
         z = result['annz_best']
         mean = result['mean']
+        dist = result['distance']
         # lower_bound = result['interval'][0]
         # upper_bound = result['interval'][1]
         # error_lower = z - lower_bound
@@ -524,14 +525,14 @@ class AmpelWizard:
         absmag = self.calculate_abs_mag(mag, z)
         # absmag_up_2_sigma = self.calculate_abs_mag(mag, z_up_2_sigma)
         # absmag_down_2_sigma = self.calculate_abs_mag(mag, z_down_2_sigma)
-        return {'photoz_best': z, 'photoz_mean': mean}
+        return {'photoz_best': z, 'photoz_mean': mean, 'angular_dist': dist}
 
 
     def parse_candidates(self):
 
-        table = "+------------------------------------------------------------------------------------------------------+\n" \
-                "| ZTF Name     | IAU Name   | RA (deg)   | DEC (deg)   | Filter | Mag   | MagErr | Host z   | Abs. Mag |\n" \
-                "+------------------------------------------------------------------------------------------------------+\n"
+        table = "+--------------------------------------------------------------------------------+\n" \
+                "| ZTF Name     | IAU Name   | RA (deg)   | DEC (deg)   | Filter | Mag   | MagErr |\n" \
+                "+--------------------------------------------------------------------------------+\n"
         for name, res in sorted(self.cache.items()):
 
             jds = [x["jd"] for x in res["prv_candidates"]]
@@ -552,16 +553,7 @@ class AmpelWizard:
                 tns_result = self.query_tns(latest["ra"], latest["dec"], searchradius_arcsec=3)[0]
             except TypeError:
                 tns_result = " -------- "
-            try:
-                host_redshift = float(self.query_ned(latest["ra"], latest["dec"], searchradius_arcsec=60, findclosest=True)[0]["z"])
-                host_redshift_abbreviated = "{:.6f}".format(host_redshift)
-                abs_mag = self.calculate_abs_mag(latest["magpsf"], host_redshift)
-                abs_mag_abbreviated = "{:.2f}  ".format(abs_mag)
-            except TypeError:
-                host_redshift_abbreviated = "--------"
-                abs_mag_abbreviated = "--------"
-
-            line = "| {0} | {1} | {2}{3}| {4}{5}{6}| {7}      | {8:.2f} | {9:.2f}   | {10} | {11} | {12} \n".format(
+            line = "| {0} | {1} | {2}{3}| {4}{5}{6}| {7}      | {8:.2f} | {9:.2f}   | {10} \n".format(
                 name,
                 tns_result,
                 latest["ra"],
@@ -572,16 +564,11 @@ class AmpelWizard:
                 ["g", "r", "i"][latest["fid"] - 1],
                 latest["magpsf"],
                 latest["sigmapsf"],
-                host_redshift_abbreviated,
-                abs_mag_abbreviated,
                 old_flag
             )
             table += line
 
-        table += "+------------------------------------------------------------------------------------------------------+\n\n"
-        # photoz = self.get_photoz(latest["ra"], latest["dec"], latest["magpsf"],)['photoz_best']
-        # table += "{}".format(photoz)
-
+        table += "+--------------------------------------------------------------------------------+\n\n"
         return table
 
 
@@ -677,6 +664,10 @@ class AmpelWizard:
 
     def text_summary(self):
         text = ""
+        if self.dist:
+            text += "The GW distance estimate is {:.0f} +/- {:.0f} Mpc.\n".format(self.dist, self.dist_unc)
+        else:
+            text += "No distance estimate available.\n"
         for name, res in sorted(self.cache.items()):
             detections = [x for x in res["prv_candidates"] + [res["candidate"]] if x["isdiffpos"] is not None]
             detection_jds = [x["jd"] for x in detections]
@@ -693,6 +684,26 @@ class AmpelWizard:
 
             except IndexError:
                 text += self.candidate_text(name, first_detection["jd"], None, None)
+
+            specz_query = self.query_ned(latest["ra"], latest["dec"], searchradius_arcsec=30, findclosest=True)[0]
+            if specz_query:
+                specz = float(specz_query["z"])
+                absmag = self.calculate_abs_mag(latest["magpsf"], specz)
+                z_dist = Distance(z = specz, cosmology=cosmo)
+                z_dist_unc = None
+                text += "It has a spec-z of {:.3f}, resulting in an abs. mag of {:.1f}. ".format(specz, absmag)
+                if self.dist:
+                    gw_dist_interval = [self.dist - self.dist_unc, self.dist + self.dist_unc]
+            else:
+                specz = None
+            if not specz:
+                photoz_query = self.get_photoz(latest["ra"], latest["dec"], latest["magpsf"])
+                photoz = photoz_query['photoz_best']
+                angular_dist = photoz_query['angular_dist']
+                if angular_dist < 20:
+                    z_dist = Distance(z = photoz, cosmology=cosmo)
+                    # z_dist_unc = 
+                    text += "It has a phot-z of {:.2f}. ".format(photoz)
             # print("Candidate:", name, res["candidate"]["ra"], res["candidate"]["dec"], first_detection["jd"])
             # print("Last Upper Limit:", last_upper_limit["jd"], self.parse_ztf_filter(last_upper_limit["fid"]),
             #       last_upper_limit["diffmaglim"])
