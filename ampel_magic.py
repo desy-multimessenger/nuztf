@@ -614,10 +614,10 @@ class AmpelWizard:
             self.text_summary()
         )
 
-        text += "ZTF and GROWTH are worldwide collaborations comprising Caltech, USA; IPAC, USA, WIS, Israel; OKC, Sweden; JSI/UMd, USA; U Washington, USA; DESY, Germany; MOST, Taiwan; UW Milwaukee, USA; LANL USA; Tokyo Tech, Japan; IITB, India; IIA, India; LJMU, UK; TTU, USA; SDSU, USA and USyd, Australia. \n"
-        "ZTF acknowledges the generous support of the NSF under AST MSIP Grant No 1440341. \n"
-        "GROWTH acknowledges generous support of the NSF under PIRE Grant No 1545949. \n "
-        "Alert distribution service provided by DIRAC@UW (Patterson et al. 2019). \n"
+        text += "ZTF and GROWTH are worldwide collaborations comprising Caltech, USA; IPAC, USA, WIS, Israel; OKC, Sweden; JSI/UMd, USA; U Washington, USA; DESY, Germany; MOST, Taiwan; UW Milwaukee, USA; LANL USA; Tokyo Tech, Japan; IITB, India; IIA, India; LJMU, UK; TTU, USA; SDSU, USA and USyd, Australia. \n" \
+        "ZTF acknowledges the generous support of the NSF under AST MSIP Grant No 1440341. \n" \
+        "GROWTH acknowledges generous support of the NSF under PIRE Grant No 1545949. \n " \
+        "Alert distribution service provided by DIRAC@UW (Patterson et al. 2019). \n" \
         "Alert database searches are done by AMPEL (Nordin et al. 2019). \n"
         "Alert filtering and follow-up coordination is being undertaken by the GROWTH marshal system (Kasliwal et al. 2019)."
         return text
@@ -655,16 +655,19 @@ class AmpelWizard:
             detection_jds = [x["jd"] for x in detections]
             first_detection = detections[detection_jds.index(min(detection_jds))]
             latest = [x for x in res["prv_candidates"] + [res["candidate"]] if x["isdiffpos"] is not None][-1]
-            last_upper_limit = [x for x in res["prv_candidates"] if
-                                np.logical_and(x["isdiffpos"] is None, x["jd"] < first_detection["jd"])][-1]
             print("Candidate:", name, res["candidate"]["ra"], res["candidate"]["dec"], first_detection["jd"])
-            print("Last Upper Limit:", last_upper_limit["jd"], self.parse_ztf_filter(last_upper_limit["fid"]),
-                  last_upper_limit["diffmaglim"])
+            try:
+                last_upper_limit = [x for x in res["prv_candidates"] if
+                                np.logical_and(x["isdiffpos"] is None, x["jd"] < first_detection["jd"])][-1]
+                print("Last Upper Limit:", last_upper_limit["jd"], self.parse_ztf_filter(last_upper_limit["fid"]), last_upper_limit["diffmaglim"])
+            except IndexError:
+                last_upper_limit = None
+                print("Last Upper Limit: None")
             print("First Detection:", first_detection["jd"], self.parse_ztf_filter(first_detection["fid"]),
                   first_detection["magpsf"], first_detection["sigmapsf"])
             print("First observed {0} hours after merger".format(24. * (first_detection["jd"] - self.t_min.jd)))
-            print("It has risen", -latest["magpsf"] + last_upper_limit["diffmaglim"],
-                  self.parse_ztf_filter(latest["fid"]), self.parse_ztf_filter(last_upper_limit["fid"]))
+            if last_upper_limit:
+                print("It has risen", -latest["magpsf"] + last_upper_limit["diffmaglim"], self.parse_ztf_filter(latest["fid"]), self.parse_ztf_filter(last_upper_limit["fid"]))
             print([x["jd"] for x in res["prv_candidates"] + [res["candidate"]] if x["isdiffpos"] is not None])
             print("\n")
 
