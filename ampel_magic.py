@@ -579,8 +579,8 @@ class AmpelWizard:
             table += line
 
         table += "+------------------------------------------------------------------------------------------------------+\n\n"
-        photoz = self.get_photoz(latest["ra"], latest["dec"], latest["magpsf"],)['photoz_best']
-        table += "{}".format(photoz)
+        # photoz = self.get_photoz(latest["ra"], latest["dec"], latest["magpsf"],)['photoz_best']
+        # table += "{}".format(photoz)
 
         return table
 
