@@ -587,8 +587,7 @@ class AmpelWizard:
                "We reject stellar sources (Tachibana and Miller 2018) and moving objects, and " \
                "apply machine learning algorithms (Mahabal et al. 2019) {6}. We are left with the following high-significance transient " \
                "candidates by our pipeline, all lying within the " \
-               "{7}% localization of the skymap. \n\n{8} \n\n" \
-               "Amongst our candidates, {9}. \n \n".format(
+               "{7}% localization of the skymap. \n\n{8} \n\n".format(
             self.get_full_name(),
             self.get_tiling_line(),
             self.first_obs.utc,
@@ -598,8 +597,14 @@ class AmpelWizard:
             self.remove_variability_line(),
             100*self.prob_threshold,
             self.parse_candidates(),
-            self.text_summary()
         )
+
+        if self.dist:
+            text += "The GW distance estimate is {:.0f} [{:.0f} - {:.0f}] Mpc.\n\n".format(self.dist, self.dist-self.dist_unc, self.dist+self.dist_unc)
+        else:
+            text += "No distance estimate available.\n\n"
+
+        text += "Amongst our candidates, \n{0}. \n \n".format(self.text_summary())         
 
         text += "ZTF and GROWTH are worldwide collaborations comprising Caltech, USA; IPAC, USA, WIS, Israel; OKC, Sweden; JSI/UMd, USA; U Washington, USA; DESY, Germany; MOST, Taiwan; UW Milwaukee, USA; LANL USA; Tokyo Tech, Japan; IITB, India; IIA, India; LJMU, UK; TTU, USA; SDSU, USA and USyd, Australia. \n" \
         "ZTF acknowledges the generous support of the NSF under AST MSIP Grant No 1440341. \n" \
@@ -664,10 +669,6 @@ class AmpelWizard:
 
     def text_summary(self):
         text = ""
-        if self.dist:
-            text += "The GW distance estimate is {:.0f} +/- {:.0f} Mpc.\n".format(self.dist, self.dist_unc)
-        else:
-            text += "No distance estimate available.\n"
         for name, res in sorted(self.cache.items()):
             detections = [x for x in res["prv_candidates"] + [res["candidate"]] if x["isdiffpos"] is not None]
             detection_jds = [x["jd"] for x in detections]
@@ -691,7 +692,7 @@ class AmpelWizard:
                 absmag = self.calculate_abs_mag(latest["magpsf"], specz)
                 z_dist = Distance(z = specz, cosmology=cosmo).value
                 z_dist_unc = None
-                text += "It has a spec-z of {:.3f} [{:.0f} Mpc] and an abs. mag of {:.1f}.".format(specz, z_dist, absmag)
+                text += "It has a spec-z of {:.3f} [{:.0f} Mpc] and an abs. mag of {:.1f}. ".format(specz, z_dist, absmag)
                 if self.dist:
                     gw_dist_interval = [self.dist - self.dist_unc, self.dist + self.dist_unc]
             else:
@@ -706,7 +707,7 @@ class AmpelWizard:
                     z_dist = Distance(z = photoz, cosmology=cosmo).value
                     z_dist_upper = Distance(z = photoz_upper_bound).value
                     z_dist_lower = Distance(z = photoz_lower_bound).value
-                    text += "It has a phot-z of {:.2f} [{:.0f} - {:.0f} Mpc].".format(photoz, z_dist_lower, z_dist_upper)
+                    text += "It has a phot-z of {:.2f} [{:.0f} - {:.0f} Mpc]. ".format(photoz, z_dist_lower, z_dist_upper)
             # print("Candidate:", name, res["candidate"]["ra"], res["candidate"]["dec"], first_detection["jd"])
             # print("Last Upper Limit:", last_upper_limit["jd"], self.parse_ztf_filter(last_upper_limit["fid"]),
             #       last_upper_limit["diffmaglim"])

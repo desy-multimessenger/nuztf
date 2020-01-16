@@ -137,7 +137,7 @@ class GravWaveScanner(AmpelWizard):
                 name, 24. * (first_detection - self.t_min.jd), first_detection - lul_jd, lul_lim
             )
         except TypeError:
-            text = "{0} had upper limit problems. PLEASE FILL IN NUMBERS BY HAND!!!"
+            text = "{0} had upper limit problems. PLEASE FILL IN NUMBERS BY HAND!!! ".format(name)
         return text
 
     def filter_f_no_prv(self, res):
