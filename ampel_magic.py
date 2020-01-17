@@ -530,9 +530,9 @@ class AmpelWizard:
 
     def parse_candidates(self):
 
-        table = "+--------------------------------------------------------------------------------+\n" \
-                "| ZTF Name     | IAU Name   | RA (deg)   | DEC (deg)   | Filter | Mag   | MagErr |\n" \
-                "+--------------------------------------------------------------------------------+\n"
+        table = "+---------------------------------------------------------------------------------+\n" \
+                "| ZTF Name     | IAU Name   | RA (deg)    | DEC (deg)   | Filter | Mag   | MagErr |\n" \
+                "+---------------------------------------------------------------------------------+\n"
         for name, res in sorted(self.cache.items()):
 
             jds = [x["jd"] for x in res["prv_candidates"]]
@@ -550,25 +550,24 @@ class AmpelWizard:
                     old_flag = "(MORE THAN ONE DAY SINCE SECOND DETECTION)"
 
             try:
-                tns_result = self.query_tns(latest["ra"], latest["dec"], searchradius_arcsec=3)[0]
+                tns_result = self.query_tns(latest["ra"], latest["dec"], searchradius_arcsec=3)[0].ljust(10)
             except TypeError:
                 tns_result = " -------- "
-            line = "| {0} | {1} | {2}{3}| {4}{5}{6}| {7}      | {8:.2f} | {9:.2f}   | {10} \n".format(
+            line = "| {0} | {1} | {2:011.7f} | {3:+011.7f} | {4}      | {5:.2f} | {6:.2f}   | {7} \n".format(
                 name,
                 tns_result,
-                latest["ra"],
-                str(" ") * (11 - len(str(latest["ra"]))),
-                ["", "+"][int(latest["dec"] > 0.)],
-                latest["dec"],
-                str(" ") * (11 - len(str(latest["dec"]))),
+                float(latest["ra"]),
+                float(latest["dec"]),
                 ["g", "r", "i"][latest["fid"] - 1],
                 latest["magpsf"],
                 latest["sigmapsf"],
-                old_flag
+                old_flag,
+                sign = "+",
+                prec=7
             )
             table += line
 
-        table += "+--------------------------------------------------------------------------------+\n\n"
+        table += "+---------------------------------------------------------------------------------+\n\n"
         return table
 
 
@@ -690,24 +689,25 @@ class AmpelWizard:
             if specz_query:
                 specz = float(specz_query["z"])
                 absmag = self.calculate_abs_mag(latest["magpsf"], specz)
-                z_dist = Distance(z = specz, cosmology=cosmo).value
-                z_dist_unc = None
-                text += "It has a spec-z of {:.3f} [{:.0f} Mpc] and an abs. mag of {:.1f}. ".format(specz, z_dist, absmag)
-                if self.dist:
-                    gw_dist_interval = [self.dist - self.dist_unc, self.dist + self.dist_unc]
+                if specz > 0:
+                    z_dist = Distance(z = specz, cosmology=cosmo).value
+                    text += "It has a spec-z of {:.3f} [{:.0f} Mpc] and an abs. mag of {:.1f}. ".format(specz, z_dist, absmag)
+                    if self.dist:
+                        gw_dist_interval = [self.dist - self.dist_unc, self.dist + self.dist_unc]
             else:
                 specz = None
             if not specz:
                 photoz_query = self.get_photoz(latest["ra"], latest["dec"], latest["magpsf"])
                 photoz = photoz_query['photoz_best']
+                ps1dist = photoz_query['angular_dist']
                 photoz_lower_bound = photoz_query['z_lower']
                 photoz_upper_bound = photoz_query['z_upper']
                 angular_dist = photoz_query['angular_dist']
-                if angular_dist < 20:
+                if angular_dist < 20 and photoz > 0:
                     z_dist = Distance(z = photoz, cosmology=cosmo).value
                     z_dist_upper = Distance(z = photoz_upper_bound).value
                     z_dist_lower = Distance(z = photoz_lower_bound).value
-                    text += "It has a phot-z of {:.2f} [{:.0f} - {:.0f} Mpc]. ".format(photoz, z_dist_lower, z_dist_upper)
+                    text += "It has a phot-z of {:.2f} [{:.0f} - {:.0f} Mpc]. Distance to PS1 object {:.2f} arcsec. ".format(photoz, z_dist_lower, z_dist_upper, ps1dist)
             # print("Candidate:", name, res["candidate"]["ra"], res["candidate"]["dec"], first_detection["jd"])
             # print("Last Upper Limit:", last_upper_limit["jd"], self.parse_ztf_filter(last_upper_limit["fid"]),
             #       last_upper_limit["diffmaglim"])
