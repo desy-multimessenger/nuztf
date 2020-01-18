@@ -150,7 +150,6 @@ class NeutrinoScanner(AmpelWizard):
                 raw_time = [x for x in  line.split(" ") if x not in ["Time", "", "UT", "UTC"]][1]
                 raw_date = name.split("-")[1][:6]
                 ut_time = "20{0}-{1}-{2}T{3}".format(raw_date[0:2], raw_date[2:4], raw_date[4:6], raw_time)
-                print(time)
                 time = Time(ut_time, format='isot', scale='utc')
 
         try:
