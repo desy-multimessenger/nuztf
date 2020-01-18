@@ -9,9 +9,11 @@ from astropy.cosmology import Planck15 as cosmo
 import numpy as np
 import matplotlib.pyplot as plt
 from ztfquery import alert, query
+from ztfquery import fields as ztfquery_fields
 from matplotlib.backends.backend_pdf import PdfPages
 import os
 import getpass
+import pandas
 import sqlalchemy
 import healpy as hp
 from tqdm import tqdm
@@ -493,20 +495,17 @@ class AmpelWizard:
         except TypeError:
             return None
 
-    def query_ned(self, ra, dec, searchradius_arcsec=30, findclosest=True):
+    def query_ned(self, ra, dec, searchradius_arcsec=20):
         try:
             extcat_query = CatalogQuery.CatalogQuery(cat_name="NEDz_extcats", ra_key="RA", dec_key="Dec", dbclient=self.external_catalogs)
         except pymongo.errors.ServerSelectionTimeoutError as e:
             catalogerror()
             raise e 
         try:
-            if findclosest:
-                query_result = extcat_query.findclosest(ra=ra, dec=dec, rs_arcsec=searchradius_arcsec, method="2dsphere")
-            else:
-                query_result = extcat_query.findwithin_2Dsphere(ra=ra, dec=dec, rs_arcsec=searchradius_arcsec)
-            return query_result
+            query_result, dist = extcat_query.findclosest(ra=ra, dec=dec, rs_arcsec=searchradius_arcsec, method="2dsphere")
+            return query_result, dist
         except TypeError:
-            return None
+            return (None, None)
 
     def get_photoz(self, ra, dec, mag):
         data = {'jd': 0, 'fid': 0, 'magpsf': 0, 'diffmaglim': 0, 'sigmapsf': 0, 'dec': dec, 'ra': ra}
@@ -576,7 +575,7 @@ class AmpelWizard:
         # first_obs =
 
         text = "Astronomer Name (Institute of Somewhere), ............. report,\n" \
-               "On behalf of the Zwicky Transient Facility (ZTF) and Global Relay of Observatories Watching Transients Happen (GROWTH) collaborations: \n " \
+               "On behalf of the Zwicky Transient Facility (ZTF) and Global Relay of Observatories Watching Transients Happen (GROWTH) collaborations: \n" \
                "We observed the localization region of the {0} with the Palomar 48-inch telescope, equipped with the 47 square degree ZTF camera (Bellm et al. 2019, Graham et al. 2019). {1}" \
                "We started observations in the g-band and r-band beginning at {2} UTC, " \
                "approximately {3:.1f} hours after event time. {4}" \
@@ -607,7 +606,7 @@ class AmpelWizard:
 
         text += "ZTF and GROWTH are worldwide collaborations comprising Caltech, USA; IPAC, USA, WIS, Israel; OKC, Sweden; JSI/UMd, USA; U Washington, USA; DESY, Germany; MOST, Taiwan; UW Milwaukee, USA; LANL USA; Tokyo Tech, Japan; IITB, India; IIA, India; LJMU, UK; TTU, USA; SDSU, USA and USyd, Australia. \n" \
         "ZTF acknowledges the generous support of the NSF under AST MSIP Grant No 1440341. \n" \
-        "GROWTH acknowledges generous support of the NSF under PIRE Grant No 1545949. \n " \
+        "GROWTH acknowledges generous support of the NSF under PIRE Grant No 1545949. \n" \
         "Alert distribution service provided by DIRAC@UW (Patterson et al. 2019). \n" \
         "Alert database searches are done by AMPEL (Nordin et al. 2019). \n"
         "Alert filtering and follow-up coordination is being undertaken by the GROWTH marshal system (Kasliwal et al. 2019)."
@@ -631,10 +630,14 @@ class AmpelWizard:
         with PdfPages(self.output_path) as pdf:
             for (name, old_alert) in tqdm(sorted(self.cache.items())):
                 mock_alert = self.reassemble_alert(old_alert)
-                fig = alert.display_alert(mock_alert, show_ps_stamp=True)
-                fig.text(0, 0, name)
-                pdf.savefig()
-                plt.close()
+                try:
+                    fig = alert.display_alert(mock_alert, show_ps_stamp=True)
+                    fig.text(0, 0, name)
+                    pdf.savefig()
+                    plt.close()
+                except TypeError:
+                    print('WARNING!!! {} will be missing from the report pdf for some reason.'.format(name))
+                    pass
 
     @staticmethod
     def parse_ztf_filter(fid):
@@ -685,13 +688,13 @@ class AmpelWizard:
             except IndexError:
                 text += self.candidate_text(name, first_detection["jd"], None, None)
 
-            specz_query = self.query_ned(latest["ra"], latest["dec"], searchradius_arcsec=30, findclosest=True)[0]
+            specz_query, sdss_dist = self.query_ned(latest["ra"], latest["dec"], searchradius_arcsec=20)
             if specz_query:
                 specz = float(specz_query["z"])
                 absmag = self.calculate_abs_mag(latest["magpsf"], specz)
                 if specz > 0:
                     z_dist = Distance(z = specz, cosmology=cosmo).value
-                    text += "It has a spec-z of {:.3f} [{:.0f} Mpc] and an abs. mag of {:.1f}. ".format(specz, z_dist, absmag)
+                    text += "It has a spec-z of {:.3f} [{:.0f} Mpc] and an abs. mag of {:.1f}. Distance to SDSS galaxy is {:.2f} arcsec. ".format(specz, z_dist, absmag, sdss_dist)
                     if self.dist:
                         gw_dist_interval = [self.dist - self.dist_unc, self.dist + self.dist_unc]
             else:
@@ -702,12 +705,12 @@ class AmpelWizard:
                 ps1dist = photoz_query['angular_dist']
                 photoz_lower_bound = photoz_query['z_lower']
                 photoz_upper_bound = photoz_query['z_upper']
-                angular_dist = photoz_query['angular_dist']
+                absmag = self.calculate_abs_mag(latest["magpsf"], photoz)
                 if angular_dist < 20 and photoz > 0:
                     z_dist = Distance(z = photoz, cosmology=cosmo).value
                     z_dist_upper = Distance(z = photoz_upper_bound).value
                     z_dist_lower = Distance(z = photoz_lower_bound).value
-                    text += "It has a phot-z of {:.2f} [{:.0f} - {:.0f} Mpc]. Distance to PS1 object {:.2f} arcsec. ".format(photoz, z_dist_lower, z_dist_upper, ps1dist)
+                    text += "It has a phot-z of {:.2f} [{:.0f} - {:.0f} Mpc] and an abs. mag of {:.1f}. Distance to PS1 object is {:.2f} arcsec. ".format(photoz, z_dist_lower, z_dist_upper, absmag, ps1dist)
             # print("Candidate:", name, res["candidate"]["ra"], res["candidate"]["dec"], first_detection["jd"])
             # print("Last Upper Limit:", last_upper_limit["jd"], self.parse_ztf_filter(last_upper_limit["fid"]),
             #       last_upper_limit["diffmaglim"])
@@ -725,7 +728,7 @@ class AmpelWizard:
                 text += "It is located at a galactic latitude of {0:.2f} degrees. ".format(
                     g_lat
                 )
-            text += "\n "
+            text += "\n"
         return text
 
     def simple_plot_overlap_with_observations(self, fields=None, first_det_window_days=None):
@@ -764,7 +767,6 @@ class AmpelWizard:
 
         ras = np.degrees(self.wrap_around_180(np.array([
             np.radians(float(x)) for x in mns.data["ra"]])))
-
         fields = list(mns.data["field"])
 
         plot_ras = []
@@ -992,7 +994,6 @@ class AmpelWizard:
         n_pixels = len(single_pixels + plot_pixels)
 
         self.area = hp.pixelfunc.nside2pixarea(nside, degrees=True) * n_pixels
-
         try:
 
             self.first_obs = Time(min(times), format="jd")
