@@ -706,7 +706,7 @@ class AmpelWizard:
                 photoz_lower_bound = photoz_query['z_lower']
                 photoz_upper_bound = photoz_query['z_upper']
                 absmag = self.calculate_abs_mag(latest["magpsf"], photoz)
-                if angular_dist < 20 and photoz > 0:
+                if ps1dist < 20 and photoz > 0:
                     z_dist = Distance(z = photoz, cosmology=cosmo).value
                     z_dist_upper = Distance(z = photoz_upper_bound).value
                     z_dist_lower = Distance(z = photoz_lower_bound).value
