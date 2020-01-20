@@ -147,7 +147,6 @@ class NeutrinoScanner(AmpelWizard):
             elif np.logical_and(np.sum([x in line for x in ["Ra", "RA"]]) > 0, ra is None):
                 ra = self.strip_numbers(line)
             elif np.logical_and(np.sum([x in line for x in ["Dec", "DEC"]]) > 0, dec is None):
-                print(line)
                 dec = self.strip_numbers(line)
             elif np.logical_and(np.sum([x in line for x in ["Time", "TIME"]]) > 0, dec is None):
                 raw_time = [x for x in  line.split(" ") if x not in ["Time", "", "UT", "UTC"]][1]
