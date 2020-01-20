@@ -187,16 +187,22 @@ class NeutrinoScanner(AmpelWizard):
 
         return nu_circulars
 
-    def find_gcn_no(self, base_nu_name):
-        page = requests.get("https://gcn.gsfc.nasa.gov/gcn3_archive.html")
+    @staticmethod
+    def parse_gcn_for_no(base_nu_name, url="https://gcn.gsfc.nasa.gov/gcn3_archive.html"):
+
+        print(f"Checking for GCN on {url}")
+
+        nu_name = str(base_nu_name)
+
+        page = requests.get(url)
 
         gcn_no = None
         name = None
 
-        nu_name = str(base_nu_name)
-
         while not nu_name[0].isdigit():
             nu_name = nu_name[1:]
+
+        latest_archive_no = None
 
         for line in page.text.splitlines():
             if np.logical_and("IceCube observation of a high-energy neutrino" in line, nu_name in line):
@@ -207,6 +213,28 @@ class NeutrinoScanner(AmpelWizard):
                     print("Found match to {0}: {1}".format(base_nu_name, name))
                 else:
                     raise Exception("Multiple matches found to {0}".format(base_nu_name))
+
+            elif np.logical_and("gcn3_arch_old" in line, latest_archive_no is None):
+                url = line.split('"')[1]
+                latest_archive_no = int(url[13:].split(".")[0])
+
+        return gcn_no, name, latest_archive_no
+
+    def find_gcn_no(self, base_nu_name):
+
+        gcn_no, name, latest_archive_no = self.parse_gcn_for_no(base_nu_name)
+
+        if gcn_no is None:
+
+            print(f"No GCN found for {base_nu_name} on GCN page, checking archive instead. "
+                  f"The latest page is {latest_archive_no}")
+
+            while np.logical_and(latest_archive_no > 0, gcn_no is None):
+                gcn_no, name, _ = self.parse_gcn_for_no(
+                    base_nu_name, url=f"https://gcn.gsfc.nasa.gov/gcn3_arch_old{latest_archive_no}.html")
+                latest_archive_no -= 1
+
+        # while
 
         if name is None:
             raise ParsingError("No GCN match found for {0}".format(base_nu_name))
