@@ -123,6 +123,7 @@ class NeutrinoScanner(AmpelWizard):
     def strip_numbers(line):
         vals = []
         line = line.replace("- ", "-")
+        line = line.replace("-", " -")
 
         for x in line.replace(",", " ").replace("/", " ").split(" "):
             try:
@@ -137,6 +138,7 @@ class NeutrinoScanner(AmpelWizard):
         print("Found GCN: {0}".format(url))
         name = author = ra = dec = time = None
         for line in page.text.splitlines():
+            line = "".join([x for x in line if x not in ["Â"]])
             if "SUBJECT" in line:
                 name = line.split(" - ")[0].split(": ")[1]
             elif "FROM" in line:
@@ -145,6 +147,7 @@ class NeutrinoScanner(AmpelWizard):
             elif np.logical_and(np.sum([x in line for x in ["Ra", "RA"]]) > 0, ra is None):
                 ra = self.strip_numbers(line)
             elif np.logical_and(np.sum([x in line for x in ["Dec", "DEC"]]) > 0, dec is None):
+                print(line)
                 dec = self.strip_numbers(line)
             elif np.logical_and(np.sum([x in line for x in ["Time", "TIME"]]) > 0, dec is None):
                 raw_time = [x for x in  line.split(" ") if x not in ["Time", "", "UT", "UTC"]][1]
