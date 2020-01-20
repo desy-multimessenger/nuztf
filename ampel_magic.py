@@ -984,16 +984,18 @@ class AmpelWizard:
         gray_patch = mpatches.Patch(color='gray', label='Observed once')
         plt.legend(handles=[red_patch, gray_patch])
 
-        message = "In total, {0:.2f} % of the LIGO contour was observed at least once. \n " \
-                  "In total, {1:.2f} % of the LIGO contour was observed at least twice. \n" \
+        message = "In total, {0:.2f} % of the contour was observed at least once. \n " \
+                  "In total, {1:.2f} % of the contour was observed at least twice. \n" \
                   "This estimate accounts for chip gaps.".format(
             100 * (np.sum(probs) + np.sum(single_probs)), 100.*np.sum(probs))
 
         all_pix = single_pixels + plot_pixels
 
         n_pixels = len(single_pixels + plot_pixels)
+        n_double = len(plot_pixels)
 
         self.area = hp.pixelfunc.nside2pixarea(nside, degrees=True) * n_pixels
+        double_area = hp.pixelfunc.nside2pixarea(nside, degrees=True) * n_double
         try:
 
             self.first_obs = Time(min(times), format="jd")
@@ -1014,4 +1016,6 @@ class AmpelWizard:
 
         print("{0} pixels were covered, covering approximately {1} sq deg.".format(
             n_pixels, self.area))
+        print("{0} pixels were covered at least twice, covering approximately {1} sq deg.".format(
+            n_double, double_area))
         return fig, message
