@@ -1,5 +1,5 @@
-# ZTF_ToO_toolkit
-Central repository for scripts handling ZTF neutrino Target of Opportunity requests
+# AMPEL Follow-up Pipelin
+Central repository for scripts handling ZTF Target-of-Opportunity requests, using the [AMPEL platform](https://arxiv.org/abs/1904.05922).
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/robertdstein/ZTF_Neutrino_ToO/master)
 
