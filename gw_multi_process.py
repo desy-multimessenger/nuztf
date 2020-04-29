@@ -103,6 +103,8 @@ class MultiGwProcessor(GravWaveScanner):
                 return False
         except KeyError:
             pass
+        except TypeError:
+            pass
 
         # Check contour
         if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
