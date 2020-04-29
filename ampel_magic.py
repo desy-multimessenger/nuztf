@@ -132,15 +132,14 @@ class MultiNightSummary(query._ZTFTableHandler_):
             try:
                 new_ns = self.get_ztf_data(night)
 
-                if ns is None:
-                    if hasattr(new_ns, "data"):
-                        if new_ns.data is not None:
-                            ns = new_ns
-
-                try:
-                    ns.data = ns.data.append(new_ns.data)
-                except AttributeError:
-                    missing_nights.append(night)
+                if np.logical_and(ns is None, hasattr(new_ns, "data")):
+                    if new_ns.data is not None:
+                        ns = new_ns
+                else:
+                    try:
+                        ns.data = ns.data.append(new_ns.data)
+                    except AttributeError:
+                        missing_nights.append(night)
             except ValueError:
                 pass
 
@@ -165,6 +164,8 @@ class MultiNightSummary(query._ZTFTableHandler_):
         # query returns an index error is no ztf data is found
         except IndexError:
             return None
+
+    # def export_fields
 
 class AmpelWizard:
 
@@ -475,7 +476,7 @@ class AmpelWizard:
         try:
             extcat_query = CatalogQuery.CatalogQuery(cat_name="PS1_DR1", ra_key="raMean", dec_key="decMean", dbclient=self.external_catalogs)
         except pymongo.errors.ServerSelectionTimeoutError as e:
-            catalogerror()
+            self.catalogerror()
             raise e 
         try:
             query_result = extcat_query.findwithin_HEALPix(ra=ra, dec=dec, rs_arcsec=searchradius_arcsec)
@@ -487,7 +488,7 @@ class AmpelWizard:
         try:
             extcat_query = CatalogQuery.CatalogQuery(cat_name="SDSS_spec", ra_key="ra", dec_key="dec", dbclient=self.external_catalogs)
         except pymongo.errors.ServerSelectionTimeoutError as e:
-            catalogerror()
+            self.catalogerror()
             raise e 
         try:
             query_result = extcat_query.findwithin_2Dsphere(ra=ra, dec=dec, rs_arcsec=searchradius_arcsec)
@@ -499,7 +500,7 @@ class AmpelWizard:
         try:
             extcat_query = CatalogQuery.CatalogQuery(cat_name="NEDz_extcats", ra_key="RA", dec_key="Dec", dbclient=self.external_catalogs)
         except pymongo.errors.ServerSelectionTimeoutError as e:
-            catalogerror()
+            self.catalogerror()
             raise e 
         try:
             query_result, dist = extcat_query.findclosest(ra=ra, dec=dec, rs_arcsec=searchradius_arcsec, method="2dsphere")
@@ -910,10 +911,11 @@ class AmpelWizard:
 
         print("Unpacking observations")
 
-        overlapping_fields = []
+        pix_map = dict()
 
         for i, obs_time in enumerate(tqdm(obs_times)):
             pix = get_quadrant_ipix(nside, data["ra"].iat[i], data["dec"].iat[i])
+            field = data["field"].iat[i]
 
             flat_pix = []
 
@@ -930,7 +932,10 @@ class AmpelWizard:
                 else:
                     pix_obs_times[p] += [t]
 
-        self.overlap_fields = overlapping_fields
+                if p not in pix_map.keys():
+                    pix_map[p] = [field]
+                else:
+                    pix_map[p] += [field]
 
         plot_pixels = []
         probs = []
@@ -938,6 +943,8 @@ class AmpelWizard:
         single_probs = []
         veto_pixels = []
         times = []
+
+        overlapping_fields = []
 
         for i, p in enumerate(tqdm(hp.nest2ring(nside, self.pixel_nos))):
 
@@ -948,6 +955,7 @@ class AmpelWizard:
                 if max(obs) - min(obs) > 0.01:
                     plot_pixels.append(p)
                     probs.append(self.map_probs[i])
+                    overlapping_fields += pix_map[p]
                 else:
                     single_pixels.append(p)
                     single_probs.append(self.map_probs[i])
@@ -955,6 +963,9 @@ class AmpelWizard:
                 times += obs
             else:
                 veto_pixels.append(p)
+
+        overlapping_fields = sorted(list(set(overlapping_fields)))
+        self.overlap_fields = list(set(overlapping_fields))
 
         self.overlap_prob = np.sum(probs + single_probs) * 100.
 
@@ -1019,3 +1030,9 @@ class AmpelWizard:
         print("{0} pixels were covered at least twice, covering approximately {1} sq deg.".format(
             n_double, double_area))
         return fig, message
+
+    def export_fields(self):
+        mask = np.array([x in self.overlap_fields for x in self.mns.data["field"]])
+        lim_mag = [20.5 for _ in range(np.sum(mask))]
+        coincident_obs = self.mns.data[mask].assign(lim_mag=lim_mag)
+        print(coincident_obs[["field", "pid", "UT_START", "lim_mag", "exp"]].to_csv(index=False, sep=" "))
