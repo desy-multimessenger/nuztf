@@ -71,10 +71,7 @@ except FileNotFoundError:
     with open(extcat_pass, "wb") as f:
         f.write(password_extcat.encode())
 
-if socket.gethostname() == "wgs33.zeuthen.desy.de":
-    port = 5433
-else:
-    port = 5432
+port = 5432
 
 try:
     ampel_client = ArchiveDB('postgresql://{0}:{1}@localhost:{2}/ztfarchive'.format(username, password, port))
