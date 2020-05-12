@@ -859,7 +859,7 @@ class AmpelWizard:
             self.n_fields, self.area))
         return fig, message
 
-    def plot_overlap_with_observations(self, fields=None, pid=None, first_det_window_days=None):
+    def plot_overlap_with_observations(self, fields=None, pid=None, first_det_window_days=None, min_sep=0.01):
 
         try:
             nside = self.ligo_nside
@@ -937,12 +937,23 @@ class AmpelWizard:
                 else:
                     pix_map[p] += [field]
 
+        npix = hp.nside2npix(nside)
+        theta, phi = hp.pix2ang(nside, np.arange(npix), nest=False)
+        radecs = SkyCoord(ra=phi * u.rad, dec=(0.5 * np.pi - theta) * u.rad)
+        idx = np.where(np.abs(radecs.galactic.b.deg) <= 10.0)[0]
+
         plot_pixels = []
         probs = []
         single_pixels = []
         single_probs = []
         veto_pixels = []
+        plane_pixels = []
+        plane_probs = []
         times = []
+        double_no_plane_prob = []
+        double_no_plane_pixels = []
+        single_no_plane_prob = []
+        single_no_plane_pixels = []
 
         overlapping_fields = []
 
@@ -950,15 +961,29 @@ class AmpelWizard:
 
             if p in pix_obs_times.keys():
 
+                if p in idx:
+                    plane_pixels.append(p)
+                    plane_probs.append(self.map_probs[i])
+
                 obs = pix_obs_times[p]
 
-                if max(obs) - min(obs) > 0.01:
-                    plot_pixels.append(p)
-                    probs.append(self.map_probs[i])
-                    overlapping_fields += pix_map[p]
+                if max(obs) - min(obs) > min_sep:
+                    if p not in idx:
+                        double_no_plane_prob.append(self.map_probs[i])
+                        double_no_plane_pixels.append(p)
+                    else:
+                        probs.append(self.map_probs[i])
+                        plot_pixels.append(p)
+
                 else:
-                    single_pixels.append(p)
-                    single_probs.append(self.map_probs[i])
+                    if p not in idx:
+                        single_no_plane_pixels.append(p)
+                        single_no_plane_prob.append(self.map_probs[i])
+                    else:
+                        single_probs.append(self.map_probs[i])
+                        single_pixels.append(p)
+
+                overlapping_fields += pix_map[p]
 
                 times += obs
             else:
@@ -978,35 +1003,52 @@ class AmpelWizard:
             plt.scatter(self.wrap_around_180(np.radians(veto_pos[0])), np.radians(veto_pos[1]),
                         color="red", s=size)
 
-        single_pos = np.array([hp.pixelfunc.pix2ang(nside, i, lonlat=True) for i in single_pixels]).T
+        plane_pos = np.array([hp.pixelfunc.pix2ang(nside, i, lonlat=True) for i in plane_pixels]).T
+
+        if len(plane_pos) > 0:
+
+            plt.scatter(self.wrap_around_180(np.radians(plane_pos[0])), np.radians(plane_pos[1]),
+                        color="green", s=size)
+
+        single_pos = np.array([hp.pixelfunc.pix2ang(nside, i, lonlat=True) for i in single_no_plane_pixels]).T
 
         if len(single_pos) > 0:
-
             plt.scatter(self.wrap_around_180(np.radians(single_pos[0])), np.radians(single_pos[1]),
-                        c=single_probs, vmin=0., vmax=max(self.data[self.key]), s=size, cmap='gray')
+                        c=single_no_plane_prob, vmin=0., vmax=max(self.data[self.key]), s=size, cmap='gray')
 
-        plot_pos = np.array([hp.pixelfunc.pix2ang(nside, i, lonlat=True) for i in plot_pixels]).T
+        plot_pos = np.array([hp.pixelfunc.pix2ang(nside, i, lonlat=True) for i in double_no_plane_pixels]).T
 
         if len(plot_pos) > 0:
             plt.scatter(self.wrap_around_180(np.radians(plot_pos[0])), np.radians(plot_pos[1]),
-                        c=probs, vmin=0., vmax=max(self.data[self.key]), s=size)
+                        c=double_no_plane_prob, vmin=0., vmax=max(self.data[self.key]), s=size)
 
         red_patch = mpatches.Patch(color='red', label='Not observed')
         gray_patch = mpatches.Patch(color='gray', label='Observed once')
-        plt.legend(handles=[red_patch, gray_patch])
+        violet_patch = mpatches.Patch(color='green', label='Observed Galactic Plane (|b|<10)')
+        plt.legend(handles=[red_patch, gray_patch, violet_patch])
 
         message = "In total, {0:.2f} % of the contour was observed at least once. \n " \
-                  "In total, {1:.2f} % of the contour was observed at least twice. \n" \
-                  "This estimate accounts for chip gaps.".format(
-            100 * (np.sum(probs) + np.sum(single_probs)), 100.*np.sum(probs))
+                  "This estimate includes {1:.2f} % of the contour " \
+                  "at a galactic latitude <10 deg. \n " \
+                  "In total, {2:.2f} % of the contour was observed at least twice. \n" \
+                  "In total, {3:.2f} % of the contour was observed at least twice, " \
+                  "and excluding low galactic latitudes. \n" \
+                  "These estimates accounts for chip gaps.".format(
+            100 * (np.sum(probs) + np.sum(single_probs) + np.sum(single_no_plane_prob) + np.sum(double_no_plane_prob)),
+            100 * np.sum(plane_probs),
+            100.*(np.sum(probs) + np.sum(double_no_plane_prob)),
+            100.*np.sum(double_no_plane_prob)
+            )
 
         all_pix = single_pixels + plot_pixels
 
-        n_pixels = len(single_pixels + plot_pixels)
-        n_double = len(plot_pixels)
+        n_pixels = len(single_pixels + plot_pixels + double_no_plane_pixels + single_no_plane_pixels)
+        n_double = len(double_no_plane_pixels)
+        n_plane = len(plane_pixels)
 
         self.area = hp.pixelfunc.nside2pixarea(nside, degrees=True) * n_pixels
         double_area = hp.pixelfunc.nside2pixarea(nside, degrees=True) * n_double
+        plane_area  = hp.pixelfunc.nside2pixarea(nside, degrees=True) * n_plane
         try:
 
             self.first_obs = Time(min(times), format="jd")
@@ -1025,11 +1067,61 @@ class AmpelWizard:
         #     area = (2. * base_ztf_rad)**2 * float(len(overlapping_fields))
         #     n_fields = len(overlapping_fields)
 
-        print("{0} pixels were covered, covering approximately {1} sq deg.".format(
+        print("{0} pixels were covered, covering approximately {1:.2g} sq deg.".format(
             n_pixels, self.area))
-        print("{0} pixels were covered at least twice, covering approximately {1} sq deg.".format(
+        print("{0} pixels were covered at least twice (b>10), covering approximately {1:.2g} sq deg.".format(
             n_double, double_area))
+        print("{0} pixels were covered at low galactic latitude, covering approximately {1:.2g} sq deg.".format(
+            n_plane, plane_area))
         return fig, message
+
+    def crosscheck_prob(self):
+
+        try:
+            nside = self.ligo_nside
+        except AttributeError:
+            nside = self.nside
+
+        class MNS:
+            def __init__(self, data):
+                self.data = pandas.DataFrame(data, columns=["field", "ra", "dec", "UT_START"])
+
+        data = []
+
+        for f in self.overlap_fields:
+            ra, dec = ztfquery_fields.field_to_coords(float(f))[0]
+            t = Time(self.t_min.jd, format="jd").utc
+            t.format = "isot"
+            t = t.value
+            data.append([f, ra, dec, t])
+
+            mns = MNS(data)
+
+        data = mns.data.copy()
+
+        print("Unpacking observations")
+        field_prob = 0.0
+
+        ps = []
+
+        for index, row in tqdm(data.iterrows()):
+            pix = get_quadrant_ipix(nside, row["ra"], row["dec"])
+
+            flat_pix = []
+
+            for sub_list in pix:
+                for p in sub_list:
+                    flat_pix.append(p)
+
+            flat_pix = list(set(flat_pix))
+            ps += flat_pix
+
+        ps = list(set(ps))
+
+        for p in hp.ring2nest(nside, ps):
+            field_prob += self.data[self.key][int(p)]
+
+        print(f"Intergrating all fields overlapping 90% contour gives {100*field_prob:.2g}%")
 
     def export_fields(self):
         mask = np.array([x in self.overlap_fields for x in self.mns.data["field"]])

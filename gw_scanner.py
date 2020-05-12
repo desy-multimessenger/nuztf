@@ -219,7 +219,7 @@ class GravWaveScanner(AmpelWizard):
             rev = len(voevents)
 
         elif rev > len(voevents):
-            raise ("Revision {0} not found".format(rev))
+            raise Exception("Revision {0} not found".format(rev))
 
         latest_voevent = voevents[rev - 1]
         print("Found voevent {0}".format(latest_voevent["filename"]))
