@@ -83,7 +83,8 @@ def run_on_event(thread_ts, channel_id):
                         gw_name = x
                 elif ".fit" in x:
                     #print(gw_file)
-                    gw_file = x[1:-1]
+                    # gw_file = x[1:-1]
+                    gw_file = x
                 elif "rev" in x:
                     rev_no = int(x.split("=")[1])
                 elif "prob_threshold" in x:
@@ -102,7 +103,7 @@ def run_on_event(thread_ts, channel_id):
             if gw_name is not None:
                 message = "You have also specified a fits file. The fits file will be used.  "
             else:
-                message = "You are interested in the following fits fille: {0}. ".format(gw_file)
+                message = "You are interested in the following fits file: {0}. ".format(gw_file)
 
         if message == "":
             message = "No file was specified. I will just assume that you want the most recent LIGO event. "
