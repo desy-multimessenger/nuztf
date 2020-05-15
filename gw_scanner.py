@@ -287,6 +287,8 @@ class GravWaveScanner(AmpelWizard):
             # print(type(data))
             data = np.array(probs, dtype=np.dtype([("PROB", np.float)]))
 
+        logging.info(f"Summed probability is {100. * np.sum(data['PROB']):.1f}%")
+
         if h["ORDERING"] == "RING":
             data["PROB"] = hp.pixelfunc.reorder(data["PROB"], inp="RING", out="NESTED")
             h["ORDERING"] = "NESTED"
