@@ -74,7 +74,7 @@ def use_if_ztf(file_or_name):
 
     return object_list
 
-def TNS_submit(ztf_names, reporter, sandbox=True):
+def TNS_submit(ztf_names, reporter=None, sandbox=True):
     """ 
     Note: IF YOU WANT TO SUBMIT, SET sandbox=False
     """
@@ -91,7 +91,10 @@ def TNS_submit(ztf_names, reporter, sandbox=True):
         object.__setattr__(tv, "tran_id", ampel_id)
         object.__setattr__(tv, "latest_state", lc_id)
         atreport = TNS.create_atreport(tv)
-        atreport["reporter"] = f"{reporter} for the Zwicky Transient Facility (ZTF) Collaboration"
+        if reporter is None:
+            atreport["reporter"] = "The Zwicky Transient Facility (ZTF) Collaboration"
+        else:
+            atreport["reporter"] = f"{reporter} for the Zwicky Transient Facility (ZTF) Collaboration"
         atreport["exptime"] = "300"
         atreports.update({f"{ztf_name}": atreport})
 
@@ -125,10 +128,18 @@ if __name__ == "__main__":
         action="store_false",
         help="Run an actual commit (instead of just using the TNS sandbox",
     )
+    parser.add_argument(
+        "--reporter",
+        "-reporter",
+        type=str,
+        default=None,
+        help="Provide an author for the submission",
+    )
     
     commandline_args = parser.parse_args()
     name = commandline_args.name
     sandbox = commandline_args.commit
+    reporter = commandline_args.reporter
     object_list = use_if_ztf(name)
 
     if sandbox:
@@ -136,4 +147,4 @@ if __name__ == "__main__":
     else:
         logger.info(f"Submitting {object_list} to the TNS")
 
-    TNS_submit(object_list, "Simeon Reusch (DESY)", sandbox=sandbox)
+    TNS_submit(object_list, reporter, sandbox=sandbox)
