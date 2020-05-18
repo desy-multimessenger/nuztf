@@ -96,7 +96,7 @@ def TNS_submit(ztf_names, reporter=None, sandbox=True):
         else:
             atreport["reporter"] = f"{reporter} for the Zwicky Transient Facility (ZTF) Collaboration"
         atreport["exptime"] = "300"
-        atreports.update({f"{ztf_name}": atreport})
+        atreports.update({ztf_name: atreport})
 
     # Reformat the report (code by AMPEL!)
     atreportlist = []
