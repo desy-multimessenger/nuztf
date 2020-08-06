@@ -45,7 +45,7 @@ class ParsingError(Exception):
 
 class NeutrinoScanner(AmpelWizard):
 
-    def __init__(self, nu_name=None, manual_args=None, gcn_no=None, logger=None, cone_nside=128):
+    def __init__(self, nu_name=None, manual_args=None, gcn_no=None, logger=None, cone_nside=128, t_precursor=None):
 
         self.prob_threshold = 0.9
 
@@ -58,6 +58,13 @@ class NeutrinoScanner(AmpelWizard):
                 gcn_no = self.get_latest_gcn()
 
             nu_name, author, ra, dec, nu_time = self.parse_gcn(gcn_no)
+
+            print("TIME", nu_time, nu_time.mjd)
+
+            if t_precursor is not None:
+                nu_time = Time(nu_time.mjd - t_precursor, format="mjd")
+
+            print(nu_time, nu_time.mjd)
 
         else:
             (nu_name, ra, dec, nu_time) = manual_args
