@@ -75,7 +75,7 @@ class GravWaveScanner(AmpelWizard):
             basename = os.path.basename(gw_file)
             self.gw_path = "{0}/{1}".format(base_ligo_dir, basename)
             if gw_file[:8] == "https://":
-                print("Downloading from: {0}".format(gw_file))
+                logger.info("Downloading from: {0}".format(gw_file))
                 self.gw_path = "{0}/{1}".format(base_ligo_dir, os.path.basename(gw_file[7:]))
                 wget.download(gw_file, self.gw_path)
 
@@ -396,7 +396,7 @@ if __name__=="__main__":
 
     import logging
     logger = logging.getLogger("quiet_logger")
-    logger.setLevel(logging.ERROR)
+    logger.setLevel(logging.INFO)
 
     gw = GravWaveScanner(logger=logger)
     gw.scan_cones()
