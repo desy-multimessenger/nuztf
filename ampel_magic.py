@@ -18,13 +18,13 @@ import sqlalchemy
 import healpy as hp
 from tqdm import tqdm
 from ampel.contrib.hu.t0.DecentFilter import DecentFilter
-from ampel.pipeline.t0.DevAlertProcessor import DevAlertProcessor
-from ampel.base.AmpelAlert import AmpelAlert
-from ampel.base.LightCurve import LightCurve
-from ampel.base.PhotoData import PhotoData
-from ampel.base.flags.PhotoFlags import PhotoFlags
+from ampel.ztf.dev.DevAlertProcessor import DevAlertProcessor
+from ampel.alert.AmpelAlert import AmpelAlert
+from ampel.view.LightCurve import LightCurve
+from ampel.content.DataPoint import DataPoint
+#from ampel.base.flags.PhotoFlags import PhotoFlags
 from ampel.contrib.hu import catshtm_server
-from ampel.contrib.photoz.t2 import T2PhotoZ as pz
+#from ampel.contrib.photoz.t2 import T2PhotoZ as pz
 import pymongo
 from extcats import CatalogQuery
 import datetime
@@ -167,7 +167,7 @@ class MultiNightSummary(query._ZTFTableHandler_):
 
 class AmpelWizard:
 
-    def __init__(self, run_config, t_min, logger=None, base_config=None, filter_class=DecentFilter, cone_nside=64,
+    def __init__(self, run_config, t_min, logger=None, resource=None, filter_class=DecentFilter, cone_nside=64,
                  fast_query=False, cones_to_scan=None):
         self.cone_nside = cone_nside
         self.t_min = t_min
@@ -175,21 +175,24 @@ class AmpelWizard:
         if not hasattr(self, "prob_threshold"):
             self.prob_threshold = None
 
-        if base_config is None:
-            base_config = {'catsHTM.default': "tcp://127.0.0.1:27020", 'extcats.reader': "mongodb://{}:{}@127.0.0.1:27018".format(username_extcat, password_extcat), 'annz.default': "tcp://127.0.0.1:27026"}
+        if resource is None:
+            resource = {'catsHTM.default': "tcp://127.0.0.1:27020", 'extcats.reader': "mongodb://{}:{}@127.0.0.1:27018".format(username_extcat, password_extcat), 'annz.default': "tcp://127.0.0.1:27026"}
 
 
         if ampel_client is not None:
-            self.external_catalogs = pymongo.MongoClient(base_config['extcats.reader'])
+            self.external_catalogs = pymongo.MongoClient(resource['extcats.reader'])
 
-            self.photoz = pz.PhotoZ(logger=logger, base_config=base_config)
+            #self.photoz = pz.PhotoZ(logger=logger, base_config=base_config)
 
 
-            self.ampel_filter_class = filter_class(set(), base_config=base_config,
-                                                   run_config=filter_class.RunConfig(**run_config),
-                                                   logger=logger)
+            # self.ampel_filter_class = filter_class(set(), base_config=base_config,
+            #                                        run_config=filter_class.RunConfig(**run_config),
+            #                                        logger=logger)
+            print(run_config)
+            print(resource)
+            self.ampel_filter_class = filter_class(logger=logger, resource=resource, **run_config)
 
-            self.catshtm = catshtm_server.get_client(base_config['catsHTM.default'])
+            self.catshtm = catshtm_server.get_client(resource['catsHTM.default'])
 
             self.dap = DevAlertProcessor(self.ampel_filter_class)
 
@@ -514,7 +517,7 @@ class AmpelWizard:
 
     def get_photoz(self, ra, dec, mag):
         data = {'jd': 0, 'fid': 0, 'magpsf': 0, 'diffmaglim': 0, 'sigmapsf': 0, 'dec': dec, 'ra': ra}
-        pp = PhotoData(data, flags=PhotoFlags.INST_ZTF | PhotoFlags.SRC_IPAC)
+        pp = DataPoint(data)#, flags=PhotoFlags.INST_ZTF | PhotoFlags.SRC_IPAC)
         lc = LightCurve(None, [pp])
         result = self.photoz.run(lc)
         z = result['annz_best']
@@ -522,13 +525,7 @@ class AmpelWizard:
         dist = result['distance']
         lower_bound = result['interval'][0]
         upper_bound = result['interval'][1]
-        # error_lower = z - lower_bound
-        # error_upper = upper_bound - z
-        # z_up_2_sigma = z + error_upper
-        # z_down_2_sigma = z - error_lower
         absmag = self.calculate_abs_mag(mag, z)
-        # absmag_up_2_sigma = self.calculate_abs_mag(mag, z_up_2_sigma)
-        # absmag_down_2_sigma = self.calculate_abs_mag(mag, z_down_2_sigma)
         return {'photoz_best': z, 'photoz_mean': mean, 'angular_dist': dist, 'z_upper': upper_bound, 'z_lower': lower_bound}
 
 
@@ -704,28 +701,19 @@ class AmpelWizard:
                         gw_dist_interval = [self.dist - self.dist_unc, self.dist + self.dist_unc]
             else:
                 specz = None
-            if not specz:
-                photoz_query = self.get_photoz(latest["ra"], latest["dec"], latest["magpsf"])
-                photoz = photoz_query['photoz_best']
-                ps1dist = photoz_query['angular_dist']
-                photoz_lower_bound = photoz_query['z_lower']
-                photoz_upper_bound = photoz_query['z_upper']
-                absmag = self.calculate_abs_mag(latest["magpsf"], photoz)
-                if ps1dist < 20 and photoz > 0:
-                    z_dist = Distance(z = photoz, cosmology=cosmo).value
-                    z_dist_upper = Distance(z = photoz_upper_bound).value
-                    z_dist_lower = Distance(z = photoz_lower_bound).value
-                    text += "It has a phot-z of {:.2f} [{:.0f} - {:.0f} Mpc] and an abs. mag of {:.1f}. Distance to PS1 object is {:.2f} arcsec. ".format(photoz, z_dist_lower, z_dist_upper, absmag, ps1dist)
-            # print("Candidate:", name, res["candidate"]["ra"], res["candidate"]["dec"], first_detection["jd"])
-            # print("Last Upper Limit:", last_upper_limit["jd"], self.parse_ztf_filter(last_upper_limit["fid"]),
-            #       last_upper_limit["diffmaglim"])
-            # print("First Detection:", first_detection["jd"], self.parse_ztf_filter(first_detection["fid"]),
-            #       first_detection["magpsf"], first_detection["sigmapsf"])
-            # print("First observed {0} hours after merger".format(24. * (first_detection["jd"] - g.t_min.jd)))
-            # print("It has risen", -latest["magpsf"] + last_upper_limit["diffmaglim"],
-            #       self.parse_ztf_filter(latest["fid"]), self.parse_ztf_filter(last_upper_limit["fid"]))
-            # print([x["jd"] for x in res["prv_candidates"] + [res["candidate"]] if x["isdiffpos"] is not None])
-            # print("\n")
+            # if not specz:
+            #     photoz_query = self.get_photoz(latest["ra"], latest["dec"], latest["magpsf"])
+            #     photoz = photoz_query['photoz_best']
+            #     ps1dist = photoz_query['angular_dist']
+            #     photoz_lower_bound = photoz_query['z_lower']
+            #     photoz_upper_bound = photoz_query['z_upper']
+            #     absmag = self.calculate_abs_mag(latest["magpsf"], photoz)
+            #     if ps1dist < 20 and photoz > 0:
+            #         z_dist = Distance(z = photoz, cosmology=cosmo).value
+            #         z_dist_upper = Distance(z = photoz_upper_bound).value
+            #         z_dist_lower = Distance(z = photoz_lower_bound).value
+            #         text += "It has a phot-z of {:.2f} [{:.0f} - {:.0f} Mpc] and an abs. mag of {:.1f}. Distance to PS1 object is {:.2f} arcsec. ".format(photoz, z_dist_lower, z_dist_upper, absmag, ps1dist)
+            
 
             c = SkyCoord(res["candidate"]["ra"], res["candidate"]["dec"], unit="deg")
             g_lat = c.galactic.b.degree
