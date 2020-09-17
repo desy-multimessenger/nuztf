@@ -32,6 +32,7 @@ import socket
 import logging
 from gwemopt.ztf_tiling import get_quadrant_ipix
 import matplotlib.patches as mpatches
+from pymongo.errors import ServerSelectionTimeoutError
 
 ampel_user = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".AMPEL_user.txt")
 extcat_user = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".EXTCAT_user.txt")
@@ -76,14 +77,14 @@ port = 5432
 try:
     ampel_client = ArchiveDB('postgresql://{0}:{1}@localhost:{2}/ztfarchive'.format(username, password, port))
 except sqlalchemy.exc.OperationalError as e:
-    print("---------------------------------------------------------------------------")
-    print("You can't access the archive database without first opening the port.")
-    print("Open a new terminal, and into that terminal, run the following command:")
-    print("ssh -L5432:localhost:5432 -L27020:localhost:27020 -L27018:localhost:27018 -L27026:localhost:27026 ztf-wgs.zeuthen.desy.de")
-    print("If that command doesn't work, you are either not a desy user or you have a problem in your ssh config.")
-    print("---------------------------------------------------------------------------")
-    raise e
-
+    logging.error("---------------------------------------------------------------------------")
+    logging.error("You can't access the archive database without first opening the port.")
+    logging.error("Open a new terminal, and into that terminal, run the following command:")
+    logging.error(f"ssh -L{port}:localhost:{port} -L27020:localhost:27020 -L27018:localhost:27018 -L27026:localhost:27026 ztf-wgs.zeuthen.desy.de")
+    logging.error("If that command doesn't work, you are either not a desy user or you have a problem in your ssh config.")
+    logging.error("Attempts to use Ampel functions will raise errors.")
+    logging.error("---------------------------------------------------------------------------")
+    ampel_client = None
 
 class MultiNightSummary(query._ZTFTableHandler_):
 
@@ -177,17 +178,23 @@ class AmpelWizard:
         if base_config is None:
             base_config = {'catsHTM.default': "tcp://127.0.0.1:27020", 'extcats.reader': "mongodb://{}:{}@127.0.0.1:27018".format(username_extcat, password_extcat), 'annz.default': "tcp://127.0.0.1:27026"}
 
-        self.external_catalogs = pymongo.MongoClient(base_config['extcats.reader'])   
 
-        self.photoz = pz.PhotoZ(logger=logger, base_config=base_config)   
+        if ampel_client is not None:
+            self.external_catalogs = pymongo.MongoClient(base_config['extcats.reader'])
 
-        self.ampel_filter_class = filter_class(set(), base_config=base_config,
-                                               run_config=filter_class.RunConfig(**run_config),
-                                               logger=logger)   
+            self.photoz = pz.PhotoZ(logger=logger, base_config=base_config)
 
-        self.catshtm = catshtm_server.get_client(base_config['catsHTM.default'])
 
-        self.dap = DevAlertProcessor(self.ampel_filter_class)
+            self.ampel_filter_class = filter_class(set(), base_config=base_config,
+                                                   run_config=filter_class.RunConfig(**run_config),
+                                                   logger=logger)
+
+            self.catshtm = catshtm_server.get_client(base_config['catsHTM.default'])
+
+            self.dap = DevAlertProcessor(self.ampel_filter_class)
+
+        else:
+            logging.warning("No connection to Ampel established. Only enabling vanilla Ampel-free functionality.")
 
         if not hasattr(self, "output_path"):
             self.output_path = None

@@ -68,7 +68,10 @@ def run_on_event(thread_ts, channel_id):
         thread_ts=thread_ts,
         icon_emoji=':ampel-mm:'
     )
-    split_message = data['text'].split(" ")
+
+    message = data["text"].replace(u'\xa0', u' ')
+
+    split_message = message.split(" ")
 
     gw_name = None
     gw_file = None
@@ -84,7 +87,7 @@ def run_on_event(thread_ts, channel_id):
                 elif ".fit" in x:
                     #print(gw_file)
                     # gw_file = x[1:-1]
-                    gw_file = x
+                    gw_file = x[1:-1]
                 elif "rev" in x:
                     rev_no = int(x.split("=")[1])
                 elif "prob_threshold" in x:
@@ -134,7 +137,7 @@ def run_on_event(thread_ts, channel_id):
     )
 
     logger = logging.getLogger("quiet_logger")
-    logger.setLevel(logging.ERROR)
+    logger.setLevel(logging.INFO)
 
     try:
         gw = MultiGwProcessor(n_days=n_days, gw_name=gw_name, gw_file=gw_file, rev=rev_no, logger=logger,
@@ -207,6 +210,7 @@ def run_on_event(thread_ts, channel_id):
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument("-t", "--timestamp", type=str)
     parser.add_argument("-c", "--channel", type=str)
