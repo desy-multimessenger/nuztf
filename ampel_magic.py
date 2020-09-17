@@ -178,7 +178,6 @@ class AmpelWizard:
         if resource is None:
             resource = {'catsHTM.default': "tcp://127.0.0.1:27020", 'extcats.reader': "mongodb://{}:{}@127.0.0.1:27018".format(username_extcat, password_extcat), 'annz.default': "tcp://127.0.0.1:27026"}
 
-
         if ampel_client is not None:
             self.external_catalogs = pymongo.MongoClient(resource['extcats.reader'])
 

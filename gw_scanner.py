@@ -34,26 +34,26 @@ base_ligo_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "LIGO_s
 ligo_candidate_output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "LIGO_candidates")
 
 gw_run_config = {
-    "MIN_NDET": 1,  # Default:2
-    "MIN_TSPAN": -1,  # Default 0, but that rejects everything!
-    "MAX_TSPAN": 365,
-    "MIN_RB": 0.3,
-    "MAX_FWHM": 5.5,
-    "MAX_ELONG": 1.4,
-    "MAX_MAGDIFF": 1.0,
-    "MAX_NBAD": 2,
-    "MIN_DIST_TO_SSO": 20,
-    "MIN_GAL_LAT": 0.,  # Default: 14
-    "GAIA_RS": 10.,
-    "GAIA_PM_SIGNIF": 3,
-    "GAIA_PLX_SIGNIF": 3,
-    "GAIA_VETO_GMAG_MIN": 9,
-    "GAIA_VETO_GMAG_MAX": 20,
-    "GAIA_EXCESSNOISE_SIG_MAX": 999,
-    "PS1_SGVETO_RAD": 1.,
-    "PS1_SGVETO_SGTH": 0.8,
-    "PS1_CONFUSION_RAD": 3.,
-    "PS1_CONFUSION_SG_TOL": 0.1
+    "min_ndet": 1,  # Default:2
+    "min_tspan": -1,  # Default 0, but that rejects everything!
+    "max_tspan": 365,
+    "min_rb": 0.3,
+    "max_fwhm": 5.5,
+    "max_elong": 1.4,
+    "max_magdiff": 1.0,
+    "max_nbad": 2,
+    "min_sso_dist": 20,
+    "min_gal_lat": 0.,  # Default: 14
+    "gaia_rs": 10.,
+    "gaia_pm_signif": 3,
+    "gaia_plx_signif": 3,
+    "gaia_veto_gmag_min": 9,
+    "gaia_veto_gmag_max": 20,
+    "gaia_excessnoise_sig_max": 999,
+    "ps1_sgveto_rad": 1.,
+    "ps1_sgveto_th": 0.8,
+    "ps1_confusion_rad": 3.,
+    "ps1_confusion_sg_tol": 0.1
 }
 
 class RetractionError(Exception):
