@@ -192,7 +192,7 @@ class AmpelWizard:
             print(resource)
             self.ampel_filter_class = filter_class(logger=logger, resource=resource, **run_config)
 
-            self.catshtm = catshtm_server.get_client(resource['catsHTM.default'])
+            self.catshtm = catshtm_server.get_client(resource['catsHTM'])
 
             self.dap = DevAlertProcessor(self.ampel_filter_class)
 
