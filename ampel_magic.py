@@ -634,7 +634,7 @@ class AmpelWizard:
                 mock_alert = self.reassemble_alert(old_alert)
                 try:
                     fig = alert.display_alert(mock_alert, show_ps_stamp=True)
-                    fig.text(0, 0, name)
+                    fig.text(0.01, 0.01, name)
                     pdf.savefig()
                     plt.close()
                 except TypeError:
