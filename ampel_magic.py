@@ -20,6 +20,7 @@ from tqdm import tqdm
 from ampel.contrib.hu.t0.DecentFilter import DecentFilter
 from ampel.ztf.dev.DevAlertProcessor import DevAlertProcessor
 from ampel.alert.AmpelAlert import AmpelAlert
+from ampel.alert.PhotoAlert import PhotoAlert
 from ampel.view.LightCurve import LightCurve
 from ampel.content.DataPoint import DataPoint
 #from ampel.base.flags.PhotoFlags import PhotoFlags
@@ -176,7 +177,7 @@ class AmpelWizard:
             self.prob_threshold = None
 
         if resource is None:
-            resource = {'catsHTM.default': "tcp://127.0.0.1:27020", 'extcats.reader': "mongodb://{}:{}@127.0.0.1:27018".format(username_extcat, password_extcat), 'annz.default': "tcp://127.0.0.1:27026"}
+            resource = {'extcats.reader': "mongodb://{}:{}@127.0.0.1:27018".format(username_extcat, password_extcat), 'annz.default': "tcp://127.0.0.1:27026", 'catsHTM': "tcp://127.0.0.1:27020"}
 
         if ampel_client is not None:
             self.external_catalogs = pymongo.MongoClient(resource['extcats.reader'])
@@ -245,7 +246,7 @@ class AmpelWizard:
         raise NotImplementedError
 
     def filter_ampel(self, res):
-        return self.ampel_filter_class.apply(AmpelAlert(res['objectId'], *self.dap._shape(res))) is not None
+        return self.ampel_filter_class.apply(PhotoAlert(res['objectId'], res['objectId'], *self.dap._shape(res))) is not None
 
     def get_avro_by_name(self, ztf_name):
         ztf_object = ampel_client.get_alerts_for_object(ztf_name, with_history=True)
