@@ -972,7 +972,6 @@ class AmpelWizard:
         for i, p in enumerate(tqdm(hp.nest2ring(nside, self.pixel_nos))):
             if p in pix_obs_times.keys():
                 if p in idx:
-                    print("1")
                     plane_pixels.append(p)
                     plane_probs.append(self.map_probs[i])
 
@@ -990,11 +989,9 @@ class AmpelWizard:
 
                 else:
                     if p not in idx:
-                        print("4")
                         single_no_plane_pixels.append(p)
                         single_no_plane_prob.append(self.map_probs[i])
                     else:
-                        print("5")
                         single_probs.append(self.map_probs[i])
                         single_pixels.append(p)
 
