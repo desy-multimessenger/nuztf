@@ -757,7 +757,7 @@ class AmpelWizard:
 
             class MNS:
                 def __init__(self, data):
-                    self.data = pandas.DataFrame(data, columns=["field", "ra", "dec", "UT_START"])
+                    self.data = pandas.DataFrame(data, columns=["field", "ra", "dec", "datetime"])
 
             data = []
 
@@ -825,7 +825,7 @@ class AmpelWizard:
 
         overlapping_fields = list(set(overlapping_fields))
 
-        obs_times = np.array([Time(mns.data["UT_START"].iat[i], format="isot", scale="utc")
+        obs_times = np.array([Time(mns.data["datetime"].iat[i], format="isot", scale="utc")
                      for i in range(len(mns.data)) if mns.data["field"].iat[i] in overlapping_fields])
 
         self.first_obs = min(obs_times)
@@ -884,7 +884,7 @@ class AmpelWizard:
 
             class MNS:
                 def __init__(self, data):
-                    self.data = pandas.DataFrame(data, columns=["field", "ra", "dec", "UT_START"])
+                    self.data = pandas.DataFrame(data, columns=["field", "ra", "dec", "datetime"])
 
             data = []
 
@@ -1089,7 +1089,7 @@ class AmpelWizard:
 
         class MNS:
             def __init__(self, data):
-                self.data = pandas.DataFrame(data, columns=["field", "ra", "dec", "UT_START"])
+                self.data = pandas.DataFrame(data, columns=["field", "ra", "dec", "datetime"])
 
         data = []
 
@@ -1132,4 +1132,4 @@ class AmpelWizard:
         mask = np.array([x in self.overlap_fields for x in self.mns.data["field"]])
         lim_mag = [20.5 for _ in range(np.sum(mask))]
         coincident_obs = self.mns.data[mask].assign(lim_mag=lim_mag)
-        print(coincident_obs[["field", "pid", "UT_START", "lim_mag", "exp"]].to_csv(index=False, sep=" "))
+        print(coincident_obs[["field", "pid", "datetime", "lim_mag", "exp"]].to_csv(index=False, sep=" "))
