@@ -71,43 +71,41 @@ class NeutrinoScanner(AmpelWizard):
         self.gcn_no = gcn_no
         self.dist = None
 
-        print("Neutrino time: {0}".format(nu_time))
+        print(f"Neutrino time: {nu_time}")
 
         self.ra_max = float(max(ra[1:]) + ra[0])
         self.ra_min = float(min(ra[1:]) + ra[0])
         self.dec_max = float(max(dec[1:]) + dec[0])
         self.dec_min = float(min(dec[1:]) + dec[0])
 
-        print("Coordinates: RA = {0} ({1} - {2})".format(ra[0], self.ra_min, self.ra_max))
-        print("Coordinates: Dec = {0} ({1} - {2})".format(dec[0], self.dec_min, self.dec_max))
+        print(f"Coordinates: RA = {ra[0]} ({self.ra_min} - {self.ra_max})")
+        print(f"Coordinates: DEC = {dec[0]} ({self.dec_min} - {self.dec_max})")
 
-        self.output_path = "{0}/{1}.pdf".format(nu_candidate_output_dir, nu_name)
+        self.output_path = f"{nu_candidate_output_dir}/{nu_name}.pdf"
         AmpelWizard.__init__(self, t_min=nu_time, run_config=nu_run_config, logger=logger, cone_nside=cone_nside)
         self.default_t_max = Time.now()
         self.prob_threshold = 0.9
         self.area = (self.ra_max - self.ra_min) * (self.dec_max - self.dec_min) * abs(np.cos(np.radians(dec[0])))
-        print("Projected Area: {0}".format(self.area))
+        print(f"Projected Area: {self.area}")
         self.map_coords, self.pixel_nos, self.nside, self.map_probs, self.data, self.key = self.unpack_map()
 
     @staticmethod
     def gcn_url(gcn_number):
-        return "https://gcn.gsfc.nasa.gov/gcn3/{0}.gcn3".format(gcn_number)
+        return f"https://gcn.gsfc.nasa.gov/gcn3/{gcn_number}.gcn3"
 
     def get_name(self):
         return self.nu_name
 
     def get_full_name(self):
-        return "neutrino event {0} ({1} et. al, GCN {2})".format(self.get_name(), self.author, self.gcn_no)
+        return f"neutrino event {self.get_name()} ({self.author} et. al, GCN {self.gcn_no})"
 
     def get_overlap_line(self):
-        return "We covered {0:.1f} sq deg, corresponding to {1:.1f}% of the reported localisation region. " \
-               "This estimate accounts for chip gaps. ".format(
-            self.area, self.overlap_prob)
+        return f"We covered {self.area:.1f} sq deg, corresponding to {self.overlap_prob:.1f}% of the reported localization region. " \
+               "This estimate accounts for chip gaps. "
 
     def candidate_text(self, name, first_detection, lul_lim, lul_jd):
-        text = "{0} was first detected on {1}. ".format(
-            name, first_detection
-        )
+        text = f"{name} was first detected on {first_detection}. "
+
         return text
 
     # @staticmethod
@@ -138,7 +136,7 @@ class NeutrinoScanner(AmpelWizard):
     def parse_gcn(self, gcn_number):
         url = self.gcn_url(gcn_number)
         page = requests.get(url)
-        print("Found GCN: {0}".format(url))
+        print(f"Found GCN: {url}")
         name = author = ra = dec = time = None
         for line in page.text.splitlines():
             line = "".join([x for x in line if x not in ["Â"]])
@@ -157,7 +155,7 @@ class NeutrinoScanner(AmpelWizard):
                     x.isdigit(), x in [":", "."]
                 )])
                 raw_date = name.split("-")[1][:6]
-                ut_time = "20{0}-{1}-{2}T{3}".format(raw_date[0:2], raw_date[2:4], raw_date[4:6], raw_time)
+                ut_time = f"20{raw_date[0:2]}-{raw_date[2:4]}-{raw_date[4:6]}T{raw_time}"
                 time = Time(ut_time, format='isot', scale='utc')
 
         try:
@@ -172,7 +170,7 @@ class NeutrinoScanner(AmpelWizard):
 
         print(name, author, ra, dec, time)
 
-        raise ParsingError("Error parsing GCN {0}".format(url))
+        raise ParsingError(f"Error parsing GCN {0}".format(url))
 
 
     def parse_gcn_archive(self):
@@ -212,9 +210,9 @@ class NeutrinoScanner(AmpelWizard):
                 if gcn_no is None:
                     gcn_no = "".join([x for x in res[2] if x.isdigit()])
                     name = res[3].split(" - ")[0]
-                    print("Found match to {0}: {1}".format(base_nu_name, name))
+                    print(f"Found match to {base_nu_name}: {name}")
                 else:
-                    raise Exception("Multiple matches found to {0}".format(base_nu_name))
+                    raise Exception(f"Multiple matches found to {base_nu_name}")
 
             elif np.logical_and("gcn3_arch_old" in line, latest_archive_no is None):
                 url = line.split('"')[1]
@@ -241,13 +239,13 @@ class NeutrinoScanner(AmpelWizard):
         if name is None:
             raise ParsingError("No GCN match found for {0}".format(base_nu_name))
 
-        print("Match is {0} (GCN #{1})".format(name, gcn_no))
+        print(f"Match is {name} (GCN #{gcn_no})")
 
         return gcn_no
 
     def get_latest_gcn(self):
         latest = self.parse_gcn_archive()[0]
-        print("Latest GCN is {0} (GCN #{1})".format(latest[0], latest[1]))
+        print(f"Latest GCN is {latest[0]} (GCN #{latest[1]})")
         return latest[1]
 
 

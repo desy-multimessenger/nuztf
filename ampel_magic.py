@@ -283,13 +283,13 @@ class AmpelWizard:
         self.get_multi_night_summary().show_gri_fields(**kwargs)
 
     def get_multi_night_summary(self, max_days=None):
+        now = datetime.datetime.now()
 
         if max_days is not None:
             date_1 = datetime.datetime.strptime(self.mns_time, "%Y%m%d")
             end_date = date_1 + datetime.timedelta(days=max_days)
             end_date = end_date.strftime("%Y-%m-%d")
         else:
-            now = datetime.datetime.now()
             end_date = now.strftime("%Y-%m-%d")
 
         if self.mns is None:
@@ -482,13 +482,16 @@ class AmpelWizard:
             raise e 
         try:
             query_result = extcat_query.findwithin_2Dsphere(ra=ra, dec=dec, rs_arcsec=searchradius_arcsec, find_one = False)
-            name = "{} {}".format(query_result[0]['name_prefix'],query_result[0]['name'])
-            discovery_date = "{}".format(query_result[0]['discoverydate'])
+
+            name = f"{query_result[0]['name_prefix']} {query_result[0]['objname']}"
+            discovery_date = f"{query_result[0]['discoverydate']}"
+            
             try:
-                discovery_group = "{}".format(query_result[0]['source_group']['group_name'])
+                discovery_group = f"{query_result[0]['source_group']['group_name']}"
             except KeyError:
                 discovery_group = None
             return name, discovery_date, discovery_group
+        
         except TypeError:
             return None
 
@@ -907,19 +910,23 @@ class AmpelWizard:
         obs_times = np.array([Time(data["datetime"].iat[i], format="isot", scale="utc")
                               for i in range(len(data))])
 
+
         if first_det_window_days is not None:
             first_det_mask = [x < Time(self.t_min.jd + first_det_window_days, format="jd").utc for x in obs_times]
             data = data[first_det_mask]
             obs_times = obs_times[first_det_mask]
 
+
         pix_obs_times = dict()
 
         print("Unpacking observations")
-
         pix_map = dict()
-
         for i, obs_time in enumerate(tqdm(obs_times)):
-            pix = get_quadrant_ipix(nside, data["ra"].iat[i], data["dec"].iat[i])
+            radec = [f"{data['ra'].iat[i]} {data['dec'].iat[i]}"]
+            coords = SkyCoord(radec, unit=(u.hourangle, u.deg))
+            # pix = get_quadrant_ipix(nside, data["ra"].iat[i], data["dec"].iat[i])
+            pix = get_quadrant_ipix(nside, coords.ra.deg[0], coords.dec.deg[0])
+
             field = data["field"].iat[i]
 
             flat_pix = []
@@ -942,6 +949,7 @@ class AmpelWizard:
                 else:
                     pix_map[p] += [field]
 
+
         npix = hp.nside2npix(nside)
         theta, phi = hp.pix2ang(nside, np.arange(npix), nest=False)
         radecs = SkyCoord(ra=phi * u.rad, dec=(0.5 * np.pi - theta) * u.rad)
@@ -961,18 +969,18 @@ class AmpelWizard:
         single_no_plane_pixels = []
 
         overlapping_fields = []
-
         for i, p in enumerate(tqdm(hp.nest2ring(nside, self.pixel_nos))):
-
             if p in pix_obs_times.keys():
-
                 if p in idx:
+                    print("1")
                     plane_pixels.append(p)
                     plane_probs.append(self.map_probs[i])
 
                 obs = pix_obs_times[p]
 
+                # check which healpix are observed twice
                 if max(obs) - min(obs) > min_sep:
+                    # is it in galactic plane or not?
                     if p not in idx:
                         double_no_plane_prob.append(self.map_probs[i])
                         double_no_plane_pixels.append(p)
@@ -982,9 +990,11 @@ class AmpelWizard:
 
                 else:
                     if p not in idx:
+                        print("4")
                         single_no_plane_pixels.append(p)
                         single_no_plane_prob.append(self.map_probs[i])
                     else:
+                        print("5")
                         single_probs.append(self.map_probs[i])
                         single_pixels.append(p)
 
@@ -994,10 +1004,15 @@ class AmpelWizard:
             else:
                 veto_pixels.append(p)
 
+        # print(f"double no plane prob = {double_no_plane_prob}")
+        # print(f"probs = {probs}")
+        # print(f"single no plane prob = {single_no_plane_prob}")
+        # print(f"single probs = {single_probs}")
+
         overlapping_fields = sorted(list(set(overlapping_fields)))
         self.overlap_fields = list(set(overlapping_fields))
 
-        self.overlap_prob = np.sum(probs + single_probs) * 100.
+        self.overlap_prob = np.sum(probs + single_probs + double_no_plane_prob + single_no_plane_prob) * 100.
 
         size = hp.max_pixrad(nside) ** 2 * 50.
 
@@ -1062,8 +1077,8 @@ class AmpelWizard:
             self.last_obs.utc.format = "isot"
 
         except ValueError:
-            raise Exception("No observations of this field were found at any time after {0:.2f} JD. "
-                            "Coverage overlap is 0%!".format(self.t_min.jd))
+            raise Exception(f"No observations of this field were found at any time after {self.t_min.jd:.2f} JD ({self.t_min}). "
+                            "Coverage overlap is 0%!")
 
         print("Observations started at {0}".format(self.first_obs.jd))
 
