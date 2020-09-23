@@ -8,7 +8,7 @@ from astropy.coordinates import SkyCoord, Distance
 from astropy.cosmology import Planck15 as cosmo
 import numpy as np
 import matplotlib.pyplot as plt
-from ztfquery import alert, query
+from ztfquery import alert, query, skyvision
 from ztfquery import fields as ztfquery_fields
 from matplotlib.backends.backend_pdf import PdfPages
 import os
@@ -157,9 +157,12 @@ class MultiNightSummary(query._ZTFTableHandler_):
         if date is None:
             print("No date specified. Assuming today.")
             now = datetime.datetime.now()
-            date = now.strftime("%Y%m%d")
+            date = now.strftime("%Y-%m-%d")
         try:
-            return query.NightSummary(date)
+            sv = skyvision.CompletedLog.from_date(date)
+            return sv
+
+            # return query.NightSummary(date)
         # query returns an index error is no ztf data is found
         except IndexError:
             return None
@@ -284,16 +287,26 @@ class AmpelWizard:
         if max_days is not None:
             date_1 = datetime.datetime.strptime(self.mns_time, "%Y%m%d")
             end_date = date_1 + datetime.timedelta(days=max_days)
-            end_date = end_date.strftime("%Y%m%d")
+            end_date = end_date.strftime("%Y-%m-%d")
         else:
-            end_date = None
+            now = datetime.datetime.now()
+            end_date = now.strftime("%Y-%m-%d")
 
         if self.mns is None:
-            self.mns = MultiNightSummary(start_date=self.mns_time, end_date=end_date)
-            times = np.array([Time(self.mns.data["UT_START"].iat[i], format="isot", scale="utc")
+            start_date_jd = self.t_min.jd
+            start_date = str(self.t_min).split("T")[0]
+            end_date_jd = Time(now).jd
+
+            self.mns = skyvision.CompletedLog.from_daterange(start_date, end=end_date)
+
+            # self.mns = MultiNightSummary(start_date=self.mns_time, end_date=end_date)
+            times = np.array([Time(self.mns.data["datetime"].iat[i], format="isot", scale="utc")
                      for i in range(len(self.mns.data))])
-            mask = times > self.t_min
-            self.mns.data = self.mns.data[mask]
+
+            self.mns.data.query(f"obsjd > {start_date_jd}", inplace=True)
+            self.mns.data.reset_index(inplace=True)
+            self.mns.data.drop(columns=["index"], inplace=True)
+
         return self.mns
 
     # def simulate_observations(self, fields):
@@ -891,7 +904,7 @@ class AmpelWizard:
             pid_mask = data["pid"] == str(pid)
             data = data[pid_mask]
 
-        obs_times = np.array([Time(data["UT_START"].iat[i], format="isot", scale="utc")
+        obs_times = np.array([Time(data["datetime"].iat[i], format="isot", scale="utc")
                               for i in range(len(data))])
 
         if first_det_window_days is not None:
