@@ -1,7 +1,7 @@
 # AMPEL Follow-up Pipeline
 Central repository for scripts handling ZTF Target-of-Opportunity requests, using the [AMPEL platform](https://arxiv.org/abs/1904.05922).
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/robertdstein/ZTF_Neutrino_ToO/master)
+[![DOI](https://zenodo.org/badge/193068064.svg)](https://zenodo.org/badge/latestdoi/193068064) [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/robertdstein/ZTF_Neutrino_ToO/master)
 
 ## Installation Instructions
 
