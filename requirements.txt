@@ -17,7 +17,7 @@ sqlalchemy
 scipy
 requests
 psycopg2-binary
-git+https://github.com/MickaelRigault/ztfquery@master
+ztfquery==1.10.0
 git+https://github.com/MickaelRigault/pysedm@master
 git+https://github.com/maayane/catsHTM@master
 slackclient
