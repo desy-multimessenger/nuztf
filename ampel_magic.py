@@ -226,6 +226,10 @@ class AmpelWizard:
         self.last_obs = None
         self.n_fields = None
         self.area = None
+        self.double_extragalactic_area = None
+
+        if not hasattr(self, "dist"):
+            self.dist = None
 
     def get_name(self):
         raise NotImplementedError
@@ -599,7 +603,7 @@ class AmpelWizard:
                "approximately {3:.1f} hours after event time. {4}" \
                "{5} \n \n" \
                "The images were processed in real-time through the ZTF reduction and image subtraction pipelines at IPAC to search for potential counterparts (Masci et al. 2019). " \
-               "AMPEL (Nordin et al. 2019) was used to search the alerts database for candidates. " \
+               "AMPEL (Nordin et al. 2019, Stein et al. 2020) was used to search the alerts database for candidates. " \
                "We reject stellar sources (Tachibana and Miller 2018) and moving objects, and " \
                "apply machine learning algorithms (Mahabal et al. 2019) {6}. We are left with the following high-significance transient " \
                "candidates by our pipeline, all lying within the " \
@@ -618,7 +622,7 @@ class AmpelWizard:
         if self.dist:
             text += "The GW distance estimate is {:.0f} [{:.0f} - {:.0f}] Mpc.\n\n".format(self.dist, self.dist-self.dist_unc, self.dist+self.dist_unc)
         else:
-            text += "No distance estimate available.\n\n"
+            pass
 
         text += "Amongst our candidates, \n{0}. \n \n".format(self.text_summary())         
 
@@ -626,8 +630,10 @@ class AmpelWizard:
         "ZTF acknowledges the generous support of the NSF under AST MSIP Grant No 1440341. \n" \
         "GROWTH acknowledges generous support of the NSF under PIRE Grant No 1545949. \n" \
         "Alert distribution service provided by DIRAC@UW (Patterson et al. 2019). \n" \
-        "Alert database searches are done by AMPEL (Nordin et al. 2019). \n"
-        "Alert filtering and follow-up coordination is being undertaken by the GROWTH marshal system (Kasliwal et al. 2019)."
+        "Alert database searches are done by AMPEL (Nordin et al. 2019). \n" \
+        "Alert filtering is performed with the AMPEL Follow-up Pipeline (Stein et al. 2020). \n"
+        if self.dist:
+            text += "Alert filtering and follow-up coordination is being undertaken by the GROWTH marshal system (Kasliwal et al. 2019)."
         return text
 
     @staticmethod
@@ -877,8 +883,8 @@ class AmpelWizard:
         fig = plt.figure()
         plt.subplot(projection="aitoff")
 
-        probs = []
-        single_probs = []
+        double_in_plane_probs = []
+        single_in_plane_prob = []
 
         if fields is None:
             mns = self.get_multi_night_summary(first_det_window_days)
@@ -955,10 +961,10 @@ class AmpelWizard:
         radecs = SkyCoord(ra=phi * u.rad, dec=(0.5 * np.pi - theta) * u.rad)
         idx = np.where(np.abs(radecs.galactic.b.deg) <= 10.0)[0]
 
-        plot_pixels = []
-        probs = []
-        single_pixels = []
-        single_probs = []
+        double_in_plane_pixels = []
+        double_in_plane_probs = []
+        single_in_plane_pixels = []
+        single_in_plane_prob = []
         veto_pixels = []
         plane_pixels = []
         plane_probs = []
@@ -984,16 +990,16 @@ class AmpelWizard:
                         double_no_plane_prob.append(self.map_probs[i])
                         double_no_plane_pixels.append(p)
                     else:
-                        probs.append(self.map_probs[i])
-                        plot_pixels.append(p)
+                        double_in_plane_probs.append(self.map_probs[i])
+                        double_in_plane_pixels.append(p)
 
                 else:
                     if p not in idx:
                         single_no_plane_pixels.append(p)
                         single_no_plane_prob.append(self.map_probs[i])
                     else:
-                        single_probs.append(self.map_probs[i])
-                        single_pixels.append(p)
+                        single_in_plane_prob.append(self.map_probs[i])
+                        single_in_plane_pixels.append(p)
 
                 overlapping_fields += pix_map[p]
 
@@ -1009,7 +1015,7 @@ class AmpelWizard:
         overlapping_fields = sorted(list(set(overlapping_fields)))
         self.overlap_fields = list(set(overlapping_fields))
 
-        self.overlap_prob = np.sum(probs + single_probs + double_no_plane_prob + single_no_plane_prob) * 100.
+        self.overlap_prob = np.sum(double_in_plane_probs + double_no_plane_prob) * 100.
 
         size = hp.max_pixrad(nside) ** 2 * 50.
 
@@ -1051,23 +1057,22 @@ class AmpelWizard:
                   "In total, {3:.2f} % of the contour was observed at least twice, " \
                   "and excluding low galactic latitudes. \n" \
                   "These estimates accounts for chip gaps.".format(
-            100 * (np.sum(probs) + np.sum(single_probs) + np.sum(single_no_plane_prob) + np.sum(double_no_plane_prob)),
+            100 * (np.sum(double_in_plane_probs) + np.sum(single_in_plane_prob) + np.sum(single_no_plane_prob) + np.sum(double_no_plane_prob)),
             100 * np.sum(plane_probs),
-            100.*(np.sum(probs) + np.sum(double_no_plane_prob)),
+            100.*(np.sum(double_in_plane_probs) + np.sum(double_no_plane_prob)),
             100.*np.sum(double_no_plane_prob)
             )
 
-        all_pix = single_pixels + plot_pixels
+        all_pix = single_in_plane_pixels + double_in_plane_pixels
 
-        n_pixels = len(single_pixels + plot_pixels + double_no_plane_pixels + single_no_plane_pixels)
+        n_pixels = len(single_in_plane_pixels + double_in_plane_pixels + double_no_plane_pixels + single_no_plane_pixels)
         n_double = len(double_no_plane_pixels)
         n_plane = len(plane_pixels)
 
         self.area = hp.pixelfunc.nside2pixarea(nside, degrees=True) * n_pixels
-        double_area = hp.pixelfunc.nside2pixarea(nside, degrees=True) * n_double
+        self.double_extragalactic_area = hp.pixelfunc.nside2pixarea(nside, degrees=True) * n_double
         plane_area  = hp.pixelfunc.nside2pixarea(nside, degrees=True) * n_plane
         try:
-
             self.first_obs = Time(min(times), format="jd")
             self.first_obs.utc.format = "isot"
             self.last_obs = Time(max(times), format="jd")
@@ -1087,7 +1092,7 @@ class AmpelWizard:
         print("{0} pixels were covered, covering approximately {1:.2g} sq deg.".format(
             n_pixels, self.area))
         print("{0} pixels were covered at least twice (b>10), covering approximately {1:.2g} sq deg.".format(
-            n_double, double_area))
+            n_double, self.double_extragalactic_area))
         print("{0} pixels were covered at low galactic latitude, covering approximately {1:.2g} sq deg.".format(
             n_plane, plane_area))
         return fig, message

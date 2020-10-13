@@ -100,7 +100,8 @@ class NeutrinoScanner(AmpelWizard):
         return f"neutrino event {self.get_name()} ({self.author} et. al, GCN {self.gcn_no})"
 
     def get_overlap_line(self):
-        return f"We covered {self.area:.1f} sq deg, corresponding to {self.overlap_prob:.1f}% of the reported localization region. " \
+        return f"We covered {self.double_extragalactic_area:.1f} sq deg at least twice, " \
+               f"corresponding to {self.overlap_prob:.1f}% of the reported localization region. " \
                "This estimate accounts for chip gaps. "
 
     def candidate_text(self, name, first_detection, lul_lim, lul_jd):
