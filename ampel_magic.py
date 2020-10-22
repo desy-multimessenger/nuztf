@@ -87,88 +87,6 @@ except sqlalchemy.exc.OperationalError as e:
     logging.error("---------------------------------------------------------------------------")
     ampel_client = None
 
-class MultiNightSummary(query._ZTFTableHandler_):
-
-    def __init__(self, start_date=None, end_date=None):
-        self.nights = self.find_nights(start_date, end_date)
-
-        print("Using {0} Nightly Summaries between {1} and {2}".format(
-            len(self.nights), self.nights[0], self.nights[-1]))
-
-        self.data, self.missing_nights = self.stack_nights()
-
-        print("Of these, {0} nights are missing because ZTF did not observe.".format(len(self.missing_nights)))
-
-    @staticmethod
-    def find_nights(start_date=None, end_date=None):
-        date_format = "%Y%m%d"
-
-        if start_date is None:
-            now = datetime.datetime.now()
-            start_time = now - datetime.timedelta(days=30)
-        else:
-            start_time = datetime.datetime.strptime(start_date, date_format)  # .datetime()
-
-        if end_date is None:
-            end_time = datetime.datetime.now()
-        else:
-            end_time = datetime.datetime.strptime(end_date, date_format)
-
-        if start_time > end_time:
-            raise ValueError("Start time {0} occurs after end time {1}.".format(start_time, end_time))
-
-        delta_t = (end_time - start_time).days
-
-        dates = [(start_time + datetime.timedelta(days=x)).strftime(date_format) for x in range(0, delta_t + 1)]
-
-        return dates
-
-    def stack_nights(self):
-        ns = None
-        missing_nights = []
-
-        for night in tqdm(self.nights):
-            try:
-                new_ns = self.get_ztf_data(night)
-
-                if np.logical_and(ns is None, hasattr(new_ns, "data")):
-                    if new_ns.data is not None:
-                        ns = new_ns
-                else:
-                    try:
-                        ns.data = ns.data.append(new_ns.data)
-                    except AttributeError:
-                        missing_nights.append(night)
-            except ValueError:
-                pass
-
-        if ns is None:
-            raise Exception("No data found. The following were missing nights: \n {0}".format(missing_nights))
-
-        return ns.data, missing_nights
-
-    @staticmethod
-    def get_ztf_data(date=None):
-        """Function to grab data for a given date using ztfquery.
-        Date should be given in format YYYYMMDD, with the day being the UT day for the END of the night.
-        By default, today is selected. Returns a NightSummary if one is available, or None otherwise
-        (None is returned if there are no ZTF observations).
-        """
-        if date is None:
-            print("No date specified. Assuming today.")
-            now = datetime.datetime.now()
-            date = now.strftime("%Y-%m-%d")
-        try:
-            sv = skyvision.CompletedLog.from_date(date)
-            return sv
-
-            # return query.NightSummary(date)
-        # query returns an index error is no ztf data is found
-        except IndexError:
-            return None
-
-    # def export_fields
-
 class AmpelWizard:
 
     def __init__(self, run_config, t_min, logger=None, resource=None, filter_class=DecentFilter, cone_nside=64,
@@ -298,14 +216,9 @@ class AmpelWizard:
 
         if self.mns is None:
             start_date_jd = self.t_min.jd
-            start_date = str(self.t_min).split("T")[0]
             end_date_jd = Time(now).jd
 
-            self.mns = skyvision.CompletedLog.from_daterange(start_date, end=end_date)
-
-            # self.mns = MultiNightSummary(start_date=self.mns_time, end_date=end_date)
-            times = np.array([Time(self.mns.data["datetime"].iat[i], format="isot", scale="utc")
-                     for i in range(len(self.mns.data))])
+            self.mns = skyvision.CompletedLog.from_daterange(self.mns_time, end=end_date)
 
             self.mns.data.query(f"obsjd > {start_date_jd}", inplace=True)
             self.mns.data.reset_index(inplace=True)
@@ -1066,7 +979,7 @@ class AmpelWizard:
         all_pix = single_in_plane_pixels + double_in_plane_pixels
 
         n_pixels = len(single_in_plane_pixels + double_in_plane_pixels + double_no_plane_pixels + single_no_plane_pixels)
-        n_double = len(double_no_plane_pixels)
+        n_double = len(double_no_plane_pixels + double_in_plane_pixels)
         n_plane = len(plane_pixels)
 
         self.area = hp.pixelfunc.nside2pixarea(nside, degrees=True) * n_pixels
