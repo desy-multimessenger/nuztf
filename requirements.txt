@@ -17,7 +17,7 @@ sqlalchemy
 scipy
 requests
 psycopg2-binary
-ztfquery==1.10.0
+ztfquery
 git+https://github.com/MickaelRigault/pysedm@master
 git+https://github.com/maayane/catsHTM@master
 slackclient
@@ -30,3 +30,4 @@ fastavro
 pydantic
 zerorpc
 sklearn
+ztf_plan_obs

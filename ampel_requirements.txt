@@ -4,8 +4,7 @@ git+https://github.com/AmpelProject/Ampel-core.git
 git+https://github.com/AmpelProject/Ampel-alerts.git
 git+https://github.com/AmpelProject/Ampel-photometry.git
 git+https://github.com/AmpelProject/Ampel-ZTF.git
-git+https://github.com/robertdstein/Ampel-contrib-ZTFbh.git
 git+https://github.com/AmpelProject/Ampel-contrib-HU.git
-git+https://github.com/AmpelProject/Ampel-contrib-annz.git
+git+https://github.com/robertdstein/Ampel-contrib-ZTFbh.git
 git+https://github.com/AmpelProject/Ampel-contrib-annz.git
 backoff

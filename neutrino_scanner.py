@@ -5,12 +5,13 @@ import healpy as hp
 import numpy as np
 from tqdm import tqdm
 from ligo.gracedb.rest import GraceDb
-import os
+import os, re
 from pathlib import Path
 import requests
 import matplotlib.patches as mpatches
 import lxml.etree
 from astropy.io import fits
+from ztf_plan_obs import gcn_parser
 import logging
 
 nu_candidate_output_dir = os.path.join(Path().absolute(), "Neutrino_candidates")
@@ -57,7 +58,16 @@ class NeutrinoScanner(AmpelWizard):
             elif gcn_no is None:
                 gcn_no = self.get_latest_gcn()
 
-            nu_name, author, ra, dec, nu_time = self.parse_gcn(gcn_no)
+            # nu_name, author, ra, dec, nu_time = self.parse_gcn(gcn_no)
+            
+            gcn_info = gcn_parser.parse_gcn_circular(gcn_no)
+            print(gcn_info)
+            
+            nu_name = gcn_info["name"]
+            author = gcn_info["author"]
+            ra = [gcn_info["ra"], gcn_info["ra_err"][0], gcn_info["ra_err"][1]]
+            dec = [gcn_info["dec"], gcn_info["dec_err"][0], gcn_info["dec_err"][1]]
+            nu_time = gcn_info["time"]
 
             if t_precursor is not None:
                 nu_time = Time(nu_time.mjd - t_precursor, format="mjd")
@@ -100,8 +110,7 @@ class NeutrinoScanner(AmpelWizard):
         return f"neutrino event {self.get_name()} ({self.author} et. al, GCN {self.gcn_no})"
 
     def get_overlap_line(self):
-        return f"We covered {self.double_extragalactic_area:.1f} sq deg at least twice, " \
-               f"corresponding to {self.overlap_prob:.1f}% of the reported localization region. " \
+        return f"We covered {self.area:.1f} sq deg, corresponding to {self.overlap_prob:.1f}% of the reported localization region. " \
                "This estimate accounts for chip gaps. "
 
     def candidate_text(self, name, first_detection, lul_lim, lul_jd):
@@ -134,44 +143,46 @@ class NeutrinoScanner(AmpelWizard):
                 pass
         return vals
 
-    def parse_gcn(self, gcn_number):
-        url = self.gcn_url(gcn_number)
-        page = requests.get(url)
-        print(f"Found GCN: {url}")
-        name = author = ra = dec = time = None
-        for line in page.text.splitlines():
-            line = "".join([x for x in line if x not in ["Â"]])
-            if "SUBJECT" in line:
-                name = line.split(" - ")[0].split(": ")[1]
-            elif "FROM" in line:
-                base = line.split("at")[0].split(": ")[1].split(" ")
-                author = [x for x in base if x != ""][1]
-            elif np.logical_and(np.sum([x in line for x in ["Ra", "RA"]]) > 0, ra is None):
-                ra = self.strip_numbers(line)
-            elif np.logical_and(np.sum([x in line for x in ["Dec", "DEC"]]) > 0, dec is None):
-                dec = self.strip_numbers(line)
-            elif np.logical_and(np.sum([x in line for x in ["Time", "TIME"]]) > 0, dec is None):
-                raw_time = [x for x in  line.split(" ") if x not in ["Time", "", "UT", "UTC"]][1]
-                raw_time = "".join([x for x in raw_time if np.logical_or(
-                    x.isdigit(), x in [":", "."]
-                )])
-                raw_date = name.split("-")[1][:6]
-                ut_time = f"20{raw_date[0:2]}-{raw_date[2:4]}-{raw_date[4:6]}T{raw_time}"
-                time = Time(ut_time, format='isot', scale='utc')
+    # def parse_gcn(self, gcn_number):
+    #     url = self.gcn_url(gcn_number)
+    #     page = requests.get(url)
+    #     print(f"Found GCN: {url}")
+    #     name = author = ra = dec = time = None
+    #     print(page.text)
+    #     for line in page.text.splitlines():
+    #         line = "".join([x for x in line if x not in ["Â"]])
+    #         if "SUBJECT" in line:
+    #             name = line.split(" - ")[0].split(": ")[1]
+    #         elif "FROM" in line:
+    #             base = line.split("at")[0].split(": ")[1].split(" ")
+    #             author = [x for x in base if x != ""][1]
+    #         elif np.logical_and(np.sum([x in line for x in ["Ra", "RA"]]) > 0, ra is None):
+    #             ra = self.strip_numbers(line)
+    #         elif np.logical_and(np.sum([x in line for x in ["Dec", "DEC"]]) > 0, dec is None):
+    #             dec = self.strip_numbers(line)
+    #         elif np.logical_and(np.sum([x in line for x in ["Time", "TIME"]]) > 0, dec is None):
+    #             raw_time = [x for x in  line.split(" ") if x not in ["Time", "", "UT", "UTC"]][1]
+    #             raw_time = "".join([x for x in raw_time if np.logical_or(
+    #                 x.isdigit(), x in [":", "."]
+    #             )])
+    #             raw_date = name.split("-")[1][:6]
+    #             ut_time = f"20{raw_date[0:2]}-{raw_date[2:4]}-{raw_date[4:6]}T{raw_time}"
+    #             time = Time(ut_time, format='isot', scale='utc')
 
-        try:
+    #     try:
 
-            if np.sum([x is not None for x in [name, author, ra, dec, time]]) == 5:
-                if np.logical_and(len(ra) == 3, len(dec) == 3):
+    #         if np.sum([x is not None for x in [name, author, ra, dec, time]]) == 5:
+    #             ra2 = ra[1]
+    #             ra2 = ra2*-1
+    #             ra.append(ra2)
+    #             if np.logical_and(len(ra) == 3, len(dec) == 3):
+    #                 print(name, author, ra, dec, time)
+    #                 return name, author, ra, dec, time
 
-                    return name, author, ra, dec, time
+    #     except:
+    #         pass
 
-        except:
-            pass
-
-        print(name, author, ra, dec, time)
-
-        raise ParsingError(f"Error parsing GCN {0}".format(url))
+    #     raise ParsingError(f"Error parsing GCN {0}".format(url))
 
 
     def parse_gcn_archive(self):
@@ -343,7 +354,6 @@ class NeutrinoScanner(AmpelWizard):
 
         center_ra = np.radians(np.mean([self.ra_max, self.ra_min]))
         center_dec = np.radians(np.mean([self.dec_max, self.dec_min]))
-
         rad = np.radians(max(
             self.ra_max - self.ra_min,
             self.dec_max - self.dec_min
@@ -368,7 +378,6 @@ class NeutrinoScanner(AmpelWizard):
         key = "PROB"
 
         data = np.zeros(hp.nside2npix(nside), dtype=np.dtype([(key, np.float)]))
-
         data[np.array(pixel_nos)] = map_probs
 
         return map_coords, pixel_nos, nside, map_probs, data, key

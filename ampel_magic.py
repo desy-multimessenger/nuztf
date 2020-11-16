@@ -216,9 +216,13 @@ class AmpelWizard:
 
         if self.mns is None:
             start_date_jd = self.t_min.jd
+            start_date_jd = Time(start_date_jd, format="jd").jd
             end_date_jd = Time(now).jd
 
             self.mns = skyvision.CompletedLog.from_daterange(self.mns_time, end=end_date)
+
+            self.mns.data["obsjd"] = Time(list(self.mns.data.datetime.values), format="isot").jd
+            print(self.mns.data.obsjd)
 
             self.mns.data.query(f"obsjd > {start_date_jd}", inplace=True)
             self.mns.data.reset_index(inplace=True)
