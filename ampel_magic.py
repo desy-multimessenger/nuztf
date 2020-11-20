@@ -103,14 +103,8 @@ class AmpelWizard:
         if ampel_client is not None:
             self.external_catalogs = pymongo.MongoClient(resource['extcats.reader'])
 
-            #self.photoz = pz.PhotoZ(logger=logger, base_config=base_config)
-
-
-            # self.ampel_filter_class = filter_class(set(), base_config=base_config,
-            #                                        run_config=filter_class.RunConfig(**run_config),
-            #                                        logger=logger)
+            print("AMPEL run config:")
             print(run_config)
-            print(resource)
             self.ampel_filter_class = filter_class(logger=logger, resource=resource, **run_config)
 
             self.catshtm = catshtm_server.get_client(resource['catsHTM'])
