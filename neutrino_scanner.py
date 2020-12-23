@@ -114,7 +114,9 @@ class NeutrinoScanner(AmpelWizard):
                "This estimate accounts for chip gaps. "
 
     def candidate_text(self, name, first_detection, lul_lim, lul_jd):
-        text = f"{name} was first detected on {first_detection}. "
+        fd = Time(first_detection, format="mjd")
+
+        text = f"{name} was first detected on {fd.utc}. "
 
         return text
 
