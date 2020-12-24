@@ -218,6 +218,7 @@ class AmpelWizard:
             self.mns.data["obsjd"] = Time(list(self.mns.data.datetime.values), format="isot").jd
 
             self.mns.data.query(f"obsjd > {start_date_jd}", inplace=True)
+
             self.mns.data.reset_index(inplace=True)
             self.mns.data.drop(columns=["index"], inplace=True)
 
@@ -1041,15 +1042,19 @@ class AmpelWizard:
 
             mns = MNS(data)
 
-        # Skip all 64 simultaneous quadrant entries, we only need one per observation
+        # Skip all 64 simultaneous quadrant entries, we only need one per observation for qa log
+        # data = mns.data.copy().iloc[::64]
 
-        data = mns.data.copy().iloc[::64]
+        data = mns.data.copy()
 
         ras = np.ones_like(data["field"]) * np.nan
         decs = np.ones_like(data["field"]) * np.nan
+
         # Actually load up ra/dec
 
         veto_fields = []
+
+        print(list(set(data["field"])))
 
         for field in list(set(data["field"])):
 
