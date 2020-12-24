@@ -1032,7 +1032,7 @@ class AmpelWizard:
             data = []
 
             for f in fields:
-                ra, dec = ztfquery_fields.field_to_coords(f)[0]
+                ra, dec = ztfquery_fields.get_field_centroid(f)[0]
                 for i in range(2):
                     t = Time(self.t_min.jd + 0.1*i, format="jd").utc
                     t.format = "isot"
@@ -1248,8 +1248,8 @@ class AmpelWizard:
             self.last_obs.utc.format = "isot"
 
         except ValueError:
-            raise Exception(f"No observations of this field were found at any time after {self.t_min.jd:.2f} JD ({self.t_min}). "
-                            "Coverage overlap is 0%!")
+            raise Exception(f"No observations of this field were found at any time between {self.t_min} and"
+                            f"{obs_times[-1]}. Coverage overlap is 0%, but recent observations might be missing!")
 
         logging.info("Observations started at {0}".format(self.first_obs.jd))
 
