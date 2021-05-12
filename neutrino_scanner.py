@@ -290,9 +290,10 @@ class NeutrinoScanner(AmpelWizard):
         return True
 
     def filter_f_history(self, res):
-        # # Require 2 detections
-        #
-        n_detections = len([x for x in res["prv_candidates"] if x["isdiffpos"] is not None])
+        # Require 2 detections
+        
+        n_detections = len([x for x in res["prv_candidates"] if "isdiffpos" in x.keys()])
+
 
         if n_detections < 1:
             logging.debug("{0} has insufficient detection".format(res["objectId"]))
