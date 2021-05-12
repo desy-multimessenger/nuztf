@@ -13,6 +13,7 @@ from ztfquery import fields as ztfquery_fields
 from matplotlib.backends.backend_pdf import PdfPages
 import os
 import backoff
+import json
 import requests
 from requests.auth import HTTPBasicAuth
 import getpass
@@ -282,6 +283,11 @@ class AmpelWizard:
         ra[ra > np.pi] -= 2 * np.pi
         return ra
 
+    @backoff.on_exception(
+        backoff.expo,
+        json.decoder.JSONDecodeError,
+        max_time=600,
+    )
     def query_ampel(self, ra, dec, rad, t_max=None):
 
         if t_max is None:
@@ -293,24 +299,18 @@ class AmpelWizard:
         PASS = "fullofstars"
         queryurl = ZTF_ARCHIVE_URL + f"/alerts/cone_search?ra={ra}&dec={dec}&radius={rad}&jd_start={self.t_min.jd}&jd_end={t_max.jd}&with_history=false&with_cutouts=false&chunk_size=100"
 
-        # ztf_object = ampel_client.get_alerts_in_cone(
-        #     ra, dec, rad, self.t_min.jd, t_max.jd, with_history=False)
 
-        # @backoff.on_exception(
-        #     backoff.expo,
-        #     requests.HTTPError,
-        #     giveup=lambda e: e.response.status_code not in {503, 429},
-        #     max_time=600
-        # )
-        import time
-        time.sleep(3)
+
+        ## LEGACY (KEPT FOR TIMING RESULTS FOR JVS)
+        # result = ampel_client.get_alerts_in_cone(
+        #     ra, dec, rad, self.t_min.jd, t_max.jd, with_history=False)
+        # query_res = [i for i in result]
+        # print(query_res[0])
 
         result = requests.get(
             queryurl,
             auth=HTTPBasicAuth(USER, PASS)
         )
-        print(result)
-        print("+++++++++++++")
 
         query_res = [i for i in result.json()["alerts"]]
 
