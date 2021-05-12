@@ -12,6 +12,9 @@ from ztfquery import alert, query, skyvision
 from ztfquery import fields as ztfquery_fields
 from matplotlib.backends.backend_pdf import PdfPages
 import os
+import backoff
+import requests
+from requests.auth import HTTPBasicAuth
 import getpass
 import pandas
 import sqlalchemy
@@ -98,7 +101,7 @@ class AmpelWizard:
             self.prob_threshold = None
 
         if resource is None:
-            resource = {'extcats.reader': "mongodb://{}:{}@127.0.0.1:27018".format(username_extcat, password_extcat), 'annz.default': "tcp://127.0.0.1:27026", 'catsHTM': "tcp://127.0.0.1:27020"}
+            resource = {'extcats.reader': "mongodb://{}:{}@127.0.0.1:27018".format(username_extcat, password_extcat), 'annz.default': "tcp://127.0.0.1:27026", 'catsHTM': "tcp://127.0.0.1:27020", "ampel-ztf/catalogmatch": "https://ampel.zeuthen.desy.de/api/catalogmatch/"}
 
         if ampel_client is not None:
             self.external_catalogs = pymongo.MongoClient(resource['extcats.reader'])
@@ -107,7 +110,7 @@ class AmpelWizard:
             print(run_config)
             self.ampel_filter_class = filter_class(logger=logger, resource=resource, **run_config)
 
-            self.catshtm = catshtm_server.get_client(resource['catsHTM'])
+            #self.catshtm = catshtm_server.get_client(resource['catsHTM'])
 
             self.dap = DevAlertProcessor(self.ampel_filter_class)
 
@@ -282,9 +285,32 @@ class AmpelWizard:
         if t_max is None:
             t_max = self.default_t_max
 
-        ztf_object = ampel_client.get_alerts_in_cone(
-            ra, dec, rad, self.t_min.jd, t_max.jd, with_history=False)
-        query_res = [i for i in ztf_object]
+        BASEURL = "https://ampel.zeuthen.desy.de"
+        ZTF_ARCHIVE_URL = BASEURL + "/api/ztf/archive"
+        USER = "ztf"
+        PASS = "fullofstars"
+        queryurl = ZTF_ARCHIVE_URL + f"/alerts/cone_search?ra={ra}&dec={dec}&radius={rad}&jd_start={self.t_min.jd}&jd_end={t_max.jd}&with_history=false&with_cutouts=false&chunk_size=100"
+
+        # ztf_object = ampel_client.get_alerts_in_cone(
+        #     ra, dec, rad, self.t_min.jd, t_max.jd, with_history=False)
+
+        # @backoff.on_exception(
+        #     backoff.expo,
+        #     requests.HTTPError,
+        #     giveup=lambda e: e.response.status_code not in {503, 429},
+        #     max_time=600
+        # )
+        import time
+        time.sleep(3)
+
+        result = requests.get(
+            queryurl,
+            auth=HTTPBasicAuth(USER, PASS)
+        )
+        print(result)
+        print("+++++++++++++")
+
+        query_res = [i for i in result.json()["alerts"]]
 
         objectids = []
         for res in query_res:
