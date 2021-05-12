@@ -285,7 +285,7 @@ class AmpelWizard:
 
     @backoff.on_exception(
         backoff.expo,
-        json.decoder.JSONDecodeError,
+        requests.exceptions.RequestException,
         max_time=600,
     )
     def query_ampel(self, ra, dec, rad, t_max=None):
@@ -299,20 +299,21 @@ class AmpelWizard:
         PASS = "fullofstars"
         queryurl = ZTF_ARCHIVE_URL + f"/alerts/cone_search?ra={ra}&dec={dec}&radius={rad}&jd_start={self.t_min.jd}&jd_end={t_max.jd}&with_history=false&with_cutouts=false&chunk_size=100"
 
-
-
         ## LEGACY (KEPT FOR TIMING RESULTS FOR JVS)
         # result = ampel_client.get_alerts_in_cone(
         #     ra, dec, rad, self.t_min.jd, t_max.jd, with_history=False)
         # query_res = [i for i in result]
         # print(query_res[0])
 
-        result = requests.get(
+        response = requests.get(
             queryurl,
             auth=HTTPBasicAuth(USER, PASS)
         )
 
-        query_res = [i for i in result.json()["alerts"]]
+        if response.status_code != 200:
+            raise requests.exceptions.RequestException
+
+        query_res = [i for i in response.json()["alerts"]]
 
         objectids = []
         for res in query_res:
