@@ -12,6 +12,7 @@ from ztfquery import alert, query, skyvision, io
 from ztfquery import fields as ztfquery_fields
 from matplotlib.backends.backend_pdf import PdfPages
 import os
+import time
 import backoff
 import json
 import requests
@@ -104,9 +105,7 @@ class AmpelWizard:
 
         if resource is None:
             resource = {
-                "extcats.reader": "mongodb://{}:{}@127.0.0.1:27018".format(
-                    extcat_user, extcat_pass
-                ),
+                "extcats.reader": f"mongodb://{extcat_user}:{extcat_pass}@127.0.0.1:27018",
                 "annz.default": "tcp://127.0.0.1:27026",
                 "catsHTM": "tcp://127.0.0.1:27020",
                 "ampel-ztf/catalogmatch": "https://ampel.zeuthen.desy.de/api/catalogmatch/",
@@ -205,14 +204,14 @@ class AmpelWizard:
         query_res = self.get_avro_by_name(ztf_name)
         logging.info("Checking filter f (no prv)")
         no_prv_bool = self.filter_f_no_prv(query_res)
-        logging.info("Filter f (np prv): {0}".format(no_prv_bool))
+        logging.info(f"Filter f (np prv): {no_prv_bool}")
         logging.info("Checking ampel filter")
         bool_ampel = self.filter_ampel(query_res)
-        logging.info("ampel filter: {0}".format(bool_ampel))
+        logging.info(f"ampel filter: {bool_ampel}")
         logging.info("Checking filter f (history)")
         history_bool = self.filter_f_history(query_res)
-        logging.info("Filter f (history): {0}".format(history_bool))
-        logging.info("Setting logger back to {0}".format(lvl))
+        logging.info(f"Filter f (history): {history_bool}")
+        logging.info(f"Setting logger back to {lvl}")
         logging.getLogger().setLevel(lvl)
         return bool_ampel
 
@@ -260,15 +259,14 @@ class AmpelWizard:
         print("Commencing Ampel queries!")
         print("Scan radius is", scan_radius)
         print(
-            "So far, {0} pixels out of {1} have already been scanned.".format(
-                len(self.scanned_pixels), len(self.cone_ids)
-            )
+            f"So far, {len(self.scanned_pixels)} pixels out of {len(self.cone_ids)} have already been scanned."
         )
 
         for i, cone_id in enumerate(tqdm(list(self.cone_ids)[:max_cones])):
             ra, dec = self.cone_coords[i]
 
             if cone_id not in self.scanned_pixels:
+
                 object_ids = self.ampel_cone_search(
                     ra=np.degrees(ra),
                     dec=np.degrees(dec),
@@ -466,7 +464,7 @@ class AmpelWizard:
     def reassemble_alert(mock_alert):
         cutouts = ampel_client.get_cutout(mock_alert["candid"])
         for k in cutouts:
-            mock_alert["cutout{}".format(k.title())] = {
+            mock_alert[f"cutout{k.title()}"] = {
                 "stampData": cutouts[k],
                 "fileName": "dunno",
             }
@@ -770,9 +768,7 @@ class AmpelWizard:
                     plt.close()
                 except TypeError:
                     print(
-                        "WARNING!!! {} will be missing from the report pdf for some reason.".format(
-                            name
-                        )
+                        f"WARNING!!! {name} will be missing from the report pdf for some reason."
                     )
                     pass
 
@@ -825,11 +821,8 @@ class AmpelWizard:
                 first_detection["magpsf"],
                 first_detection["sigmapsf"],
             )
-            print(
-                "First observed {0} hours after merger".format(
-                    24.0 * (first_detection["jd"] - self.t_min.jd)
-                )
-            )
+            hours_after_merger = 24.0 * (first_detection["jd"] - self.t_min.jd)
+            print(f"First observed {hours_after_merger} hours after merger")
             if last_upper_limit:
                 print(
                     "It has risen",
@@ -893,9 +886,7 @@ class AmpelWizard:
                 absmag = self.calculate_abs_mag(latest["magpsf"], specz)
                 if specz > 0:
                     z_dist = Distance(z=specz, cosmology=cosmo).value
-                    text += "It has a spec-z of {:.3f} [{:.0f} Mpc] and an abs. mag of {:.1f}. Distance to SDSS galaxy is {:.2f} arcsec. ".format(
-                        specz, z_dist, absmag, sdss_dist
-                    )
+                    text += f"It has a spec-z of {specz:.3f} [{z_dist:.0f} Mpc] and an abs. mag of {absmag:.1f}. Distance to SDSS galaxy is {sdss_dist:.2f} arcsec. "
                     if self.dist:
                         gw_dist_interval = [
                             self.dist - self.dist_unc,
@@ -919,11 +910,7 @@ class AmpelWizard:
             c = SkyCoord(res["candidate"]["ra"], res["candidate"]["dec"], unit="deg")
             g_lat = c.galactic.b.degree
             if abs(g_lat) < 15.0:
-                text += (
-                    "It is located at a galactic latitude of {0:.2f} degrees. ".format(
-                        g_lat
-                    )
-                )
+                text += f"It is located at a galactic latitude of {g_lat:.2f} degrees. "
             text += "\n"
         return text
 
@@ -1070,13 +1057,11 @@ class AmpelWizard:
         plt.legend(handles=[red_patch, gray_patch])
 
         self.overlap_prob = 100.0 * np.sum(probs)
-
+        once_observed_prob = 100 * (np.sum(probs) + np.sum(single_probs))
         message = (
-            "In total, {0} % of the contour was observed at least once. \n "
-            "In total, {1} % of the contour was observed at least twice. \n"
-            "THIS DOES NOT INCLUDE CHIP GAPS!!!".format(
-                100 * (np.sum(probs) + np.sum(single_probs)), self.overlap_prob
-            )
+            f"In total, {once_observed_prob} % of the contour was observed at least once. \n "
+            f"In total, {self.overlap_prob} % of the contour was observed at least twice. \n"
+            "THIS DOES NOT INCLUDE CHIP GAPS!!!"
         )
 
         print(message)
@@ -1086,9 +1071,7 @@ class AmpelWizard:
         self.overlap_fields = overlapping_fields
 
         print(
-            "{0} fields were covered, covering approximately {1} sq deg.".format(
-                self.n_fields, self.area
-            )
+            f"{self.n_fields} fields were covered, covering approximately {self.area} sq deg."
         )
         return fig, message
 
@@ -1633,7 +1616,7 @@ class AmpelWizard:
                 f"{obs_times[-1]}. Coverage overlap is 0%, but recent observations might be missing!"
             )
 
-        logging.info("Observations started at {0}".format(self.first_obs.jd))
+        logging.info(f"Observations started at {self.first_obs.jd}")
 
         self.overlap_fields = overlapping_fields
 
@@ -1641,19 +1624,13 @@ class AmpelWizard:
         #     n_fields = len(overlapping_fields)
 
         print(
-            "{0} pixels were covered, covering approximately {1:.2g} sq deg.".format(
-                n_pixels, self.area
-            )
+            f"{n_pixels} pixels were covered, covering approximately {self.area:.2g} sq deg."
         )
         print(
-            "{0} pixels were covered at least twice (b>10), covering approximately {1:.2g} sq deg.".format(
-                n_double, self.double_extragalactic_area
-            )
+            f"{n_double} pixels were covered at least twice (b>10), covering approximately {self.double_extragalactic_area:.2g} sq deg."
         )
         print(
-            "{0} pixels were covered at low galactic latitude, covering approximately {1:.2g} sq deg.".format(
-                n_plane, plane_area
-            )
+            f"{n_plane} pixels were covered at low galactic latitude, covering approximately {plane_area:.2g} sq deg."
         )
         return fig, message
 
