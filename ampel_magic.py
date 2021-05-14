@@ -8,7 +8,7 @@ from astropy.coordinates import SkyCoord, Distance
 from astropy.cosmology import Planck15 as cosmo
 import numpy as np
 import matplotlib.pyplot as plt
-from ztfquery import alert, query, skyvision
+from ztfquery import alert, query, skyvision, io
 from ztfquery import fields as ztfquery_fields
 from matplotlib.backends.backend_pdf import PdfPages
 import os
@@ -39,55 +39,28 @@ from gwemopt.ztf_tiling import get_quadrant_ipix
 import matplotlib.patches as mpatches
 from pymongo.errors import ServerSelectionTimeoutError
 
-ampel_user = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".AMPEL_user.txt")
-extcat_user = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".EXTCAT_user.txt")
+API_BASEURL = "https://ampel.zeuthen.desy.de"
+API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive"
+PORT = 5432
 
-try:
-    with open(ampel_user, "r") as f:
-        username = f.read()
-except FileNotFoundError:
-    username = getpass.getpass(prompt='Ampel Username: ', stream=None)
-    with open(ampel_user, "wb") as f:
-        f.write(username.encode())
+def get_user_and_password(service: str = None):
+    """ """
+    username, password = io._load_id_(service)
+    return username, password
 
-ampel_pass = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".AMPEL_pass.txt")
 
-try:
-    with open(ampel_pass, "r") as f:
-        password = f.read()
-except FileNotFoundError:
-    password = getpass.getpass(prompt='Ampel Password: ', stream=None)
-    with open(ampel_pass, "wb") as f:
-        f.write(password.encode())
+db_user, db_pass = get_user_and_password("ampel_archivedb")
+api_user, api_pass = get_user_and_password("ampel_api")
+extcat_user, extcat_pass = get_user_and_password("extcat")
 
 
 try:
-    with open(extcat_user, "r") as f:
-        username_extcat = f.read()
-except FileNotFoundError:
-    username_extcat = getpass.getpass(prompt='Username for extcat: ', stream=None)
-    with open(extcat_user, "wb") as f:
-        f.write(username_extcat.encode())
-
-extcat_pass = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".EXTCAT_pass.txt")
-
-try:
-    with open(extcat_pass, "r") as f:
-        password_extcat = f.read()
-except FileNotFoundError:
-    password_extcat = getpass.getpass(prompt='Password for extcat: ', stream=None)
-    with open(extcat_pass, "wb") as f:
-        f.write(password_extcat.encode())
-
-port = 5432
-
-try:
-    ampel_client = ArchiveDB('postgresql://{0}:{1}@localhost:{2}/ztfarchive'.format(username, password, port))
+    ampel_client = ArchiveDB(f"postgresql://{db_user}:{db_pass}@localhost:{PORT}/ztfarchive")
 except sqlalchemy.exc.OperationalError as e:
     logging.error("---------------------------------------------------------------------------")
     logging.error("You can't access the archive database without first opening the port.")
     logging.error("Open a new terminal, and into that terminal, run the following command:")
-    logging.error(f"ssh -L{port}:localhost:{port} -L27020:localhost:27020 -L27018:localhost:27018 -L27026:localhost:27026 ztf-wgs.zeuthen.desy.de")
+    logging.error(f"ssh -L{PORT}:localhost:{PORT} -L27020:localhost:27020 -L27018:localhost:27018 -L27026:localhost:27026 ztf-wgs.zeuthen.desy.de")
     logging.error("If that command doesn't work, you are either not a desy user or you have a problem in your ssh config.")
     logging.error("Attempts to use Ampel functions will raise errors.")
     logging.error("---------------------------------------------------------------------------")
@@ -104,7 +77,7 @@ class AmpelWizard:
             self.prob_threshold = None
 
         if resource is None:
-            resource = {'extcats.reader': "mongodb://{}:{}@127.0.0.1:27018".format(username_extcat, password_extcat), 'annz.default': "tcp://127.0.0.1:27026", 'catsHTM': "tcp://127.0.0.1:27020", "ampel-ztf/catalogmatch": "https://ampel.zeuthen.desy.de/api/catalogmatch/"}
+            resource = {'extcats.reader': "mongodb://{}:{}@127.0.0.1:27018".format(extcat_user, extcat_pass), 'annz.default': "tcp://127.0.0.1:27026", 'catsHTM': "tcp://127.0.0.1:27020", "ampel-ztf/catalogmatch": "https://ampel.zeuthen.desy.de/api/catalogmatch/"}
 
         if ampel_client is not None:
             self.external_catalogs = pymongo.MongoClient(resource['extcats.reader'])
@@ -248,8 +221,14 @@ class AmpelWizard:
             ra, dec = self.cone_coords[i]
 
             if cone_id not in self.scanned_pixels:
-                res = self.query_ampel(np.degrees(ra), np.degrees(dec), scan_radius, t_max)
-                #                 print(len(res))
+                object_ids = self.ampel_cone_search(
+                    ra=np.degrees(ra),
+                    dec=np.degrees(dec),
+                    radius=scan_radius,
+                    t_max=t_max
+                )
+                res = self.ampel_object_search(object_ids=object_ids)
+
                 for res_alert in res:
 
                     if res_alert['objectId'] not in self.cache.keys():
@@ -258,8 +237,8 @@ class AmpelWizard:
                         self.cache[res_alert['objectId']] = res_alert
                 self.scanned_pixels.append(cone_id)
 
-        print("Scanned {0} pixels".format(len(self.scanned_pixels)))
-        print("Found {0} candidates".format(len(self.cache)))
+        print(f"Scanned {len(self.scanned_pixels)} pixels")
+        print(f"Found {len(self.cache)} candidates")
 
         self.create_candidate_summary()
 
@@ -283,6 +262,76 @@ class AmpelWizard:
         ra[ra > np.pi] -= 2 * np.pi
         return ra
 
+
+    @backoff.on_exception(
+        backoff.expo,
+        requests.exceptions.RequestException,
+        max_time=600,
+    )
+    def ampel_cone_search(self, ra: float, dec: float, radius: float, t_max=None):
+        """ """
+        if t_max is None:
+            t_max = self.default_t_max
+
+        queryurl_conesearch = API_ZTF_ARCHIVE_URL + f"/alerts/cone_search?ra={ra}&dec={dec}&radius={radius}&jd_start={self.t_min.jd}&jd_end={t_max.jd}&with_history=false&with_cutouts=false&chunk_size=100"
+
+        response = requests.get(
+            queryurl_conesearch,
+            auth=HTTPBasicAuth(api_user, api_pass),
+        )
+
+        if response.status_code != 200:
+            raise requests.exceptions.RequestException
+
+        query_res = [i for i in response.json()["alerts"]]
+
+        ## LEGACY (KEPT FOR TIMING RESULTS FOR JVS)
+        # result = ampel_client.get_alerts_in_cone(
+        #     ra=ra, dec=dec, radius=rad, jd_min=self.t_min.jd, jd_max=t_max.jd, with_history=False, max_blocks=100)
+        # query_res = [i for i in result]
+
+        object_ids = []
+        for res in query_res:
+            if self.filter_f_no_prv(res):
+                if self.filter_ampel(res):
+                    object_ids.append(res["objectId"])
+
+        return object_ids
+
+    @backoff.on_exception(
+        backoff.expo,
+        requests.exceptions.RequestException,
+        max_time=600,
+    )
+    def ampel_object_search(self, object_ids: list):
+        """ """
+        query_res = []
+
+        ## LEGACY (KEPT FOR TIMING RESULTS FOR JVS)
+        # ztf_object = ampel_client.get_alerts_for_object(objectids, with_history=True)
+        # query_res = [i for i in ztf_object]
+        # query_res = self.merge_alerts(query_res)
+
+        for object_id in object_ids:
+            queryurl_object_id = API_ZTF_ARCHIVE_URL + f"/object/{object_id}/alerts?with_history=true"
+            response = requests.get(
+                queryurl_object_id,
+                auth=HTTPBasicAuth(api_user, api_pass),
+            )
+            if response.status_code != 200:
+                raise requests.exceptions.RequestException
+            query_res = [i for i in response.json()]
+
+        query_res = self.merge_alerts(query_res)
+
+        final_res = []
+
+        for res in query_res:
+            if self.filter_f_history(res):
+                final_res.append(res)
+
+        return final_res
+
     @backoff.on_exception(
         backoff.expo,
         requests.exceptions.RequestException,
@@ -293,21 +342,10 @@ class AmpelWizard:
         if t_max is None:
             t_max = self.default_t_max
 
-        BASEURL = "https://ampel.zeuthen.desy.de"
-        ZTF_ARCHIVE_URL = BASEURL + "/api/ztf/archive"
-        USER = "ztf"
-        PASS = "fullofstars"
-        queryurl_conesearch = ZTF_ARCHIVE_URL + f"/alerts/cone_search?ra={ra}&dec={dec}&radius={rad}&jd_start={self.t_min.jd}&jd_end={t_max.jd}&with_history=false&with_cutouts=false&chunk_size=100"
-
-        ## LEGACY (KEPT FOR TIMING RESULTS FOR JVS)
-        # result = ampel_client.get_alerts_in_cone(
-        #     ra=ra, dec=dec, radius=rad, jd_min=self.t_min.jd, jd_max=t_max.jd, with_history=False, max_blocks=100)
-        # query_res = [i for i in result]
-        # print(len(query_res))
 
         response = requests.get(
             queryurl_conesearch,
-            auth=HTTPBasicAuth(USER, PASS),
+            auth=HTTPBasicAuth(api_user, api_pass),
         )
 
         if response.status_code != 200:
@@ -326,7 +364,7 @@ class AmpelWizard:
             queryurl_objectid = ZTF_ARCHIVE_URL + f"/object/{objectid}/alerts?with_history=true"
             response = requests.get(
                 queryurl_objectid,
-                auth=HTTPBasicAuth(USER, PASS),
+                auth=HTTPBasicAuth(api_user, api_pass),
             )
             if response.status_code != 200:
                 raise requests.exceptions.RequestException
