@@ -297,17 +297,17 @@ class AmpelWizard:
         ZTF_ARCHIVE_URL = BASEURL + "/api/ztf/archive"
         USER = "ztf"
         PASS = "fullofstars"
-        queryurl = ZTF_ARCHIVE_URL + f"/alerts/cone_search?ra={ra}&dec={dec}&radius={rad}&jd_start={self.t_min.jd}&jd_end={t_max.jd}&with_history=false&with_cutouts=false&chunk_size=100"
+        queryurl_conesearch = ZTF_ARCHIVE_URL + f"/alerts/cone_search?ra={ra}&dec={dec}&radius={rad}&jd_start={self.t_min.jd}&jd_end={t_max.jd}&with_history=false&with_cutouts=false&chunk_size=100"
 
         ## LEGACY (KEPT FOR TIMING RESULTS FOR JVS)
         # result = ampel_client.get_alerts_in_cone(
-        #     ra, dec, rad, self.t_min.jd, t_max.jd, with_history=False)
+        #     ra=ra, dec=dec, radius=rad, jd_min=self.t_min.jd, jd_max=t_max.jd, with_history=False, max_blocks=100)
         # query_res = [i for i in result]
-        # print(query_res[0])
+        # print(len(query_res))
 
         response = requests.get(
-            queryurl,
-            auth=HTTPBasicAuth(USER, PASS)
+            queryurl_conesearch,
+            auth=HTTPBasicAuth(USER, PASS),
         )
 
         if response.status_code != 200:
@@ -321,15 +321,32 @@ class AmpelWizard:
                 if self.filter_ampel(res):
                     objectids.append(res["objectId"])
 
-        ztf_object = ampel_client.get_alerts_for_object(objectids, with_history=True)
-
-        query_res = [i for i in ztf_object]
+        query_res = []
+        for objectid in objectids:
+            queryurl_objectid = ZTF_ARCHIVE_URL + f"/object/{objectid}/alerts?with_history=true"
+            response = requests.get(
+                queryurl_objectid,
+                auth=HTTPBasicAuth(USER, PASS),
+            )
+            if response.status_code != 200:
+                raise requests.exceptions.RequestException
+            query_res = [i for i in response.json()]
 
         query_res = self.merge_alerts(query_res)
+
+
+        ## LEGACY
+
+        # ztf_object = ampel_client.get_alerts_for_object(objectids, with_history=True)
+
+        # query_res = [i for i in ztf_object]
+
+        # query_res = self.merge_alerts(query_res)
 
         final_res = []
 
         for res in query_res:
+            print(res)
             if self.filter_f_history(res):
                 final_res.append(res)
 
