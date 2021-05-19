@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-from ampel.ztf.archive.ArchiveDB import ArchiveDB
 from astropy.time import Time
 from astropy import units as u
 from astropy.coordinates import SkyCoord, Distance
@@ -31,7 +30,6 @@ from ampel.view.LightCurve import LightCurve
 from ampel.content.DataPoint import DataPoint
 from ratelimit import limits, sleep_and_retry
 
-# from ampel.base.flags.PhotoFlags import PhotoFlags
 from ampel.contrib.hu import catshtm_server
 
 # from ampel.contrib.photoz.t2 import T2PhotoZ as pz
@@ -66,31 +64,31 @@ api_user, api_pass = get_user_and_password("ampel_api")
 extcat_user, extcat_pass = get_user_and_password("extcat")
 
 
-try:
-    ampel_client = ArchiveDB(
-        f"postgresql://{db_user}:{db_pass}@localhost:{PORT}/ztfarchive"
-    )
-except sqlalchemy.exc.OperationalError as e:
-    logging.error(
-        "---------------------------------------------------------------------------"
-    )
-    logging.error(
-        "You can't access the archive database without first opening the port."
-    )
-    logging.error(
-        "Open a new terminal, and into that terminal, run the following command:"
-    )
-    logging.error(
-        f"ssh -L{PORT}:localhost:{PORT} -L27020:localhost:27020 -L27018:localhost:27018 -L27026:localhost:27026 ztf-wgs.zeuthen.desy.de"
-    )
-    logging.error(
-        "If that command doesn't work, you are either not a desy user or you have a problem in your ssh config."
-    )
-    logging.error("Attempts to use Ampel functions will raise errors.")
-    logging.error(
-        "---------------------------------------------------------------------------"
-    )
-    ampel_client = None
+# try:
+#     ampel_client = ArchiveDB(
+#         f"postgresql://{db_user}:{db_pass}@localhost:{PORT}/ztfarchive"
+#     )
+# except sqlalchemy.exc.OperationalError as e:
+#     logging.error(
+#         "---------------------------------------------------------------------------"
+#     )
+#     logging.error(
+#         "You can't access the archive database without first opening the port."
+#     )
+#     logging.error(
+#         "Open a new terminal, and into that terminal, run the following command:"
+#     )
+#     logging.error(
+#         f"ssh -L{PORT}:localhost:{PORT} -L27020:localhost:27020 -L27018:localhost:27018 -L27026:localhost:27026 ztf-wgs.zeuthen.desy.de"
+#     )
+#     logging.error(
+#         "If that command doesn't work, you are either not a desy user or you have a problem in your ssh config."
+#     )
+#     logging.error("Attempts to use Ampel functions will raise errors.")
+#     logging.error(
+#         "---------------------------------------------------------------------------"
+#     )
+ampel_client = "lol"
 
 
 class AmpelWizard:
@@ -195,9 +193,24 @@ class AmpelWizard:
             is not None
         )
 
+    @sleep_and_retry
+    @limits(calls=RATELIMIT_CALLS, period=RATELIMIT_PERIOD)
+    @backoff.on_exception(
+        backoff.expo,
+        requests.exceptions.RequestException,
+        max_time=600,
+    )
     def get_avro_by_name(self, ztf_name):
-        ztf_object = ampel_client.get_alerts_for_object(ztf_name, with_history=True)
-        query_res = [i for i in ztf_object]
+        queryurl_object_id = (
+            API_ZTF_ARCHIVE_URL + f"/object/{ztf_name}/alerts?with_history=true"
+        )
+        response = requests.get(
+            queryurl_object_id,
+            auth=HTTPBasicAuth(api_user, api_pass),
+        )
+        if response.status_code != 200:
+            raise requests.exceptions.RequestException
+        query_res = [i for i in response.json()]
         query_res = self.merge_alerts(query_res)
         return query_res[0]
 
@@ -275,7 +288,7 @@ class AmpelWizard:
 
             if cone_id not in self.scanned_pixels:
 
-                object_ids = self.ampel_cone_search(
+                ztf_names = self.ampel_cone_search(
                     ra=np.degrees(ra),
                     dec=np.degrees(dec),
                     radius=scan_radius,
@@ -283,7 +296,7 @@ class AmpelWizard:
                 )
 
                 res = self.ampel_object_search(
-                    object_ids=object_ids, fast_query=self.fast_query
+                    ztf_names=ztf_names, fast_query=self.fast_query
                 )
 
                 for res_alert in res:
@@ -354,13 +367,13 @@ class AmpelWizard:
         #     ra=ra, dec=dec, radius=rad, jd_min=self.t_min.jd, jd_max=t_max.jd, with_history=False, max_blocks=100)
         # query_res = [i for i in result]
 
-        object_ids = []
+        ztf_names = []
         for res in query_res:
             if self.filter_f_no_prv(res):
                 if self.filter_ampel(res):
-                    object_ids.append(res["objectId"])
+                    ztf_names.append(res["objectId"])
 
-        return object_ids
+        return ztf_names
 
     @sleep_and_retry
     @limits(calls=RATELIMIT_CALLS, period=RATELIMIT_PERIOD)
@@ -369,7 +382,7 @@ class AmpelWizard:
         requests.exceptions.RequestException,
         max_time=600,
     )
-    def ampel_object_search(self, object_ids: list, fast_query=False):
+    def ampel_object_search(self, ztf_names: list, fast_query=False):
         """ """
         query_res = []
 
@@ -378,12 +391,12 @@ class AmpelWizard:
         # query_res = [i for i in ztf_object]
         # query_res = self.merge_alerts(query_res)
 
-        for object_id in object_ids:
-            queryurl_object_id = (
-                API_ZTF_ARCHIVE_URL + f"/object/{object_id}/alerts?with_history=true"
+        for ztf_name in ztf_names:
+            queryurl_ztf_name = (
+                API_ZTF_ARCHIVE_URL + f"/object/{ztf_name}/alerts?with_history=true"
             )
             response = requests.get(
-                queryurl_object_id,
+                queryurl_ztf_name,
                 auth=HTTPBasicAuth(api_user, api_pass),
             )
             if response.status_code != 200:
