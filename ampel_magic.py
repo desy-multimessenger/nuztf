@@ -21,6 +21,7 @@ import getpass
 import pandas
 import sqlalchemy
 import healpy as hp
+from base64 import b64decode
 from tqdm import tqdm
 from ampel.contrib.hu.t0.DecentFilter import DecentFilter
 from ampel.ztf.dev.DevAlertProcessor import DevAlertProcessor
@@ -28,6 +29,7 @@ from ampel.alert.AmpelAlert import AmpelAlert
 from ampel.alert.PhotoAlert import PhotoAlert
 from ampel.view.LightCurve import LightCurve
 from ampel.content.DataPoint import DataPoint
+from ratelimit import limits, sleep_and_retry
 
 # from ampel.base.flags.PhotoFlags import PhotoFlags
 from ampel.contrib.hu import catshtm_server
@@ -44,7 +46,13 @@ from pymongo.errors import ServerSelectionTimeoutError
 
 API_BASEURL = "https://ampel.zeuthen.desy.de"
 API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive"
+API_CATALOGMATCH_URL = API_BASEURL + "/api/catalogmatch"
+API_CUTOUT_URL = API_BASEURL + "/api/ztf/archive/cutouts"
+
 PORT = 5432
+
+RATELIMIT_CALLS = 1
+RATELIMIT_PERIOD = 2
 
 
 def get_user_and_password(service: str = None):
@@ -143,9 +151,9 @@ class AmpelWizard:
         self.mns_time = str(self.t_min).split("T")[0].replace("-", "")
         self.mns = None
 
-        if fast_query:
+        self.fast_query = fast_query
+        if self.fast_query:
             print("Scanning in fast mode!")
-            self.query_ampel = self.fast_query_ampel
 
         self.overlap_prob = None
         self.overlap_fields = None
@@ -273,7 +281,10 @@ class AmpelWizard:
                     radius=scan_radius,
                     t_max=t_max,
                 )
-                res = self.ampel_object_search(object_ids=object_ids)
+
+                res = self.ampel_object_search(
+                    object_ids=object_ids, fast_query=self.fast_query
+                )
 
                 for res_alert in res:
 
@@ -311,6 +322,8 @@ class AmpelWizard:
         ra[ra > np.pi] -= 2 * np.pi
         return ra
 
+    @sleep_and_retry
+    @limits(calls=RATELIMIT_CALLS, period=RATELIMIT_PERIOD)
     @backoff.on_exception(
         backoff.expo,
         requests.exceptions.RequestException,
@@ -349,12 +362,14 @@ class AmpelWizard:
 
         return object_ids
 
+    @sleep_and_retry
+    @limits(calls=RATELIMIT_CALLS, period=RATELIMIT_PERIOD)
     @backoff.on_exception(
         backoff.expo,
         requests.exceptions.RequestException,
         max_time=600,
     )
-    def ampel_object_search(self, object_ids: list):
+    def ampel_object_search(self, object_ids: list, fast_query=False):
         """ """
         query_res = []
 
@@ -375,97 +390,69 @@ class AmpelWizard:
                 raise requests.exceptions.RequestException
             query_res = [i for i in response.json()]
 
-        query_res = self.merge_alerts(query_res)
+        if not fast_query:
+            query_res = self.merge_alerts(query_res)
 
-        final_res = []
+            final_res = []
 
-        for res in query_res:
-            if self.filter_f_history(res):
-                final_res.append(res)
+            for res in query_res:
+                if self.filter_f_history(res):
+                    final_res.append(res)
+
+        else:
+            indexes = []
+            for i, res in enumerate(query_res):
+                if self.fast_filter_f_no_prv(res):
+                    if self.filter_ampel(res):
+                        indexes.append(i)
+
+            final_res = [query_res[i] for i in indexes]
 
         return final_res
 
+    @sleep_and_retry
+    @limits(calls=RATELIMIT_CALLS, period=RATELIMIT_PERIOD)
     @backoff.on_exception(
         backoff.expo,
         requests.exceptions.RequestException,
         max_time=600,
     )
-    def query_ampel(self, ra, dec, rad, t_max=None):
-
-        if t_max is None:
-            t_max = self.default_t_max
-
+    @sleep_and_retry
+    @limits(calls=RATELIMIT_CALLS, period=RATELIMIT_PERIOD)
+    @backoff.on_exception(
+        backoff.expo,
+        requests.exceptions.RequestException,
+        max_time=600,
+    )
+    def ampel_get_cutouts(self, candid):
+        """ """
+        queryurl_cutouts = API_CUTOUT_URL + f"/{candid}"
         response = requests.get(
-            queryurl_conesearch,
+            queryurl_cutouts,
             auth=HTTPBasicAuth(api_user, api_pass),
         )
-
         if response.status_code != 200:
             raise requests.exceptions.RequestException
 
-        query_res = [i for i in response.json()["alerts"]]
+        cutouts = response.json()
+        return cutouts
 
-        objectids = []
-        for res in query_res:
-            if self.filter_f_no_prv(res):
-                if self.filter_ampel(res):
-                    objectids.append(res["objectId"])
+    # @staticmethod
+    def reassemble_alert(self, mock_alert):
+        """ """
+        ## LEGACY (KEPT FOR TIMING RESULTS FOR JVS)
+        # cutouts = ampel_client.get_cutout(mock_alert["candid"])
+        # for k in cutouts:
+        #     mock_alert[f"cutout{k.title()}"] = {
+        #         "stampData": cutouts[k],
+        #         "fileName": "dunno",
+        #     }
 
-        query_res = []
-        for objectid in objectids:
-            queryurl_objectid = (
-                ZTF_ARCHIVE_URL + f"/object/{objectid}/alerts?with_history=true"
-            )
-            response = requests.get(
-                queryurl_objectid,
-                auth=HTTPBasicAuth(api_user, api_pass),
-            )
-            if response.status_code != 200:
-                raise requests.exceptions.RequestException
-            query_res = [i for i in response.json()]
+        cutouts = self.ampel_get_cutouts(mock_alert["candid"])
 
-        query_res = self.merge_alerts(query_res)
-
-        final_res = []
-
-        for res in query_res:
-            print(res)
-            if self.filter_f_history(res):
-                final_res.append(res)
-
-        return final_res
-
-    def fast_query_ampel(self, ra, dec, rad, t_max=None):
-
-        if t_max is None:
-            t_max = self.default_t_max
-
-        ztf_object = ampel_client.get_alerts_in_cone(
-            ra, dec, rad, self.t_min.jd, t_max.jd, with_history=False
-        )
-        query_res = [i for i in ztf_object]
-
-        indexes = []
-        for i, res in enumerate(query_res):
-            if self.fast_filter_f_no_prv(res):
-                if self.filter_ampel(res):
-                    indexes.append(i)
-
-        final_res = [query_res[i] for i in indexes]
-        # final_res = []
-        #
-        # for res in query_res:
-        #     if self.fast_filter_f_history(res):
-        #         final_res.append(res)
-
-        return final_res
-
-    @staticmethod
-    def reassemble_alert(mock_alert):
-        cutouts = ampel_client.get_cutout(mock_alert["candid"])
         for k in cutouts:
             mock_alert[f"cutout{k.title()}"] = {
-                "stampData": cutouts[k],
+                "stampData": b64decode(cutouts[k]),
                 "fileName": "dunno",
             }
         mock_alert["schemavsn"] = "dunno"
