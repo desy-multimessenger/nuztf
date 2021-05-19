@@ -201,11 +201,11 @@ class AmpelWizard:
         max_time=600,
     )
     def get_avro_by_name(self, ztf_name):
-        queryurl_object_id = (
+        queryurl_ztf_name = (
             API_ZTF_ARCHIVE_URL + f"/object/{ztf_name}/alerts?with_history=true"
         )
         response = requests.get(
-            queryurl_object_id,
+            queryurl_ztf_name,
             auth=HTTPBasicAuth(api_user, api_pass),
         )
         if response.status_code != 200:
@@ -283,6 +283,8 @@ class AmpelWizard:
             f"So far, {len(self.scanned_pixels)} pixels out of {len(self.cone_ids)} have already been scanned."
         )
 
+        all_ztf_names = []
+
         for i, cone_id in enumerate(tqdm(list(self.cone_ids)[:max_cones])):
             ra, dec = self.cone_coords[i]
 
@@ -295,22 +297,45 @@ class AmpelWizard:
                     t_max=t_max,
                 )
 
-                res = self.ampel_object_search(
-                    ztf_names=ztf_names, fast_query=self.fast_query
-                )
+                if ztf_names:
+                    for ztf_name in ztf_names:
+                        all_ztf_names.append(ztf_name)
 
-                for res_alert in res:
+                # res = self.ampel_object_search(
+                #     ztf_names=ztf_names, fast_query=self.fast_query
+                # )
 
-                    if res_alert["objectId"] not in self.cache.keys():
-                        self.cache[res_alert["objectId"]] = res_alert
-                    elif (
-                        res_alert["candidate"]["jd"]
-                        > self.cache[res_alert["objectId"]]["candidate"]["jd"]
-                    ):
-                        self.cache[res_alert["objectId"]] = res_alert
+                # for res_alert in res:
+
+                #     if res_alert["objectId"] not in self.cache.keys():
+                #         self.cache[res_alert["objectId"]] = res_alert
+                #     elif (
+                #         res_alert["candidate"]["jd"]
+                #         > self.cache[res_alert["objectId"]]["candidate"]["jd"]
+                #     ):
+                #         self.cache[res_alert["objectId"]] = res_alert
                 self.scanned_pixels.append(cone_id)
 
         print(f"Scanned {len(self.scanned_pixels)} pixels")
+
+        all_ztf_names = list(set(all_ztf_names))
+
+        results = self.ampel_object_search(
+            ztf_names=all_ztf_names, fast_query=self.fast_query
+        )
+
+        for res in results:
+
+            for res_alert in res:
+
+                if res_alert["objectId"] not in self.cache.keys():
+                    self.cache[res_alert["objectId"]] = res_alert
+                elif (
+                    res_alert["candidate"]["jd"]
+                    > self.cache[res_alert["objectId"]]["candidate"]["jd"]
+                ):
+                    self.cache[res_alert["objectId"]] = res_alert
+
         print(f"Found {len(self.cache)} candidates")
 
         self.create_candidate_summary()
@@ -335,8 +360,8 @@ class AmpelWizard:
         ra[ra > np.pi] -= 2 * np.pi
         return ra
 
-    @sleep_and_retry
-    @limits(calls=RATELIMIT_CALLS, period=RATELIMIT_PERIOD)
+    # @sleep_and_retry
+    # @limits(calls=RATELIMIT_CALLS, period=RATELIMIT_PERIOD)
     @backoff.on_exception(
         backoff.expo,
         requests.exceptions.RequestException,
@@ -347,15 +372,24 @@ class AmpelWizard:
         if t_max is None:
             t_max = self.default_t_max
 
+        t_max = self.t_min + 4
+
         queryurl_conesearch = (
             API_ZTF_ARCHIVE_URL
             + f"/alerts/cone_search?ra={ra}&dec={dec}&radius={radius}&jd_start={self.t_min.jd}&jd_end={t_max.jd}&with_history=false&with_cutouts=false&chunk_size=100"
         )
 
+        # print("#########################\n")
+        # print(queryurl_conesearch)
+        # print("#########################\n")
+
         response = requests.get(
             queryurl_conesearch,
             auth=HTTPBasicAuth(api_user, api_pass),
         )
+
+        # print(response.status_code)
+        # print("CONE_SEARCH")
 
         if response.status_code != 200:
             raise requests.exceptions.RequestException
@@ -373,10 +407,12 @@ class AmpelWizard:
                 if self.filter_ampel(res):
                     ztf_names.append(res["objectId"])
 
+        ztf_names = list(set(ztf_names))
+
         return ztf_names
 
-    @sleep_and_retry
-    @limits(calls=RATELIMIT_CALLS, period=RATELIMIT_PERIOD)
+    # @sleep_and_retry
+    # @limits(calls=RATELIMIT_CALLS, period=RATELIMIT_PERIOD)
     @backoff.on_exception(
         backoff.expo,
         requests.exceptions.RequestException,
@@ -384,7 +420,7 @@ class AmpelWizard:
     )
     def ampel_object_search(self, ztf_names: list, fast_query=False):
         """ """
-        query_res = []
+        all_results = []
 
         ## LEGACY (KEPT FOR TIMING RESULTS FOR JVS)
         # ztf_object = ampel_client.get_alerts_for_object(objectids, with_history=True)
@@ -399,39 +435,35 @@ class AmpelWizard:
                 queryurl_ztf_name,
                 auth=HTTPBasicAuth(api_user, api_pass),
             )
+
             if response.status_code != 200:
                 raise requests.exceptions.RequestException
             query_res = [i for i in response.json()]
 
-        if not fast_query:
-            query_res = self.merge_alerts(query_res)
+            if not fast_query:
+                query_res = self.merge_alerts(query_res)
 
-            final_res = []
+                final_res = []
 
-            for res in query_res:
-                if self.filter_f_history(res):
-                    final_res.append(res)
+                for res in query_res:
+                    if self.filter_f_history(res):
+                        final_res.append(res)
 
-        else:
-            indexes = []
-            for i, res in enumerate(query_res):
-                if self.fast_filter_f_no_prv(res):
-                    if self.filter_ampel(res):
-                        indexes.append(i)
+            else:
+                indexes = []
+                for i, res in enumerate(query_res):
+                    if self.fast_filter_f_no_prv(res):
+                        if self.filter_ampel(res):
+                            indexes.append(i)
 
-            final_res = [query_res[i] for i in indexes]
+                final_res = [query_res[i] for i in indexes]
 
-        return final_res
+            all_results.append(final_res)
 
-    @sleep_and_retry
-    @limits(calls=RATELIMIT_CALLS, period=RATELIMIT_PERIOD)
-    @backoff.on_exception(
-        backoff.expo,
-        requests.exceptions.RequestException,
-        max_time=600,
-    )
-    @sleep_and_retry
-    @limits(calls=RATELIMIT_CALLS, period=RATELIMIT_PERIOD)
+        return all_results
+
+    # @sleep_and_retry
+    # @limits(calls=RATELIMIT_CALLS, period=RATELIMIT_PERIOD)
     @backoff.on_exception(
         backoff.expo,
         requests.exceptions.RequestException,
