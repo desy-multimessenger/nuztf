@@ -144,7 +144,7 @@ class AmpelWizard:
         else:
             self.cone_ids, self.cone_coords = cones_to_scan
         self.cache = dict()
-        self.default_t_max = Time.now()
+        self.default_t_max = t_min + 10
 
         self.mns_time = str(self.t_min).split("T")[0].replace("-", "")
         self.mns = None
@@ -301,19 +301,6 @@ class AmpelWizard:
                     for ztf_name in ztf_names:
                         all_ztf_names.append(ztf_name)
 
-                # res = self.ampel_object_search(
-                #     ztf_names=ztf_names, fast_query=self.fast_query
-                # )
-
-                # for res_alert in res:
-
-                #     if res_alert["objectId"] not in self.cache.keys():
-                #         self.cache[res_alert["objectId"]] = res_alert
-                #     elif (
-                #         res_alert["candidate"]["jd"]
-                #         > self.cache[res_alert["objectId"]]["candidate"]["jd"]
-                #     ):
-                #         self.cache[res_alert["objectId"]] = res_alert
                 self.scanned_pixels.append(cone_id)
 
         print(f"Scanned {len(self.scanned_pixels)} pixels")
@@ -372,24 +359,15 @@ class AmpelWizard:
         if t_max is None:
             t_max = self.default_t_max
 
-        t_max = self.t_min + 4
-
         queryurl_conesearch = (
             API_ZTF_ARCHIVE_URL
             + f"/alerts/cone_search?ra={ra}&dec={dec}&radius={radius}&jd_start={self.t_min.jd}&jd_end={t_max.jd}&with_history=false&with_cutouts=false&chunk_size=100"
         )
 
-        # print("#########################\n")
-        # print(queryurl_conesearch)
-        # print("#########################\n")
-
         response = requests.get(
             queryurl_conesearch,
             auth=HTTPBasicAuth(api_user, api_pass),
         )
-
-        # print(response.status_code)
-        # print("CONE_SEARCH")
 
         if response.status_code != 200:
             raise requests.exceptions.RequestException
