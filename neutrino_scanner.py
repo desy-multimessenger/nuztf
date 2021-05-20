@@ -36,17 +36,26 @@ nu_run_config = {
     "ps1_sgveto_rad": 1,
     "ps1_sgveto_th": 0.8,
     "ps1_confusion_rad": 3,
-    "ps1_confusion_sg_tol": 0.1
+    "ps1_confusion_sg_tol": 0.1,
 }
 
+
 class ParsingError(Exception):
-   """Base class for parsing error"""
-   pass
+    """Base class for parsing error"""
+
+    pass
 
 
 class NeutrinoScanner(AmpelWizard):
-
-    def __init__(self, nu_name=None, manual_args=None, gcn_no=None, logger=None, cone_nside=128, t_precursor=None):
+    def __init__(
+        self,
+        nu_name=None,
+        manual_args=None,
+        gcn_no=None,
+        logger=None,
+        cone_nside=128,
+        t_precursor=None,
+    ):
 
         self.prob_threshold = 0.9
 
@@ -59,10 +68,10 @@ class NeutrinoScanner(AmpelWizard):
                 gcn_no = self.get_latest_gcn()
 
             # nu_name, author, ra, dec, nu_time = self.parse_gcn(gcn_no)
-            
+
             gcn_info = gcn_parser.parse_gcn_circular(gcn_no)
             print(gcn_info)
-            
+
             nu_name = gcn_info["name"]
             author = gcn_info["author"]
             ra = [gcn_info["ra"], gcn_info["ra_err"][0], gcn_info["ra_err"][1]]
@@ -92,12 +101,28 @@ class NeutrinoScanner(AmpelWizard):
         print(f"Coordinates: DEC = {dec[0]} ({self.dec_min} - {self.dec_max})")
 
         self.output_path = f"{nu_candidate_output_dir}/{nu_name}.pdf"
-        AmpelWizard.__init__(self, t_min=nu_time, run_config=nu_run_config, logger=logger, cone_nside=cone_nside)
-        self.default_t_max = Time.now()
+        AmpelWizard.__init__(
+            self,
+            t_min=nu_time,
+            run_config=nu_run_config,
+            logger=logger,
+            cone_nside=cone_nside,
+        )
         self.prob_threshold = 0.9
-        self.area = (self.ra_max - self.ra_min) * (self.dec_max - self.dec_min) * abs(np.cos(np.radians(dec[0])))
+        self.area = (
+            (self.ra_max - self.ra_min)
+            * (self.dec_max - self.dec_min)
+            * abs(np.cos(np.radians(dec[0])))
+        )
         print(f"Projected Area: {self.area}")
-        self.map_coords, self.pixel_nos, self.nside, self.map_probs, self.data, self.key = self.unpack_map()
+        (
+            self.map_coords,
+            self.pixel_nos,
+            self.nside,
+            self.map_probs,
+            self.data,
+            self.key,
+        ) = self.unpack_map()
 
     @staticmethod
     def gcn_url(gcn_number):
@@ -110,8 +135,10 @@ class NeutrinoScanner(AmpelWizard):
         return f"neutrino event {self.get_name()} ({self.author} et. al, GCN {self.gcn_no})"
 
     def get_overlap_line(self):
-        return f"We covered {self.area:.1f} sq deg, corresponding to {self.overlap_prob:.1f}% of the reported localization region. " \
-               "This estimate accounts for chip gaps. "
+        return (
+            f"We covered {self.area:.1f} sq deg, corresponding to {self.overlap_prob:.1f}% of the reported localization region. "
+            "This estimate accounts for chip gaps. "
+        )
 
     def candidate_text(self, name, first_detection, lul_lim, lul_jd):
         fd = Time(first_detection, format="mjd")
@@ -140,7 +167,13 @@ class NeutrinoScanner(AmpelWizard):
 
         for x in line.replace(",", " ").replace("/", " ").split(" "):
             try:
-                vals.append(float("".join([y for y in x if y not in ["(", "+", ")", "[", "]", "/"]])))
+                vals.append(
+                    float(
+                        "".join(
+                            [y for y in x if y not in ["(", "+", ")", "[", "]", "/"]]
+                        )
+                    )
+                )
             except ValueError:
                 pass
         return vals
@@ -186,7 +219,6 @@ class NeutrinoScanner(AmpelWizard):
 
     #     raise ParsingError(f"Error parsing GCN {0}".format(url))
 
-
     def parse_gcn_archive(self):
         page = requests.get("https://gcn.gsfc.nasa.gov/gcn3_archive.html")
 
@@ -202,7 +234,9 @@ class NeutrinoScanner(AmpelWizard):
         return nu_circulars
 
     @staticmethod
-    def parse_gcn_for_no(base_nu_name, url="https://gcn.gsfc.nasa.gov/gcn3_archive.html"):
+    def parse_gcn_for_no(
+        base_nu_name, url="https://gcn.gsfc.nasa.gov/gcn3_archive.html"
+    ):
 
         print(f"Checking for GCN on {url}")
 
@@ -219,7 +253,9 @@ class NeutrinoScanner(AmpelWizard):
         latest_archive_no = None
 
         for line in page.text.splitlines():
-            if np.logical_and("IceCube observation of a high-energy neutrino" in line, nu_name in line):
+            if np.logical_and(
+                "IceCube observation of a high-energy neutrino" in line, nu_name in line
+            ):
                 res = line.split(">")
                 if gcn_no is None:
                     gcn_no = "".join([x for x in res[2] if x.isdigit()])
@@ -240,12 +276,16 @@ class NeutrinoScanner(AmpelWizard):
 
         if gcn_no is None:
 
-            print(f"No GCN found for {base_nu_name} on GCN page, checking archive instead. "
-                  f"The latest page is {latest_archive_no}")
+            print(
+                f"No GCN found for {base_nu_name} on GCN page, checking archive instead. "
+                f"The latest page is {latest_archive_no}"
+            )
 
             while np.logical_and(latest_archive_no > 0, gcn_no is None):
                 gcn_no, name, _ = self.parse_gcn_for_no(
-                    base_nu_name, url=f"https://gcn.gsfc.nasa.gov/gcn3_arch_old{latest_archive_no}.html")
+                    base_nu_name,
+                    url=f"https://gcn.gsfc.nasa.gov/gcn3_arch_old{latest_archive_no}.html",
+                )
                 latest_archive_no -= 1
 
         # while
@@ -262,16 +302,15 @@ class NeutrinoScanner(AmpelWizard):
         print(f"Latest GCN is {latest[0]} (GCN #{latest[1]})")
         return latest[1]
 
-
     def filter_f_no_prv(self, res):
 
         # Positive detection
-        if res['candidate']['isdiffpos'] not in ["t", "1"]:
+        if res["candidate"]["isdiffpos"] not in ["t", "1"]:
             logging.debug("Negative subtraction")
             return False
-            
+
         try:
-            if res['candidate']['drb'] < 0.3:
+            if res["candidate"]["drb"] < 0.3:
                 logging.debug("DRB too low")
                 return False
         except (KeyError, TypeError) as e:
@@ -291,9 +330,10 @@ class NeutrinoScanner(AmpelWizard):
 
     def filter_f_history(self, res):
         # Require 2 detections
-        
-        n_detections = len([x for x in res["prv_candidates"] if "isdiffpos" in x.keys()])
 
+        n_detections = len(
+            [x for x in res["prv_candidates"] if "isdiffpos" in x.keys()]
+        )
 
         if n_detections < 1:
             logging.debug("{0} has insufficient detection".format(res["objectId"]))
@@ -319,12 +359,11 @@ class NeutrinoScanner(AmpelWizard):
             ra_deg = np.degrees(ra)
             dec_deg = np.degrees(dec)
             if np.logical_and(
-                ra_deg > self.ra_min - scan_radius,
-                ra_deg < self.ra_max + scan_radius
+                ra_deg > self.ra_min - scan_radius, ra_deg < self.ra_max + scan_radius
             ):
                 if np.logical_and(
                     dec_deg > self.dec_min - scan_radius,
-                    dec_deg < self.dec_max + scan_radius
+                    dec_deg < self.dec_max + scan_radius,
                 ):
                     cone_coords.append((ra, dec))
                     cone_ids.append(i)
@@ -337,14 +376,8 @@ class NeutrinoScanner(AmpelWizard):
 
     def in_contour(self, ra_deg, dec_deg):
 
-        in_ra = np.logical_and(
-            ra_deg > self.ra_min,
-            ra_deg < self.ra_max
-        )
-        in_dec = np.logical_and(
-            dec_deg > self.dec_min,
-            dec_deg < self.dec_max
-        )
+        in_ra = np.logical_and(ra_deg > self.ra_min, ra_deg < self.ra_max)
+        in_dec = np.logical_and(dec_deg > self.dec_min, dec_deg < self.dec_max)
 
         return np.logical_and(in_ra, in_dec)
 
@@ -357,17 +390,19 @@ class NeutrinoScanner(AmpelWizard):
 
         center_ra = np.radians(np.mean([self.ra_max, self.ra_min]))
         center_dec = np.radians(np.mean([self.dec_max, self.dec_min]))
-        rad = np.radians(max(
-            self.ra_max - self.ra_min,
-            self.dec_max - self.dec_min
-        ))/2.
+        rad = (
+            np.radians(max(self.ra_max - self.ra_min, self.dec_max - self.dec_min))
+            / 2.0
+        )
 
-        nearish_pixels = list(hp.query_disc(
-            nside=nside,
-            vec=hp.ang2vec(np.pi/2. - center_dec, center_ra),
-            radius=rad,
-            nest=True
-        ))
+        nearish_pixels = list(
+            hp.query_disc(
+                nside=nside,
+                vec=hp.ang2vec(np.pi / 2.0 - center_dec, center_ra),
+                radius=rad,
+                nest=True,
+            )
+        )
 
         for i in tqdm(nearish_pixels):
             ra, dec = self.extract_ra_dec(nside, i)
@@ -376,7 +411,7 @@ class NeutrinoScanner(AmpelWizard):
                 pixel_nos.append(i)
 
         map_probs = np.ones_like(pixel_nos, dtype=np.float)
-        map_probs/=np.sum(map_probs)
+        map_probs /= np.sum(map_probs)
 
         key = "PROB"
 
@@ -386,9 +421,10 @@ class NeutrinoScanner(AmpelWizard):
         return map_coords, pixel_nos, nside, map_probs, data, key
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
 
     import logging
+
     logger = logging.getLogger("quiet_logger")
     logger.setLevel(logging.ERROR)
 

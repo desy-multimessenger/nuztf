@@ -47,10 +47,9 @@ API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive"
 API_CATALOGMATCH_URL = API_BASEURL + "/api/catalogmatch"
 API_CUTOUT_URL = API_BASEURL + "/api/ztf/archive/cutouts"
 
-PORT = 5432
-
-RATELIMIT_CALLS = 1
-RATELIMIT_PERIOD = 2
+DEBUG = False
+RATELIMIT_CALLS = 10
+RATELIMIT_PERIOD = 1
 
 
 def get_user_and_password(service: str = None):
@@ -59,36 +58,16 @@ def get_user_and_password(service: str = None):
     return username, password
 
 
-db_user, db_pass = get_user_and_password("ampel_archivedb")
-api_user, api_pass = get_user_and_password("ampel_api")
-extcat_user, extcat_pass = get_user_and_password("extcat")
-
-
-# try:
-#     ampel_client = ArchiveDB(
-#         f"postgresql://{db_user}:{db_pass}@localhost:{PORT}/ztfarchive"
-#     )
-# except sqlalchemy.exc.OperationalError as e:
-#     logging.error(
-#         "---------------------------------------------------------------------------"
-#     )
-#     logging.error(
-#         "You can't access the archive database without first opening the port."
-#     )
-#     logging.error(
-#         "Open a new terminal, and into that terminal, run the following command:"
-#     )
-#     logging.error(
-#         f"ssh -L{PORT}:localhost:{PORT} -L27020:localhost:27020 -L27018:localhost:27018 -L27026:localhost:27026 ztf-wgs.zeuthen.desy.de"
-#     )
-#     logging.error(
-#         "If that command doesn't work, you are either not a desy user or you have a problem in your ssh config."
-#     )
-#     logging.error("Attempts to use Ampel functions will raise errors.")
-#     logging.error(
-#         "---------------------------------------------------------------------------"
-#     )
 ampel_client = "lol"
+
+api_user, api_pass = get_user_and_password("ampel_api")
+## the following will be deprecated soon
+extcat_user, extcat_pass = "placeholder", "placeholder"
+# db_user, db_pass = get_user_and_password("ampel_archivedb")
+# extcat_user, extcat_pass = "placeholder", "placeholder"
+# port = 5432
+# from ampel.ztf.archive.ArchiveDB import ArchiveDB
+# ampel_client = ArchiveDB('postgresql://{0}:{1}@localhost:{2}/ztfarchive'.format(db_user, db_pass, port))
 
 
 class AmpelWizard:
@@ -193,8 +172,8 @@ class AmpelWizard:
             is not None
         )
 
-    @sleep_and_retry
-    @limits(calls=RATELIMIT_CALLS, period=RATELIMIT_PERIOD)
+    # @sleep_and_retry
+    # @limits(calls=RATELIMIT_CALLS, period=RATELIMIT_PERIOD)
     @backoff.on_exception(
         backoff.expo,
         requests.exceptions.RequestException,
@@ -204,6 +183,8 @@ class AmpelWizard:
         queryurl_ztf_name = (
             API_ZTF_ARCHIVE_URL + f"/object/{ztf_name}/alerts?with_history=true"
         )
+        if DEBUG:
+            print(queryurl_ztf_name)
         response = requests.get(
             queryurl_ztf_name,
             auth=HTTPBasicAuth(api_user, api_pass),
@@ -289,7 +270,6 @@ class AmpelWizard:
             ra, dec = self.cone_coords[i]
 
             if cone_id not in self.scanned_pixels:
-
                 ztf_names = self.ampel_cone_search(
                     ra=np.degrees(ra),
                     dec=np.degrees(dec),
@@ -306,6 +286,9 @@ class AmpelWizard:
         print(f"Scanned {len(self.scanned_pixels)} pixels")
 
         all_ztf_names = list(set(all_ztf_names))
+
+        print(f"Before filtering: Found {len(all_ztf_names)} candidates")
+        print(f"Retrieving alert history from AMPEL")
 
         results = self.ampel_object_search(
             ztf_names=all_ztf_names, fast_query=self.fast_query
@@ -361,14 +344,15 @@ class AmpelWizard:
 
         queryurl_conesearch = (
             API_ZTF_ARCHIVE_URL
-            + f"/alerts/cone_search?ra={ra}&dec={dec}&radius={radius}&jd_start={self.t_min.jd}&jd_end={t_max.jd}&with_history=false&with_cutouts=false&chunk_size=100"
+            + f"/alerts/cone_search?ra={ra}&dec={dec}&radius={radius}&jd_start={self.t_min.jd}&jd_end={t_max.jd}&with_history=false&with_cutouts=false&chunk_size=500"
         )
+        if DEBUG:
+            print(queryurl_conesearch)
 
         response = requests.get(
             queryurl_conesearch,
             auth=HTTPBasicAuth(api_user, api_pass),
         )
-
         if response.status_code != 200:
             raise requests.exceptions.RequestException
 
@@ -376,7 +360,7 @@ class AmpelWizard:
 
         ## LEGACY (KEPT FOR TIMING RESULTS FOR JVS)
         # result = ampel_client.get_alerts_in_cone(
-        #     ra=ra, dec=dec, radius=rad, jd_min=self.t_min.jd, jd_max=t_max.jd, with_history=False, max_blocks=100)
+        #     ra=ra, dec=dec, radius=radius, jd_min=self.t_min.jd, jd_max=t_max.jd, with_history=False, max_blocks=100)
         # query_res = [i for i in result]
 
         ztf_names = []
@@ -409,6 +393,8 @@ class AmpelWizard:
             queryurl_ztf_name = (
                 API_ZTF_ARCHIVE_URL + f"/object/{ztf_name}/alerts?with_history=true"
             )
+            if DEBUG:
+                print(queryurl_ztf_name)
             response = requests.get(
                 queryurl_ztf_name,
                 auth=HTTPBasicAuth(api_user, api_pass),
@@ -454,6 +440,8 @@ class AmpelWizard:
             queryurl_cutouts,
             auth=HTTPBasicAuth(api_user, api_pass),
         )
+        if DEBUG:
+            print(queryurl_cutouts)
         if response.status_code != 200:
             raise requests.exceptions.RequestException
 
