@@ -30,11 +30,7 @@ from ampel.view.LightCurve import LightCurve
 from ampel.content.DataPoint import DataPoint
 from ratelimit import limits, sleep_and_retry
 
-from ampel.contrib.hu import catshtm_server
-
-# from ampel.contrib.photoz.t2 import T2PhotoZ as pz
 import pymongo
-from extcats import CatalogQuery
 import datetime
 import socket
 import logging
@@ -58,16 +54,7 @@ def get_user_and_password(service: str = None):
     return username, password
 
 
-ampel_client = "lol"
-
 api_user, api_pass = get_user_and_password("ampel_api")
-## the following will be deprecated soon
-extcat_user, extcat_pass = "placeholder", "placeholder"
-# db_user, db_pass = get_user_and_password("ampel_archivedb")
-# extcat_user, extcat_pass = "placeholder", "placeholder"
-# port = 5432
-# from ampel.ztf.archive.ArchiveDB import ArchiveDB
-# ampel_client = ArchiveDB('postgresql://{0}:{1}@localhost:{2}/ztfarchive'.format(db_user, db_pass, port))
 
 
 class AmpelWizard:
@@ -90,29 +77,16 @@ class AmpelWizard:
 
         if resource is None:
             resource = {
-                "extcats.reader": f"mongodb://{extcat_user}:{extcat_pass}@127.0.0.1:27018",
-                "annz.default": "tcp://127.0.0.1:27026",
-                "catsHTM": "tcp://127.0.0.1:27020",
                 "ampel-ztf/catalogmatch": "https://ampel.zeuthen.desy.de/api/catalogmatch/",
             }
 
-        if ampel_client is not None:
-            self.external_catalogs = pymongo.MongoClient(resource["extcats.reader"])
+        print("AMPEL run config:")
+        print(run_config)
+        self.ampel_filter_class = filter_class(
+            logger=logger, resource=resource, **run_config
+        )
 
-            print("AMPEL run config:")
-            print(run_config)
-            self.ampel_filter_class = filter_class(
-                logger=logger, resource=resource, **run_config
-            )
-
-            # self.catshtm = catshtm_server.get_client(resource['catsHTM'])
-
-            self.dap = DevAlertProcessor(self.ampel_filter_class)
-
-        else:
-            logging.warning(
-                "No connection to Ampel established. Only enabling vanilla Ampel-free functionality."
-            )
+        self.dap = DevAlertProcessor(self.ampel_filter_class)
 
         if not hasattr(self, "output_path"):
             self.output_path = None
@@ -665,8 +639,6 @@ class AmpelWizard:
         return table
 
     def draft_gcn(self):
-        # candidate_text = parse_candidates(g)
-        # first_obs =
 
         text = (
             "Astronomer Name (Institute of Somewhere), ............. report,\n"
@@ -709,7 +681,7 @@ class AmpelWizard:
             "GROWTH acknowledges generous support of the NSF under PIRE Grant No 1545949. \n"
             "Alert distribution service provided by DIRAC@UW (Patterson et al. 2019). \n"
             "Alert database searches are done by AMPEL (Nordin et al. 2019). \n"
-            "Alert filtering is performed with the AMPEL Follow-up Pipeline (Stein et al. 2020). \n"
+            "Alert filtering is performed with the AMPEL Follow-up Pipeline (Stein et al. 2021). \n"
         )
         if self.dist:
             text += "Alert filtering and follow-up coordination is being undertaken by the Fritz marshal system (FIXME CITATION NEEDED)."
