@@ -532,33 +532,43 @@ class AmpelWizard:
         abs_mag = mag - 5 * (np.log10(luminosity_distance) - 1)
         return abs_mag
 
+    # @sleep_and_retry
+    # @limits(calls=RATELIMIT_CALLS, period=RATELIMIT_PERIOD)
+    @backoff.on_exception(
+        backoff.expo,
+        requests.exceptions.RequestException,
+        max_time=600,
+    )
     def query_tns(self, ra, dec, searchradius_arcsec=3):
-        try:
-            extcat_query = CatalogQuery.CatalogQuery(
-                cat_name="TNS",
-                ra_key=None,
-                dec_key=None,
-                dbclient=self.external_catalogs,
-            )
-        except pymongo.errors.ServerSelectionTimeoutError as e:
-            catalogerror()
-            raise e
-        try:
-            query_result = extcat_query.findwithin_2Dsphere(
-                ra=ra, dec=dec, rs_arcsec=searchradius_arcsec, find_one=False
-            )
+        """ """
+        queryurl_catalogmatch = API_CATALOGMATCH_URL + f"/cone_search/nearest"
 
-            name = f"{query_result[0]['name_prefix']} {query_result[0]['objname']}"
-            discovery_date = f"{query_result[0]['discoverydate']}"
+        headers = {"accept": "application/json", "Content-Type": "application/json"}
+        query = {
+            "ra_deg": ra,
+            "dec_deg": dec,
+            "catalogs": [
+                {"name": "TNS", "rs_arcsec": searchradius_arcsec, "use": "extcats"}
+            ],
+        }
 
-            try:
-                discovery_group = f"{query_result[0]['source_group']['group_name']}"
-            except KeyError:
-                discovery_group = None
-            return name, discovery_date, discovery_group
+        # Now we retrieve results from the API
+        response = requests.post(url=queryurl_catalogmatch, json=query, headers=headers)
 
-        except TypeError:
-            return None
+        full_name = None
+        discovery_date = None
+        source_group = None
+
+        if response.json()[0]:
+            response_body = response.json()[0]["body"]
+            name = response_body["name"]
+            prefix = response_body["name_prefix"]
+            full_name = prefix + name
+            discovery_date = response_body["discoverydate"]
+            if "source_group" in response_body.keys():
+                source_group = response_body["source_group"]["group_name"]
+
+        return full_name, discovery_date, source_group
 
     def query_ps1(self, ra, dec, searchradius_arcsec=10):
         try:
