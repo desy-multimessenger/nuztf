@@ -1,42 +1,35 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 
-from astropy.time import Time
-from astropy import units as u
-from astropy.coordinates import SkyCoord, Distance
-from astropy.cosmology import Planck18 as cosmo
-import numpy as np
-import matplotlib.pyplot as plt
-from ztfquery import alert, query, skyvision, io
-from ztfquery import fields as ztfquery_fields
-from matplotlib.backends.backend_pdf import PdfPages
 import os
 import time
 import backoff
 import json
 import requests
-from requests.auth import HTTPBasicAuth
-import getpass
 import pandas
-import sqlalchemy
+import datetime
+import logging
 import healpy as hp
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+
+from astropy.time import Time
+from astropy import units as u
+from astropy.coordinates import SkyCoord, Distance
+from astropy.cosmology import Planck18 as cosmo
+from ztfquery import alert, query, skyvision, io
+from ztfquery import fields as ztfquery_fields
+from matplotlib.backends.backend_pdf import PdfPages
+from requests.auth import HTTPBasicAuth
 from base64 import b64decode
 from tqdm import tqdm
-from ampel.contrib.hu.t0.DecentFilter import DecentFilter
+from ampel.ztf.t0.DecentFilter import DecentFilter
 from ampel.ztf.dev.DevAlertProcessor import DevAlertProcessor
-from ampel.alert.AmpelAlert import AmpelAlert
 from ampel.alert.PhotoAlert import PhotoAlert
-from ampel.view.LightCurve import LightCurve
-from ampel.content.DataPoint import DataPoint
 from ratelimit import limits, sleep_and_retry
-
-import pymongo
-import datetime
-import socket
-import logging
 from gwemopt.ztf_tiling import get_quadrant_ipix
-import matplotlib.patches as mpatches
-from pymongo.errors import ServerSelectionTimeoutError
+from ampel.log.AmpelLogger import AmpelLogger
 
 API_BASEURL = "https://ampel.zeuthen.desy.de"
 API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive"
@@ -46,15 +39,6 @@ API_CUTOUT_URL = API_BASEURL + "/api/ztf/archive/cutouts"
 DEBUG = False
 RATELIMIT_CALLS = 10
 RATELIMIT_PERIOD = 1
-
-
-def get_user_and_password(service: str = None):
-    """ """
-    username, password = io._load_id_(service)
-    return username, password
-
-
-api_user, api_pass = get_user_and_password("ampel_api")
 
 
 class AmpelWizard:
@@ -80,10 +64,16 @@ class AmpelWizard:
                 "ampel-ztf/catalogmatch": "https://ampel.zeuthen.desy.de/api/catalogmatch/",
             }
 
-        print("AMPEL run config:")
-        print(run_config)
+        if logger is None:
+            self.logger = AmpelLogger()
+        else:
+            self.logger = logger
+
+        self.logger.info("AMPEL run config:")
+        self.logger.info(run_config)
+
         self.ampel_filter_class = filter_class(
-            logger=logger, resource=resource, **run_config
+            logger=self.logger, resource=resource, **run_config
         )
 
         self.dap = DevAlertProcessor(self.ampel_filter_class)
@@ -104,7 +94,7 @@ class AmpelWizard:
 
         self.fast_query = fast_query
         if self.fast_query:
-            print("Scanning in fast mode!")
+            logging.info("Scanning in fast mode!")
 
         self.overlap_prob = None
         self.overlap_fields = None
@@ -116,6 +106,8 @@ class AmpelWizard:
 
         if not hasattr(self, "dist"):
             self.dist = None
+
+        self.api_user, self.api_pass = io._load_id_("ampel_api")
 
     def get_name(self):
         raise NotImplementedError
@@ -157,11 +149,10 @@ class AmpelWizard:
         queryurl_ztf_name = (
             API_ZTF_ARCHIVE_URL + f"/object/{ztf_name}/alerts?with_history=true"
         )
-        if DEBUG:
-            print(queryurl_ztf_name)
+        self.logger.debug(queryurl_ztf_name)
         response = requests.get(
             queryurl_ztf_name,
-            auth=HTTPBasicAuth(api_user, api_pass),
+            auth=HTTPBasicAuth(self.api_user, self.api_pass),
         )
         if response.status_code != 200:
             raise requests.exceptions.RequestException
@@ -234,9 +225,9 @@ class AmpelWizard:
 
         scan_radius = np.degrees(hp.max_pixrad(self.cone_nside))
 
-        print("Commencing Ampel queries!")
-        print("Scan radius is", scan_radius)
-        print(
+        self.logger.info("Commencing Ampel queries!")
+        self.logger.info(f"Scan radius is {scan_radius}")
+        self.logger.info(
             f"So far, {len(self.scanned_pixels)} pixels out of {len(self.cone_ids)} have already been scanned."
         )
 
@@ -259,13 +250,13 @@ class AmpelWizard:
 
                 self.scanned_pixels.append(cone_id)
 
-        print(f"Scanned {len(self.scanned_pixels)} pixels")
+        self.logger.info(f"Scanned {len(self.scanned_pixels)} pixels")
 
         # remove duplicates
         all_ztf_names = list(set(all_ztf_names))
 
-        print(f"Before filtering: Found {len(all_ztf_names)} candidates")
-        print(f"Retrieving alert history from AMPEL")
+        self.logger.info(f"Before filtering: Found {len(all_ztf_names)} candidates")
+        self.logger.info(f"Retrieving alert history from AMPEL")
 
         results = self.ampel_object_search(
             ztf_names=all_ztf_names, fast_query=self.fast_query
@@ -283,7 +274,7 @@ class AmpelWizard:
                 ):
                     self.cache[res_alert["objectId"]] = res_alert
 
-        print(f"Found {len(self.cache)} candidates")
+        self.logger.info(f"Found {len(self.cache)} candidates")
 
         self.create_candidate_summary()
 
@@ -328,12 +319,12 @@ class AmpelWizard:
             API_ZTF_ARCHIVE_URL
             + f"/alerts/cone_search?ra={ra}&dec={dec}&radius={radius}&jd_start={self.t_min.jd}&jd_end={t_max.jd}&with_history=false&with_cutouts=false&chunk_size=500"
         )
-        if DEBUG:
-            print(queryurl_conesearch)
+
+        self.logger.debug(queryurl_conesearch)
 
         response = requests.get(
             queryurl_conesearch,
-            auth=HTTPBasicAuth(api_user, api_pass),
+            auth=HTTPBasicAuth(self.api_user, self.api_pass),
         )
         if response.status_code != 200:
             raise requests.exceptions.RequestException
@@ -375,11 +366,10 @@ class AmpelWizard:
             queryurl_ztf_name = (
                 API_ZTF_ARCHIVE_URL + f"/object/{ztf_name}/alerts?with_history=true"
             )
-            if DEBUG:
-                print(queryurl_ztf_name)
+            self.logger.debug(queryurl_ztf_name)
             response = requests.get(
                 queryurl_ztf_name,
-                auth=HTTPBasicAuth(api_user, api_pass),
+                auth=HTTPBasicAuth(self.api_user, self.api_pass),
             )
 
             if response.status_code != 200:
@@ -421,10 +411,9 @@ class AmpelWizard:
         queryurl_cutouts = API_CUTOUT_URL + f"/{candid}"
         response = requests.get(
             queryurl_cutouts,
-            auth=HTTPBasicAuth(api_user, api_pass),
+            auth=HTTPBasicAuth(self.api_user, self.api_pass),
         )
-        if DEBUG:
-            print(queryurl_cutouts)
+        self.logger.debug(queryurl_cutouts)
         if response.status_code != 200:
             raise requests.exceptions.RequestException
 
@@ -700,7 +689,7 @@ class AmpelWizard:
 
     def create_candidate_summary(self):
 
-        print("Saving to:", self.output_path)
+        self.logger.info(f"Saving to: {self.output_path}")
 
         with PdfPages(self.output_path) as pdf:
             for (name, old_alert) in tqdm(sorted(self.cache.items())):
@@ -711,7 +700,7 @@ class AmpelWizard:
                     pdf.savefig()
                     plt.close()
                 except TypeError:
-                    print(
+                    self.logger.warning(
                         f"WARNING!!! {name} will be missing from the report pdf for some reason."
                     )
                     pass
@@ -1590,7 +1579,7 @@ class AmpelWizard:
 
         data = mns.data.copy()
 
-        print("Unpacking observations")
+        self.logger.info("Unpacking observations")
         field_prob = 0.0
 
         ps = []
@@ -1612,7 +1601,7 @@ class AmpelWizard:
         for p in hp.ring2nest(nside, ps):
             field_prob += self.data[self.key][int(p)]
 
-        print(
+        self.logger.info(
             f"Intergrating all fields overlapping 90% contour gives {100*field_prob:.2g}%"
         )
 

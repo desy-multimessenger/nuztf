@@ -6,5 +6,4 @@ git+ssh://git@github.com/AmpelProject/Ampel-photometry.git
 git+ssh://git@github.com/AmpelProject/Ampel-ZTF.git
 git+ssh://git@github.com/AmpelProject/Ampel-contrib-HU.git
 git+ssh://git@github.com/robertdstein/Ampel-contrib-ZTFbh.git
-git+ssh://git@github.com/AmpelProject/Ampel-contrib-annz.git
 backoff
