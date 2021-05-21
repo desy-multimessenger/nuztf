@@ -94,7 +94,7 @@ class AmpelWizard:
 
         self.fast_query = fast_query
         if self.fast_query:
-            logging.info("Scanning in fast mode!")
+            self.logger.info("Scanning in fast mode!")
 
         self.overlap_prob = None
         self.overlap_fields = None
@@ -167,18 +167,18 @@ class AmpelWizard:
     def check_ampel_filter(self, ztf_name):
         lvl = logging.getLogger().getEffectiveLevel()
         logging.getLogger().setLevel(logging.DEBUG)
-        logging.info("Set logger level to DEBUG")
+        self.logger.info("Set logger level to DEBUG")
         query_res = self.get_avro_by_name(ztf_name)
-        logging.info("Checking filter f (no prv)")
+        self.logger.info("Checking filter f (no prv)")
         no_prv_bool = self.filter_f_no_prv(query_res)
-        logging.info(f"Filter f (np prv): {no_prv_bool}")
-        logging.info("Checking ampel filter")
+        self.logger.info(f"Filter f (np prv): {no_prv_bool}")
+        self.logger.info("Checking ampel filter")
         bool_ampel = self.filter_ampel(query_res)
-        logging.info(f"ampel filter: {bool_ampel}")
-        logging.info("Checking filter f (history)")
+        self.logger.info(f"ampel filter: {bool_ampel}")
+        self.logger.info("Checking filter f (history)")
         history_bool = self.filter_f_history(query_res)
-        logging.info(f"Filter f (history): {history_bool}")
-        logging.info(f"Setting logger back to {lvl}")
+        self.logger.info(f"Filter f (history): {history_bool}")
+        self.logger.info(f"Setting logger back to {lvl}")
         logging.getLogger().setLevel(lvl)
         return bool_ampel
 
@@ -1282,7 +1282,7 @@ class AmpelWizard:
             else:
                 veto_fields.append(field)
 
-        logging.warning(
+        self.logger.warning(
             f"No RA/Dec found by ztfquery for fields {veto_fields}. These observation have to be ignored."
         )
 
@@ -1318,9 +1318,9 @@ class AmpelWizard:
 
         pix_obs_times = dict()
 
-        logging.info(f"Most recent observation found is {obs_times[-1]}")
+        self.logger.info(f"Most recent observation found is {obs_times[-1]}")
 
-        logging.info("Unpacking observations")
+        self.logger.info("Unpacking observations")
         pix_map = dict()
 
         for i, obs_time in enumerate(tqdm(obs_times)):
@@ -1535,7 +1535,7 @@ class AmpelWizard:
                 f"{obs_times[-1]}. Coverage overlap is 0%, but recent observations might be missing!"
             )
 
-        logging.info(f"Observations started at {self.first_obs.jd}")
+        self.logger.info(f"Observations started at {self.first_obs.jd}")
 
         self.overlap_fields = overlapping_fields
 
