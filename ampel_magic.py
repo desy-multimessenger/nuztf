@@ -4,7 +4,7 @@
 from astropy.time import Time
 from astropy import units as u
 from astropy.coordinates import SkyCoord, Distance
-from astropy.cosmology import Planck15 as cosmo
+from astropy.cosmology import Planck18 as cosmo
 import numpy as np
 import matplotlib.pyplot as plt
 from ztfquery import alert, query, skyvision, io
@@ -253,11 +253,13 @@ class AmpelWizard:
     # def simulate_observations(self, fields):
 
     def scan_cones(self, t_max=None, max_cones=None):
+        """ """
 
         if max_cones is None:
             max_cones = len(self.cone_ids)
 
         scan_radius = np.degrees(hp.max_pixrad(self.cone_nside))
+
         print("Commencing Ampel queries!")
         print("Scan radius is", scan_radius)
         print(
@@ -285,6 +287,7 @@ class AmpelWizard:
 
         print(f"Scanned {len(self.scanned_pixels)} pixels")
 
+        # remove duplicates
         all_ztf_names = list(set(all_ztf_names))
 
         print(f"Before filtering: Found {len(all_ztf_names)} candidates")
@@ -330,6 +333,9 @@ class AmpelWizard:
         ra[ra > np.pi] -= 2 * np.pi
         return ra
 
+    # The backoff-stuff is to handle serverside
+    # rate-limits when querying the API
+
     # @sleep_and_retry
     # @limits(calls=RATELIMIT_CALLS, period=RATELIMIT_PERIOD)
     @backoff.on_exception(
@@ -337,7 +343,9 @@ class AmpelWizard:
         requests.exceptions.RequestException,
         max_time=600,
     )
-    def ampel_cone_search(self, ra: float, dec: float, radius: float, t_max=None):
+    def ampel_cone_search(
+        self, ra: float, dec: float, radius: float, t_max=None
+    ) -> list:
         """ """
         if t_max is None:
             t_max = self.default_t_max
@@ -380,7 +388,7 @@ class AmpelWizard:
         requests.exceptions.RequestException,
         max_time=600,
     )
-    def ampel_object_search(self, ztf_names: list, fast_query=False):
+    def ampel_object_search(self, ztf_names: list, fast_query=False) -> list:
         """ """
         all_results = []
 
@@ -413,6 +421,7 @@ class AmpelWizard:
                     if self.filter_f_history(res):
                         final_res.append(res)
 
+            # do we actually need the fast query?
             else:
                 indexes = []
                 for i, res in enumerate(query_res):
@@ -433,7 +442,7 @@ class AmpelWizard:
         requests.exceptions.RequestException,
         max_time=600,
     )
-    def ampel_get_cutouts(self, candid):
+    def ampel_get_cutouts(self, candid: int):
         """ """
         queryurl_cutouts = API_CUTOUT_URL + f"/{candid}"
         response = requests.get(
@@ -508,26 +517,7 @@ class AmpelWizard:
         return merged_list
 
     @staticmethod
-    def catalogerror():
-        print(
-            "#--------------------------------------------------------------------------"
-        )
-        print(
-            "You cannot query the external catalogs without first opening the database port."
-        )
-        print(
-            "Open a new terminal, and within that terminal, run the following command:"
-        )
-        print("ssh -L27018:localhost:27018 ztf-wgs.zeuthen.desy.de")
-        print(
-            "If that command doesn't work, you are either not a desy user or you have a problem in your ssh config."
-        )
-        print(
-            "---------------------------------------------------------------------------"
-        )
-
-    @staticmethod
-    def calculate_abs_mag(mag, redshift):
+    def calculate_abs_mag(mag, redshift: float):
         luminosity_distance = cosmo.luminosity_distance(redshift).value * 10 ** 6
         abs_mag = mag - 5 * (np.log10(luminosity_distance) - 1)
         return abs_mag
@@ -539,10 +529,11 @@ class AmpelWizard:
         requests.exceptions.RequestException,
         max_time=600,
     )
-    def query_tns(self, ra, dec, searchradius_arcsec=3):
+    def query_tns(self, ra: float, dec: float, searchradius_arcsec: float = 3):
         """ """
         queryurl_catalogmatch = API_CATALOGMATCH_URL + f"/cone_search/nearest"
 
+        # First, we create a json body to post
         headers = {"accept": "application/json", "Content-Type": "application/json"}
         query = {
             "ra_deg": ra,
@@ -570,89 +561,62 @@ class AmpelWizard:
 
         return full_name, discovery_date, source_group
 
-    def query_ps1(self, ra, dec, searchradius_arcsec=10):
-        try:
-            extcat_query = CatalogQuery.CatalogQuery(
-                cat_name="PS1_DR1",
-                ra_key="raMean",
-                dec_key="decMean",
-                dbclient=self.external_catalogs,
-            )
-        except pymongo.errors.ServerSelectionTimeoutError as e:
-            self.catalogerror()
-            raise e
-        try:
-            query_result = extcat_query.findwithin_HEALPix(
-                ra=ra, dec=dec, rs_arcsec=searchradius_arcsec
-            )
-            return query_result
-        except TypeError:
-            return None
+    def query_catalog(
+        self,
+        catalog: str,
+        catalog_type: str,
+        ra: float,
+        dec: float,
+        searchradius_arcsec: float = 10,
+        searchtype: str = "all",
+    ):
+        """
+        Method for querying catalogs via the Ampel API
+        'catalog' must be the name of a supported catalog, e.g.
+        SDSS_spec, PS1, NEDz_extcats...
+        For a full list of catalogs, confer
+        https://ampel.zeuthen.desy.de/api/catalogmatch/catalogs
 
-    def query_sdss(self, ra, dec, searchradius_arcsec=30):
-        try:
-            extcat_query = CatalogQuery.CatalogQuery(
-                cat_name="SDSS_spec",
-                ra_key="ra",
-                dec_key="dec",
-                dbclient=self.external_catalogs,
-            )
-        except pymongo.errors.ServerSelectionTimeoutError as e:
-            self.catalogerror()
-            raise e
-        try:
-            query_result = extcat_query.findwithin_2Dsphere(
-                ra=ra, dec=dec, rs_arcsec=searchradius_arcsec
-            )
-            return query_result
-        except TypeError:
-            return None
+        """
+        assert catalog_type in ["extcats", "catsHTM"]
+        assert searchtype in ["all", "nearest"]
 
-    def query_ned(self, ra, dec, searchradius_arcsec=20):
-        try:
-            extcat_query = CatalogQuery.CatalogQuery(
-                cat_name="NEDz_extcats",
-                ra_key="RA",
-                dec_key="Dec",
-                dbclient=self.external_catalogs,
-            )
-        except pymongo.errors.ServerSelectionTimeoutError as e:
-            self.catalogerror()
-            raise e
-        try:
-            query_result, dist = extcat_query.findclosest(
-                ra=ra, dec=dec, rs_arcsec=searchradius_arcsec, method="2dsphere"
-            )
-            return query_result, dist
-        except TypeError:
-            return (None, None)
+        queryurl_catalogmatch = API_CATALOGMATCH_URL + "/cone_search/" + searchtype
 
-    def get_photoz(self, ra, dec, mag):
-        data = {
-            "jd": 0,
-            "fid": 0,
-            "magpsf": 0,
-            "diffmaglim": 0,
-            "sigmapsf": 0,
-            "dec": dec,
-            "ra": ra,
+        # First, we create a json body to post
+        headers = {"accept": "application/json", "Content-Type": "application/json"}
+        query = {
+            "ra_deg": ra,
+            "dec_deg": dec,
+            "catalogs": [
+                {"name": catalog, "rs_arcsec": searchradius_arcsec, "use": catalog_type}
+            ],
         }
-        pp = DataPoint(data)  # , flags=PhotoFlags.INST_ZTF | PhotoFlags.SRC_IPAC)
-        lc = LightCurve(None, [pp])
-        result = self.photoz.run(lc)
-        z = result["annz_best"]
-        mean = result["mean"]
-        dist = result["distance"]
-        lower_bound = result["interval"][0]
-        upper_bound = result["interval"][1]
-        absmag = self.calculate_abs_mag(mag, z)
-        return {
-            "photoz_best": z,
-            "photoz_mean": mean,
-            "angular_dist": dist,
-            "z_upper": upper_bound,
-            "z_lower": lower_bound,
-        }
+
+        response = requests.post(
+            url=queryurl_catalogmatch, json=query, headers=headers
+        ).json()[0]
+
+        return response
+
+    def query_ned_for_z(self, ra: float, dec: float, searchradius_arcsec: float = 20):
+
+        z = None
+        dist_arcsec = None
+
+        query = self.query_catalog(
+            catalog="NEDz_extcats",
+            catalog_type="extcats",
+            ra=ra,
+            dec=dec,
+            searchradius_arcsec=searchradius_arcsec,
+            searchtype="nearest",
+        )
+
+        if query:
+            z = query["body"]["z"]
+            dist_arcsec = query["dist_arcsec"]
+        return z, dist_arcsec
 
     def parse_candidates(self):
 
@@ -789,14 +753,14 @@ class AmpelWizard:
             detections = [
                 x
                 for x in res["prv_candidates"] + [res["candidate"]]
-                if x["isdiffpos"] is not None
+                if "isdiffpos" in x.keys()
             ]
             detection_jds = [x["jd"] for x in detections]
             first_detection = detections[detection_jds.index(min(detection_jds))]
             latest = [
                 x
                 for x in res["prv_candidates"] + [res["candidate"]]
-                if x["isdiffpos"] is not None
+                if "isdiffpos" in x.keys()
             ][-1]
             print(
                 "Candidate:",
@@ -810,7 +774,7 @@ class AmpelWizard:
                     x
                     for x in res["prv_candidates"]
                     if np.logical_and(
-                        x["isdiffpos"] is None, x["jd"] < first_detection["jd"]
+                        "isdiffpos" in x.keys(), x["jd"] < first_detection["jd"]
                     )
                 ][-1]
                 print(
@@ -842,7 +806,7 @@ class AmpelWizard:
                 [
                     x["jd"]
                     for x in res["prv_candidates"] + [res["candidate"]]
-                    if x["isdiffpos"] is not None
+                    if "isdiffpos" in x.keys()
                 ]
             )
             print("\n")
@@ -856,21 +820,21 @@ class AmpelWizard:
             detections = [
                 x
                 for x in res["prv_candidates"] + [res["candidate"]]
-                if x["isdiffpos"] is not None
+                if "isdiffpos" in x.keys()
             ]
             detection_jds = [x["jd"] for x in detections]
             first_detection = detections[detection_jds.index(min(detection_jds))]
             latest = [
                 x
                 for x in res["prv_candidates"] + [res["candidate"]]
-                if x["isdiffpos"] is not None
+                if "isdiffpos" in x.keys()
             ][-1]
             try:
                 last_upper_limit = [
                     x
                     for x in res["prv_candidates"]
                     if np.logical_and(
-                        x["isdiffpos"] is None, x["jd"] < first_detection["jd"]
+                        "isdiffpos" in x.keys(), x["jd"] < first_detection["jd"]
                     )
                 ][-1]
 
@@ -882,38 +846,24 @@ class AmpelWizard:
                 )
 
             # No pre-detection upper limit
-
             except IndexError:
                 text += self.candidate_text(name, first_detection["jd"], None, None)
 
-            specz_query, sdss_dist = self.query_ned(
+            ned_z, ned_dist = self.query_ned_for_z(
                 latest["ra"], latest["dec"], searchradius_arcsec=20
             )
-            if specz_query:
-                specz = float(specz_query["z"])
-                absmag = self.calculate_abs_mag(latest["magpsf"], specz)
-                if specz > 0:
-                    z_dist = Distance(z=specz, cosmology=cosmo).value
-                    text += f"It has a spec-z of {specz:.3f} [{z_dist:.0f} Mpc] and an abs. mag of {absmag:.1f}. Distance to SDSS galaxy is {sdss_dist:.2f} arcsec. "
+
+            if ned_z:
+                ned_z = float(ned_z)
+                absmag = self.calculate_abs_mag(latest["magpsf"], ned_z)
+                if ned_z > 0:
+                    z_dist = Distance(z=ned_z, cosmology=cosmo).value
+                    text += f"It has a spec-z of {ned_z:.3f} [{z_dist:.0f} Mpc] and an abs. mag of {absmag:.1f}. Distance to SDSS galaxy is {ned_dist:.2f} arcsec. "
                     if self.dist:
                         gw_dist_interval = [
                             self.dist - self.dist_unc,
                             self.dist + self.dist_unc,
                         ]
-            else:
-                specz = None
-            # if not specz:
-            #     photoz_query = self.get_photoz(latest["ra"], latest["dec"], latest["magpsf"])
-            #     photoz = photoz_query['photoz_best']
-            #     ps1dist = photoz_query['angular_dist']
-            #     photoz_lower_bound = photoz_query['z_lower']
-            #     photoz_upper_bound = photoz_query['z_upper']
-            #     absmag = self.calculate_abs_mag(latest["magpsf"], photoz)
-            #     if ps1dist < 20 and photoz > 0:
-            #         z_dist = Distance(z = photoz, cosmology=cosmo).value
-            #         z_dist_upper = Distance(z = photoz_upper_bound).value
-            #         z_dist_lower = Distance(z = photoz_lower_bound).value
-            #         text += "It has a phot-z of {:.2f} [{:.0f} - {:.0f} Mpc] and an abs. mag of {:.1f}. Distance to PS1 object is {:.2f} arcsec. ".format(photoz, z_dist_lower, z_dist_upper, absmag, ps1dist)
 
             c = SkyCoord(res["candidate"]["ra"], res["candidate"]["dec"], unit="deg")
             g_lat = c.galactic.b.degree
