@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# coding: utf-8
+
 from ampel_magic import AmpelWizard
 from astropy.time import Time
 import matplotlib.pyplot as plt

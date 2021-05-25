@@ -584,9 +584,9 @@ class AmpelWizard:
     def parse_candidates(self):
 
         table = (
-            "+---------------------------------------------------------------------------------+\n"
-            "| ZTF Name     | IAU Name   | RA (deg)    | DEC (deg)   | Filter | Mag   | MagErr |\n"
-            "+---------------------------------------------------------------------------------+\n"
+            "+--------------------------------------------------------------------------------+\n"
+            "| ZTF Name     | IAU Name  | RA (deg)    | DEC (deg)   | Filter | Mag   | MagErr |\n"
+            "+--------------------------------------------------------------------------------+\n"
         )
         for name, res in sorted(self.cache.items()):
 
@@ -604,12 +604,13 @@ class AmpelWizard:
                 if Time.now().jd - second_det[0] > 1.0:
                     old_flag = "(MORE THAN ONE DAY SINCE SECOND DETECTION)"
 
-            try:
-                tns_result = self.query_tns(
-                    latest["ra"], latest["dec"], searchradius_arcsec=3
-                )[0].ljust(10)
-            except TypeError:
-                tns_result = " -------- "
+            tns_result = " ------- "
+            tns_name, tns_date, tns_group = self.query_tns(
+                latest["ra"], latest["dec"], searchradius_arcsec=3
+            )
+            if tns_name:
+                tns_result = tns_name
+
             line = "| {0} | {1} | {2:011.7f} | {3:+011.7f} | {4}      | {5:.2f} | {6:.2f}   | {7} \n".format(
                 name,
                 tns_result,
@@ -624,7 +625,7 @@ class AmpelWizard:
             )
             table += line
 
-        table += "+---------------------------------------------------------------------------------+\n\n"
+        table += "+--------------------------------------------------------------------------------+\n\n"
         return table
 
     def draft_gcn(self):
@@ -700,7 +701,7 @@ class AmpelWizard:
                     pdf.savefig()
                     plt.close()
                 except TypeError:
-                    self.logger.warning(
+                    self.logger.info(
                         f"WARNING!!! {name} will be missing from the report pdf for some reason."
                     )
                     pass
@@ -1282,7 +1283,7 @@ class AmpelWizard:
             else:
                 veto_fields.append(field)
 
-        self.logger.warning(
+        self.logger.info(
             f"No RA/Dec found by ztfquery for fields {veto_fields}. These observation have to be ignored."
         )
 
