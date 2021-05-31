@@ -1,4 +1,4 @@
-astroquery
+pyvo
 extcats
 pymongo
 gwemopt
