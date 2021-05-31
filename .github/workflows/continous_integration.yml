@@ -39,9 +39,18 @@ jobs:
      # Setting up dependencies
       - name: Install dependencies
         run: |
+          pip install wheel
           pip install -r requirements.txt
+          
+      # Setting up AMPEL
+      - name: Install AMPEL
+        run: |
           pip install ampel-ztf
-          pip install -r ampel_requirements.txt
+        
+      # Setting up AMPEL dependencies
+      - name: Install AMPEL dependencies
+        run: |
+          pip install ampel_requirements.txt
 
       # Runs a set of commands using the runners shell
       - name: Test the code
