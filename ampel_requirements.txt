@@ -1,9 +1,8 @@
 setuptools>=46.4.0
-git+ssh://git@github.com/AmpelProject/Ampel-interface.git
-git+ssh://git@github.com/AmpelProject/Ampel-core.git
-git+ssh://git@github.com/AmpelProject/Ampel-alerts.git
-git+ssh://git@github.com/AmpelProject/Ampel-photometry.git
-git+ssh://git@github.com/AmpelProject/Ampel-ZTF.git
-git+ssh://git@github.com/AmpelProject/Ampel-contrib-HU.git
-git+ssh://git@github.com/robertdstein/Ampel-contrib-ZTFbh.git
+git+https://github.com/AmpelProject/Ampel-interface.git
+git+https://github.com/AmpelProject/Ampel-core.git
+git+https://github.com/AmpelProject/Ampel-alerts.git
+git+https://github.com/AmpelProject/Ampel-photometry.git
+git+https://github.com/AmpelProject/Ampel-ZTF.git
+git+https://github.com/AmpelProject/Ampel-contrib-HU.git
 backoff
