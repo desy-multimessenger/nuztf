@@ -29,30 +29,19 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
-        
+
       # Set up the python versions
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Build and test
-        uses: ./.github/actions/build_and_test
+     # Setting up dependencies
+      - name: Install dependencies
+        run: |
+          pip install wheel
+          pip install -r requirements.txt
 
-
-
-#      # Set up the python versions
-#      - name: Set up Python ${{ matrix.python-version }}
-#        uses: actions/setup-python@v2
-#        with:
-#          python-version: ${{ matrix.python-version }}
-#
-#     # Setting up dependencies
-#      - name: Install dependencies
-#        run: |
-#          pip install wheel
-#          pip install -r requirements.txt
-#
 #      # Setting up AMPEL
 #      - name: Install AMPEL
 #        run: pip install ampel-ztf
@@ -60,17 +49,24 @@ jobs:
 #      # Setting up AMPEL dependencies
 #      - name: Install AMPEL dependencies
 #        run: pip install -r ampel_requirements.txt
-#
-#      # Runs a set of commands using the runners shell
-#      - name: Test the code
-#        run: |
-#          coverage run --concurrency=multiprocessing -m unittest discover tests/
-#          coverage combine
-#
-#      - name: Run Coveralls
-#        if: ${{ success() }}
-#        run: coveralls
-#
-#      - name: Deploy
-#        if: ${{ success() }} and starsWith(github.ref, 'ref/tags')
-#
+
+      # Runs a set of commands using the runners shell
+      - name: Test the code
+        run: |
+          coverage run --concurrency=multiprocessing -m unittest discover tests/
+          coverage combine
+
+      - name: Run Coveralls
+        if: ${{ success() }}
+        run: coveralls
+
+  deploy:
+    needs: [build]
+    if: starsWith(github.ref, 'ref/tags')
+    steps:
+      - name: Install pypa/build
+        run: python -m pip install build --user
+      - name: Build a binary wheel and a source tarball
+        run: python -m build --sdist --wheel --outdir dist/ 0.
+      - name: Publish distribution 📦 to PyPI
+        run: echo 'here we will deploy to PyPi when we have a token and name hehe'
