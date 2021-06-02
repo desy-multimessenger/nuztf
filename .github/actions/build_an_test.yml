@@ -1,47 +1,52 @@
 name: "Build and test the code"
-using: "composite"
-steps:
-  # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-  - uses: actions/checkout@v2
+description: "Runs the CI pipeline, installing dependencies, running unittests and checking code coverage"
+runs:
+  using: "composite"
+  steps:
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@v2
 
-  # Set up the python versions
-  - name: Set up Python ${{ matrix.python-version }}
-    uses: actions/setup-python@v2
-    with:
-      python-version: ${{ matrix.python-version }}
+    # Set up the python versions
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
 
- # Setting up dependencies
-  - name: Install dependencies
-    run: |
-      pip install wheel
-      pip install -r requirements.txt
+   # Setting up dependencies
+    - name: Install dependencies
+      run: |
+        pip install wheel
+        pip install -r requirements.txt
+      shell: bash
 
-#  # Setting up AMPEL
-#  - name: Install AMPEL
-#    run: pip install ampel-ztf
-#
-#  # Setting up AMPEL dependencies
-#  - name: Install AMPEL dependencies
-#    run: pip install -r ampel_requirements.txt
+  #  # Setting up AMPEL
+  #  - name: Install AMPEL
+  #    run: pip install ampel-ztf
+  #
+  #  # Setting up AMPEL dependencies
+  #  - name: Install AMPEL dependencies
+  #    run: pip install -r ampel_requirements.txt
 
-  # setting up AMPEL credentials
-  - name: Set up AMPEL credentials
-    with:
+    # setting up AMPEL credentials
+    - name: Set up AMPEL credentials
       env:
         AMPEL_API_USER: ${{ secrets.ampel_api_user }}
         AMPEL_API_PASSWORD: ${{ secrets.ampel_api_password }}
-    run: |
-      from ztfquery import io
-      import os
-      io.set_account("ampel_api", user=os.environ["AMPEL_API_USER"], password=os.environ["AMPEL_API_PASSWORD"])
+      run: |
+        from ztfquery import io
+        import os
+        io.set_account("ampel_api", user=os.environ["AMPEL_API_USER"], password=os.environ["AMPEL_API_PASSWORD"])
+      shell: bash
 
-  # Runs the tests with coveralls to get code coverage
-  - name: Test the code
-    run: |
-      coverage run --concurrency=multiprocessing -m unittest discover tests/
-      coverage combine
+    # Runs the tests with coveralls to get code coverage
+    - name: Test the code
+      run: |
+        coverage run --concurrency=multiprocessing -m unittest discover tests/
+        coverage combine
+      shell: bash
 
-  # If all the above are successful run coveralls
-  - name: Run Coveralls
-    if: ${{ success() }}
-    run: coveralls
+    # If all the above are successful run coveralls
+    - name: Run Coveralls
+      if: ${{ success() }}
+      run: coveralls
+      shell: bash

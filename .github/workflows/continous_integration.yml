@@ -29,7 +29,13 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
-      - uses: JojOatXGME/prepare-local-actions@v1
+        -
+      # Set up the python versions
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
       - name: Build and test
         uses: ./.github/actions/build_and_test
 
