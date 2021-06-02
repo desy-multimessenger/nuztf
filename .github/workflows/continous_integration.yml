@@ -47,6 +47,7 @@ jobs:
         env:
           AMPEL_API_USER: ${{ secrets.ampel_api_user }}
           AMPEL_API_PASSWORD: ${{ secrets.ampel_api_password }}
+          ZTFDATA: ./
         run: |
           coverage run --concurrency=multiprocessing -m unittest discover tests/
           coverage combine
