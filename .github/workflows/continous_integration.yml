@@ -62,7 +62,7 @@ jobs:
 
   deploy:
     needs: [build]
-    if: starsWith(github.ref, 'ref/tags')
+    runs-on: ubuntu-latest
     steps:
       - name: Install pypa/build
         run: python -m pip install build --user
