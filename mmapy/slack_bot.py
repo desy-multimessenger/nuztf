@@ -1,14 +1,10 @@
-from slack import RTMClient, WebClient
+from slack import WebClient
 import getpass
 import numpy as np
 import logging
-import matplotlib.pyplot as plt
 import io
 import os
-from gw_scanner import GravWaveScanner
-from gw_multi_process import MultiGwProcessor
-import sys
-from astropy.time import Time
+from mmapy.gw_multi_process import MultiGwProcessor
 import traceback
 import time
 

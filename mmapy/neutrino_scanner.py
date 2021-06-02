@@ -1,23 +1,17 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-from ampel_magic import AmpelWizard
+from mmapy.ampel_magic import AmpelWizard
 from astropy.time import Time
-import matplotlib.pyplot as plt
 import healpy as hp
 import numpy as np
 from tqdm import tqdm
-from ligo.gracedb.rest import GraceDb
-import os, re
+import os
 from pathlib import Path
 import requests
-import matplotlib.patches as mpatches
-import lxml.etree
-from astropy.io import fits
 from ztf_plan_obs import gcn_parser
-import logging
 
-nu_candidate_output_dir = os.path.join(Path().absolute(), "Neutrino_candidates")
+nu_candidate_output_dir = os.path.join(Path().absolute(), "../Neutrino_candidates")
 
 nu_run_config = {
     "min_ndet": 1,  # Default:2

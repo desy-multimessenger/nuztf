@@ -2,16 +2,13 @@ import pickle
 import argparse
 from multiprocessing import JoinableQueue, Process
 from gw_scanner import GravWaveScanner
-import random
 import numpy as np
 import healpy as hp
 import os
 from pathlib import Path
-from ampel_magic import ampel_client
+from mmapy.ampel_magic import ampel_client
 from tqdm import tqdm
 from astropy.time import Time
-import logging
-
 
 ligo_candidate_cache = os.path.join(Path().absolute(), "LIGO_cache")
 

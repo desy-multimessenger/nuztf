@@ -1,4 +1,4 @@
-from ampel_magic import AmpelWizard
+from mmapy.ampel_magic import AmpelWizard
 from astropy.time import Time
 import matplotlib.pyplot as plt
 import healpy as hp
@@ -6,20 +6,14 @@ import numpy as np
 from tqdm import tqdm
 from ligo.gracedb.rest import GraceDb
 import os
-from pathlib import Path
 import requests
 import lxml.etree
-from astropy.io import fits
 from astropy_healpix import HEALPix
 from astropy.coordinates import SkyCoord
-import matplotlib.patches as mpatches
 import fitsio
 from astropy import units as u
 import wget
-from numpy.lib.recfunctions import append_fields, drop_fields
-import pandas
-from ztfquery import fields as ztfquery_fields
-import logging
+from numpy.lib.recfunctions import append_fields
 
 # Setup LIGO client
 
@@ -30,8 +24,8 @@ try:
 except HTTPError as e:
     raise(e.message)
 
-base_ligo_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "LIGO_skymaps")
-ligo_candidate_output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "LIGO_candidates")
+base_ligo_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../LIGO_skymaps")
+ligo_candidate_output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../LIGO_candidates")
 
 gw_run_config = {
     "min_ndet": 1,  # Default:2

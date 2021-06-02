@@ -2,15 +2,12 @@
 # Author: Simeon Reusch (simeon.reusch@desy.de)
 # License: BSD-3-Clause
 
-import json, os, sys, time, argparse, logging, re, getpass
-import importlib
-import numpy as np
+import os, argparse, logging, re, getpass
 from ampel.ztf.archive.ArchiveDB import ArchiveDB
 import ampel.contrib.hu.t3.TNSTalker as TNSTalker
 from ampel.ztf.utils.ZIAlertUtils import ZIAlertUtils
 from ampel.ztf.pipeline.common.ZTFUtils import ZTFUtils
-from ampel.base.TransientView import TransientView
-from ampel.contrib.hu.t3.ampel_tns import get_tnsname, sendTNSreports
+from ampel.contrib.hu.t3.ampel_tns import sendTNSreports
 
 # Create a logger
 logger = logging.getLogger('simeon')
@@ -24,8 +21,8 @@ ztf_default_values = {
 
 RUN_CONFIG = {'submit_tns': True, 'sandbox': True, 'resubmit_tns_nonztf': False, 'resubmit_tns_ztf': False, 'submit_unless_journal': True, "lc_filters": [], "ztf_tns_at": ztf_default_values}
 
-from ampel_magic import username
-from ampel_magic import password
+from mmapy.ampel_magic import username
+from mmapy.ampel_magic import password
 
 TNS_API_KEYFILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".TNS_api_key.cred")
 try:
