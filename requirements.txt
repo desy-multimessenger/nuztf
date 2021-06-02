@@ -20,7 +20,7 @@ requests
 psycopg2-binary
 ztfquery
 git+https://github.com/MickaelRigault/pysedm@master
-git+https://github.com/maayane/catsHTM@master
+catsHTM
 slackclient
 shapely
 astrobject
@@ -33,3 +33,11 @@ zerorpc
 sklearn
 ztf_plan_obs
 ratelimit
+setuptools>=46.4.0
+git+https://github.com/AmpelProject/Ampel-interface.git
+git+https://github.com/AmpelProject/Ampel-core.git
+git+https://github.com/AmpelProject/Ampel-alerts.git
+git+https://github.com/AmpelProject/Ampel-photometry.git
+git+https://github.com/AmpelProject/Ampel-ZTF.git
+git+https://github.com/AmpelProject/Ampel-contrib-HU.git
+backoff
