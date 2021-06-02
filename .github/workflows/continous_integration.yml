@@ -42,18 +42,11 @@ jobs:
           pip install wheel
           pip install -r requirements.txt
 
-     # set up AMPEL credentials
-      - name: Set up AMPEL credentials
+      # Runs a set of commands using the runners shell
+      - name: Test the code
         env:
           AMPEL_API_USER: ${{ secrets.ampel_api_user }}
           AMPEL_API_PASSWORD: ${{ secrets.ampel_api_password }}
-        run: |
-          from ztfquery import io
-          import os
-          io.set_account("ampel_api", user=os.environ["AMPEL_API_USER"], password=os.environ["AMPEL_API_PASSWORD"])
-
-      # Runs a set of commands using the runners shell
-      - name: Test the code
         run: |
           coverage run --concurrency=multiprocessing -m unittest discover tests/
           coverage combine
