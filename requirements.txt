@@ -33,3 +33,5 @@ zerorpc
 sklearn
 ztf_plan_obs
 ratelimit
+unittest
+coveralls
