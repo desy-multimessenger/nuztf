@@ -28,7 +28,7 @@ ligo-gracedb==2.7.6
 bs4==0.0.1
 lxml==4.6.3
 fastavro==1.4.1
-pydantic==1.4
+pydantic==1.6.2
 zerorpc==0.6.3
 sklearn==0.0
 ztf_plan_obs==0.33
