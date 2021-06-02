@@ -2,7 +2,10 @@
 Python package for correlating ZTF data with external mutli-messenger triggers, created by [@robertdstein](https://github.com/robertdstein).
 This package enables ZTF follow-up analysis of neutrinos/gravitational waves/gamma-ray bursts, built using the [AMPEL platform](https://arxiv.org/abs/1904.05922).
 
-[![DOI](https://zenodo.org/badge/193068064.svg)](https://zenodo.org/badge/latestdoi/193068064) [![CI](https://github.com/robertdstein/ampel_followup_pipeline/actions/workflows/continous_integration.yml/badge.svg)](https://github.com/robertdstein/ampel_followup_pipeline/actions/workflows/continous_integration.yml) [![Binder](https://mybinder.org/badge_logo.svg)]
+[![DOI](https://zenodo.org/badge/193068064.svg)](https://zenodo.org/badge/latestdoi/193068064) 
+[![CI](https://github.com/robertdstein/ampel_followup_pipeline/actions/workflows/continous_integration.yml/badge.svg)](https://github.com/robertdstein/ampel_followup_pipeline/actions/workflows/continous_integration.yml) 
+![Binder](https://mybinder.org/badge_logo.svg) 
+[![Coverage Status](https://coveralls.io/repos/github/desy-multimessenger/ampel_followup_pipeline/badge.svg?branch=master)](https://coveralls.io/github/desy-multimessenger/ampel_followup_pipeline?branch=master)
 
 ## Installation Instructions
 
