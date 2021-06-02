@@ -11,7 +11,7 @@ on:
     branches: [ master ]
   # run the pipeline on the 0th minute of the 0th hour of day 1 and 15 every month
   schedule:
-    - cron: '0 0 1, 15 * *'
+    - cron: '0 0 1,15 * *'
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
