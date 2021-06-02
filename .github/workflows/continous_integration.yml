@@ -52,11 +52,12 @@ jobs:
           coverage run --concurrency=multiprocessing -m unittest discover tests/
           coverage combine
 
-      - name: Coveralls
-        uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: .coverage
+      - name: Run Coveralls
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ success() }}
+        run: coveralls
 
 
   deploy:
