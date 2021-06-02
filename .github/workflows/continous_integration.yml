@@ -42,13 +42,15 @@ jobs:
           pip install wheel
           pip install -r requirements.txt
 
-#      # Setting up AMPEL
-#      - name: Install AMPEL
-#        run: pip install ampel-ztf
-#
-#      # Setting up AMPEL dependencies
-#      - name: Install AMPEL dependencies
-#        run: pip install -r ampel_requirements.txt
+     # set up AMPEL credentials
+      - name: Set up AMPEL credentials
+        env:
+          AMPEL_API_USER: ${{ secrets.ampel_api_user }}
+          AMPEL_API_PASSWORD: ${{ secrets.ampel_api_password }}
+        run: |
+          from ztfquery import io
+          import os
+          io.set_account("ampel_api", user=os.environ["AMPEL_API_USER"], password=os.environ["AMPEL_API_PASSWORD"])
 
       # Runs a set of commands using the runners shell
       - name: Test the code
@@ -63,6 +65,7 @@ jobs:
   deploy:
     needs: [build]
     runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags')
     steps:
       - name: Install pypa/build
         run: python -m pip install build --user
