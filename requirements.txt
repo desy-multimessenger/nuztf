@@ -33,7 +33,6 @@ zerorpc
 sklearn
 ztf_plan_obs
 ratelimit
-unittest
 coveralls
 setuptools>=46.4.0
 Ampel-interface
