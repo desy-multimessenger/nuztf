@@ -13,10 +13,7 @@ API_CUTOUT_URL = API_BASEURL + "/api/ztf/archive/cutouts"
 
 
 def load_credentials(name):
-    """
-
-    :param
-
+    """ZTFquery wrapper for loading credentials.
     """
     return io._load_id_(name)
 
@@ -30,14 +27,6 @@ try:
 except KeyError:
     logging.info('No Credentials for AMPEL API found in environment'
                 'Assume they are set.')
-
-try:
-    io.set_account("skyvision",
-                   username=os.environ["SKYVISION_USER"],
-                   password=os.environ["SKYKIVISION_PASSWORD"])
-
-except KeyError:
-    pass
 
 try:
     io.set_account("irsa",

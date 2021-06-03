@@ -1,11 +1,10 @@
 import pickle
 import argparse
 from multiprocessing import JoinableQueue, Process
-from gw_scanner import GravWaveScanner
+from mmapy.gw_scanner import GravWaveScanner
 import numpy as np
 import healpy as hp
 import os
-from mmapy.ampel_magic import ampel_client
 from tqdm import tqdm
 from astropy.time import Time
 from pathlib import Path
