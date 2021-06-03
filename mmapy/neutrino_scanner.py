@@ -9,6 +9,7 @@ from tqdm import tqdm
 import os
 from pathlib import Path
 import requests
+import logging
 from ztf_plan_obs import gcn_parser
 
 nu_candidate_output_dir = os.path.join(Path().absolute(), "../Neutrino_candidates")
