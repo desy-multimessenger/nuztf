@@ -5,12 +5,12 @@ from gw_scanner import GravWaveScanner
 import numpy as np
 import healpy as hp
 import os
-from pathlib import Path
 from mmapy.ampel_magic import ampel_client
 from tqdm import tqdm
 from astropy.time import Time
+from pathlib import Path
 
-ligo_candidate_cache = os.path.join(Path().absolute(), "LIGO_cache")
+ligo_candidate_cache = os.path.join(Path(__file__).resolve().parents[1], "LIGO_cache")
 
 class MultiGwProcessor(GravWaveScanner):
     queue = None

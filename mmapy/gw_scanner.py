@@ -13,6 +13,7 @@ from astropy.coordinates import SkyCoord
 import fitsio
 from astropy import units as u
 import wget
+from pathlib import Path
 from numpy.lib.recfunctions import append_fields
 
 # Setup LIGO client
@@ -24,8 +25,8 @@ try:
 except HTTPError as e:
     raise(e.message)
 
-base_ligo_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../LIGO_skymaps")
-ligo_candidate_output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../LIGO_candidates")
+base_ligo_dir = os.path.join(Path(__file__).resolve().parents[1], "../LIGO_skymaps")
+ligo_candidate_output_dir = os.path.join(Path(__file__).resolve().parents[1], "../LIGO_candidates")
 
 gw_run_config = {
     "min_ndet": 1,  # Default:2

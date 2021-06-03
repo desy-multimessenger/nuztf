@@ -12,7 +12,7 @@ import requests
 import logging
 from ztf_plan_obs import gcn_parser
 
-nu_candidate_output_dir = os.path.join(Path().absolute(), "../Neutrino_candidates")
+nu_candidate_output_dir = os.path.join(Path(__file__).resolve().parents[1], "../Neutrino_candidates")
 
 nu_run_config = {
     "min_ndet": 1,  # Default:2
