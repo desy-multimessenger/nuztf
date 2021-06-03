@@ -1,6 +1,6 @@
 # .coveragerc to control coverage.py
 [run]
-source = ampel_followup_pipeline
+source = ampel_followup_pipeline/mmapy
 omit =
     ampel_followup_pipeline/slack_bot.py
 
