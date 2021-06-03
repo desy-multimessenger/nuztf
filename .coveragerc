@@ -1,8 +1,8 @@
 # .coveragerc to control coverage.py
 [run]
-source = ampel_followup_pipeline/mmapy
+source = mmapy
 omit =
-    ampel_followup_pipeline/slack_bot.py
+    mmapy/slack_bot.py
 
 [report]
 # Regexes for lines to exclude from consideration
