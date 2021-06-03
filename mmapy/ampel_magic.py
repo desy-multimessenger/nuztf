@@ -30,11 +30,7 @@ from ampel.alert.PhotoAlert import PhotoAlert
 from ratelimit import limits, sleep_and_retry
 from gwemopt.ztf_tiling import get_quadrant_ipix
 from ampel.log.AmpelLogger import AmpelLogger
-
-API_BASEURL = "https://ampel.zeuthen.desy.de"
-API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive"
-API_CATALOGMATCH_URL = API_BASEURL + "/api/catalogmatch"
-API_CUTOUT_URL = API_BASEURL + "/api/ztf/archive/cutouts"
+from mmapy.credentials import load_credentials, API_BASEURL, API_ZTF_ARCHIVE_URL, API_CATALOGMATCH_URL, API_CUTOUT_URL
 
 DEBUG = False
 RATELIMIT_CALLS = 10
@@ -107,17 +103,7 @@ class AmpelWizard:
         if not hasattr(self, "dist"):
             self.dist = None
 
-        try:
-            io.set_account("ampel_api",
-                           username=os.environ["AMPEL_API_USER"],
-                           password=os.environ["AMPEL_API_PASSWORD"])
-            logger.info('Set up AMPEL credentials')
-
-        except KeyError:
-            logger.info('No Credentials for AMPEL API found in environment'
-                        'Assume they are set.')
-
-        self.api_user, self.api_pass = io._load_id_("ampel_api")
+        self.api_user, self.api_pass = load_credentials("ampel_api")
 
     def get_name(self):
         raise NotImplementedError
