@@ -37,3 +37,13 @@ try:
 except KeyError:
     logging.info('No Credentials for "irsa" found in environment'
                  'Assuming they are set.')
+
+try:
+    io.set_account("skyvision",
+                   username=os.environ["SKYVISION_USER"],
+                   password=os.environ["SKYVISION_PASSWORD"])
+    logging.info('Set up "skyvision" credentials')
+
+except KeyError:
+    logging.info('No Credentials for "skyvision" found in environment'
+                 'Assuming they are set.')
