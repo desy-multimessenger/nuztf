@@ -22,16 +22,18 @@ try:
     io.set_account("ampel_api",
                    username=os.environ["AMPEL_API_USER"],
                    password=os.environ["AMPEL_API_PASSWORD"])
-    logging.info('Set up AMPEL credentials')
+    logging.info('Set up "ampel_api" credentials')
 
 except KeyError:
     logging.info('No Credentials for AMPEL API found in environment'
-                'Assume they are set.')
+                 'Assume they are set.')
 
 try:
     io.set_account("irsa",
                    username=os.environ["IRSA_USER"],
                    password=os.environ["IRSA_PASSWORD"])
+    logging.info('Set up "irsa" credentials')
 
 except KeyError:
-    pass
+    logging.info('No Credentials for "irsa" found in environment'
+                 'Assuming they are set.')
