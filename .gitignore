@@ -13,3 +13,4 @@ Neutrino_candidates/*
 __pycache__/*
 LIGO_cache/*
 env/*
+.python-version
