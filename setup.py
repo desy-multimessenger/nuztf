@@ -62,7 +62,7 @@ setuptools.setup(
         "sklearn == 0.0",
         "slackclient == 2.9.3",
         "sqlalchemy == 1.4.18",
-        "tqdm == 4.61.0",
+        "tqdm == 4.61.1",
         "wget == 3.2",
         "zerorpc == 0.6.3",
         "ztf-plan-obs == 0.33",
