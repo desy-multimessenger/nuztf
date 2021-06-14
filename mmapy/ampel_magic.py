@@ -30,7 +30,13 @@ from ampel.alert.PhotoAlert import PhotoAlert
 from ratelimit import limits, sleep_and_retry
 from gwemopt.ztf_tiling import get_quadrant_ipix
 from ampel.log.AmpelLogger import AmpelLogger
-from mmapy.credentials import load_credentials, API_BASEURL, API_ZTF_ARCHIVE_URL, API_CATALOGMATCH_URL, API_CUTOUT_URL
+from mmapy.credentials import (
+    load_credentials,
+    API_BASEURL,
+    API_ZTF_ARCHIVE_URL,
+    API_CATALOGMATCH_URL,
+    API_CUTOUT_URL,
+)
 
 DEBUG = False
 RATELIMIT_CALLS = 10
@@ -150,7 +156,7 @@ class AmpelWizard:
             queryurl_ztf_name,
             auth=HTTPBasicAuth(self.api_user, self.api_pass),
         )
-        if response.status_code != 200:
+        if response.status_code == 503:
             raise requests.exceptions.RequestException
         query_res = [i for i in response.json()]
         query_res = self.merge_alerts(query_res)
@@ -322,7 +328,7 @@ class AmpelWizard:
             queryurl_conesearch,
             auth=HTTPBasicAuth(self.api_user, self.api_pass),
         )
-        if response.status_code != 200:
+        if response.status_code == 503:
             raise requests.exceptions.RequestException
 
         query_res = [i for i in response.json()["alerts"]]
@@ -368,7 +374,7 @@ class AmpelWizard:
                 auth=HTTPBasicAuth(self.api_user, self.api_pass),
             )
 
-            if response.status_code != 200:
+            if response.status_code == 503:
                 raise requests.exceptions.RequestException
             query_res = [i for i in response.json()]
 
@@ -410,7 +416,7 @@ class AmpelWizard:
             auth=HTTPBasicAuth(self.api_user, self.api_pass),
         )
         self.logger.debug(queryurl_cutouts)
-        if response.status_code != 200:
+        if response.status_code == 503:
             raise requests.exceptions.RequestException
 
         cutouts = response.json()
