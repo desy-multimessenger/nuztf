@@ -49,7 +49,7 @@ setuptools.setup(
         "matplotlib==3.4.2",
         "numpy==1.20.3",
         "pandas == 1.2.4",
-        "psycopg2-binary == 2.8.6",
+        "psycopg2-binary == 2.9.1",
         "pydantic == 1.4",
         "pymongo == 3.11.4",
         "pysedm == 0.27.4",
