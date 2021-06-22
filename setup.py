@@ -41,7 +41,7 @@ setuptools.setup(
         "fastavro == 1.4.1",
         "fitsio == 1.1.4",
         "gwemopt == 0.0.72",
-        "healpy == 1.14.0",
+        "healpy == 1.15.0",
         "ipykernel == 5.5.5",
         "jupyter == 1.0.0",
         "ligo-gracedb == 2.7.6",
