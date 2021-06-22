@@ -56,7 +56,7 @@ setuptools.setup(
         "pyvo == 1.1",
         "ratelimit == 2.2.1",
         "requests == 2.25.1",
-        "scipy == 1.6.3",
+        "scipy == 1.7.0",
         "setuptools == 57.0.0",
         "shapely == 1.7.1",
         "sklearn == 0.0",
