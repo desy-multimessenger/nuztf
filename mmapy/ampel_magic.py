@@ -517,7 +517,8 @@ class AmpelWizard:
 
         if response.json()[0]:
             response_body = response.json()[0]["body"]
-            name = response_body["name"]
+            print(response_body)
+            name = response_body["objname"]
             prefix = response_body["name_prefix"]
             full_name = prefix + name
             discovery_date = response_body["discoverydate"]
