@@ -641,7 +641,7 @@ class AmpelWizard:
             "approximately {3:.1f} hours after event time. {4}"
             "{5} \n \n"
             "The images were processed in real-time through the ZTF reduction and image subtraction pipelines at IPAC to search for potential counterparts (Masci et al. 2019). "
-            "AMPEL (Nordin et al. 2019, Stein et al. 2020) was used to search the alerts database for candidates. "
+            "AMPEL (Nordin et al. 2019, Stein et al. 2021) was used to search the alerts database for candidates. "
             "We reject stellar sources (Tachibana and Miller 2018) and moving objects, and "
             "apply machine learning algorithms (Mahabal et al. 2019) {6}. We are left with the following high-significance transient "
             "candidates by our pipeline, all lying within the "
