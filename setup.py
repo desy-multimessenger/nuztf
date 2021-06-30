@@ -66,7 +66,7 @@ setuptools.setup(
         "wget == 3.2",
         "zerorpc == 0.6.3",
         "ztf-plan-obs == 0.33",
-        "ztfquery == 1.15.5"
+        "ztfquery == 1.15.6"
     ]
 )
 
