@@ -57,7 +57,7 @@ setuptools.setup(
         "ratelimit == 2.2.1",
         "requests == 2.25.1",
         "scipy == 1.7.0",
-        "setuptools == 57.0.0",
+        "setuptools == 57.1.0",
         "shapely == 1.7.1",
         "sklearn == 0.0",
         "slackclient == 2.9.3",
