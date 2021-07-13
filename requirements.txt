@@ -29,7 +29,7 @@ pymongo==3.11.4
 pysedm==0.27.4
 pyvo==1.1
 ratelimit==2.2.1
-requests==2.25.1
+requests==2.26.0
 scipy==1.7.0
 setuptools==57.1.0
 shapely==1.7.1
