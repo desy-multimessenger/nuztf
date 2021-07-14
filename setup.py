@@ -32,7 +32,7 @@ setuptools.setup(
         "astrobject == 0.8.6",
         "astropy == 4.2.1",
         "astropy_healpix == 0.6",
-        "backoff == 1.10.0",
+        "backoff == 1.11.1",
         "bs4 == 0.0.1",
         "catsHTM == 0.1.32",
         "coveralls == 3.1.0",
