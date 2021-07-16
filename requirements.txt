@@ -2,7 +2,7 @@ ampel-alerts==0.7.2
 ampel-core==0.7.4
 ampel-interface==0.7.1
 ampel-photometry==0.7.1
-ampel-ztf==0.7.2
+ampel-ztf==0.7.3
 astrobject==0.8.6
 astropy==4.2.1
 astropy_healpix==0.6
@@ -16,7 +16,7 @@ fastavro==1.4.2
 fitsio==1.1.4
 gwemopt==0.0.72
 healpy==1.15.0
-ipykernel==6.0.1
+ipykernel==6.0.2
 jupyter==1.0.0
 ligo-gracedb==2.7.6
 lxml==4.6.3
@@ -31,11 +31,11 @@ pyvo==1.1
 ratelimit==2.2.1
 requests==2.26.0
 scipy==1.7.0
-setuptools==57.1.0
+setuptools==57.2.0
 shapely==1.7.1
 sklearn==0.0
 slackclient==2.9.3
-sqlalchemy==1.4.20
+sqlalchemy==1.4.21
 tqdm==4.61.2
 wget==3.2
 zerorpc==0.6.3
