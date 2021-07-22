@@ -35,7 +35,7 @@ setuptools.setup(
         "backoff == 1.11.1",
         "bs4 == 0.0.1",
         "catsHTM == 0.1.32",
-        "coveralls == 3.1.0",
+        "coveralls == 3.2.0",
         "datetime == 4.3",
         "extcats == 2.4.1",
         "fastavro == 1.4.3",
