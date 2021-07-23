@@ -40,7 +40,7 @@ setuptools.setup(
         "extcats == 2.4.1",
         "fastavro == 1.4.4",
         "fitsio == 1.1.4",
-        "gwemopt == 0.0.72",
+        "gwemopt == 0.0.73",
         "healpy == 1.15.0",
         "ipykernel == 6.0.3",
         "jupyter == 1.0.0",
