@@ -40,4 +40,4 @@ tqdm==4.61.2
 wget==3.2
 zerorpc==0.6.3
 ztf-plan-obs==0.33
-ztfquery==1.15.6
+ztfquery==1.15.7
