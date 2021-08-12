@@ -42,7 +42,7 @@ setuptools.setup(
         "fitsio == 1.1.4",
         "gwemopt == 0.0.73",
         "healpy == 1.15.0",
-        "ipykernel == 6.0.3",
+        "ipykernel == 6.1.0",
         "jupyter == 1.0.0",
         "ligo-gracedb == 2.7.6",
         "lxml==4.6.3",
