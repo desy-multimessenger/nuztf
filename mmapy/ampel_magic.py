@@ -312,11 +312,7 @@ class AmpelWizard:
 
     # @sleep_and_retry
     # @limits(calls=RATELIMIT_CALLS, period=RATELIMIT_PERIOD)
-    @backoff.on_exception(
-        backoff.expo,
-        requests.exceptions.RequestException,
-        max_time=600,
-    )
+
     def ampel_object_search(self, ztf_names: list) -> list:
         """ """
         all_results = []
@@ -340,27 +336,11 @@ class AmpelWizard:
 
         return all_results
 
-    # @sleep_and_retry
-    # @limits(calls=RATELIMIT_CALLS, period=RATELIMIT_PERIOD)
-    @backoff.on_exception(
-        backoff.expo,
-        requests.exceptions.RequestException,
-        max_time=600,
-    )
-
     @staticmethod
     def calculate_abs_mag(mag, redshift: float):
         luminosity_distance = cosmo.luminosity_distance(redshift).value * 10 ** 6
         abs_mag = mag - 5 * (np.log10(luminosity_distance) - 1)
         return abs_mag
-
-    # @sleep_and_retry
-    # @limits(calls=RATELIMIT_CALLS, period=RATELIMIT_PERIOD)
-    @backoff.on_exception(
-        backoff.expo,
-        requests.exceptions.RequestException,
-        max_time=600,
-    )
 
     def query_catalog(
         self,

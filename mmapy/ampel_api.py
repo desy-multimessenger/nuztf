@@ -1,4 +1,5 @@
 import requests
+import backoff
 from base64 import b64decode
 from astropy.time import Time
 from mmapy.credentials import load_credentials
@@ -43,6 +44,12 @@ def merge_alerts(alert_list):
             merged_list.append(latest)
     return merged_list
 
+@backoff.on_exception(
+    backoff.expo,
+    requests.exceptions.RequestException,
+    max_time=600,
+)
+
 
 def ampel_api_cone(ra, dec, radius,
                    t_min_jd=Time(
@@ -75,6 +82,12 @@ def ampel_api_cone(ra, dec, radius,
 
     return query_res
 
+@backoff.on_exception(
+    backoff.expo,
+    requests.exceptions.RequestException,
+    max_time=600,
+)
+
 
 def ampel_api_name(ztf_name, logger=None):
     """Function to query ampel via name"""
@@ -96,6 +109,12 @@ def ampel_api_name(ztf_name, logger=None):
     query_res = merge_alerts(query_res)
     return query_res
 
+
+@backoff.on_exception(
+    backoff.expo,
+    requests.exceptions.RequestException,
+    max_time=600,
+)
 
 def ampel_api_cutout(candid: int, logger=None):
     """Function to query ampel for cutouts by candidate ID"""
