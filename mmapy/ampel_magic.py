@@ -22,7 +22,6 @@ from ztfquery import alert, query, skyvision, io
 from ztfquery import fields as ztfquery_fields
 from matplotlib.backends.backend_pdf import PdfPages
 from requests.auth import HTTPBasicAuth
-from base64 import b64decode
 from tqdm import tqdm
 from ampel.ztf.t0.DecentFilter import DecentFilter
 from ampel.ztf.dev.DevAlertProcessor import DevAlertProcessor
@@ -30,18 +29,11 @@ from ampel.alert.PhotoAlert import PhotoAlert
 from ratelimit import limits, sleep_and_retry
 from gwemopt.ztf_tiling import get_quadrant_ipix
 from ampel.log.AmpelLogger import AmpelLogger
-from mmapy.credentials import (
-    load_credentials,
-    API_BASEURL,
-    API_ZTF_ARCHIVE_URL,
-    API_CATALOGMATCH_URL,
-    API_CUTOUT_URL,
-)
+from mmapy.ampel_api import ampel_api_cone, ampel_api_name, reassemble_alert, ampel_api_catalog, ampel_api_tns
 
 DEBUG = False
 RATELIMIT_CALLS = 10
 RATELIMIT_PERIOD = 1
-
 
 class AmpelWizard:
     def __init__(
@@ -52,7 +44,6 @@ class AmpelWizard:
         resource=None,
         filter_class=DecentFilter,
         cone_nside=64,
-        fast_query=False,
         cones_to_scan=None,
     ):
         self.cone_nside = cone_nside
@@ -89,14 +80,10 @@ class AmpelWizard:
         else:
             self.cone_ids, self.cone_coords = cones_to_scan
         self.cache = dict()
-        self.default_t_max = t_min + 10
+        self.default_t_max = t_min + 10.
 
         self.mns_time = str(self.t_min).split("T")[0].replace("-", "")
         self.mns = None
-
-        self.fast_query = fast_query
-        if self.fast_query:
-            self.logger.info("Scanning in fast mode!")
 
         self.overlap_prob = None
         self.overlap_fields = None
@@ -108,8 +95,6 @@ class AmpelWizard:
 
         if not hasattr(self, "dist"):
             self.dist = None
-
-        self.api_user, self.api_pass = load_credentials("ampel_api")
 
     def get_name(self):
         raise NotImplementedError
@@ -147,20 +132,9 @@ class AmpelWizard:
         requests.exceptions.RequestException,
         max_time=600,
     )
+
     def get_avro_by_name(self, ztf_name):
-        queryurl_ztf_name = (
-            API_ZTF_ARCHIVE_URL + f"/object/{ztf_name}/alerts?with_history=true"
-        )
-        self.logger.debug(queryurl_ztf_name)
-        response = requests.get(
-            queryurl_ztf_name,
-            auth=HTTPBasicAuth(self.api_user, self.api_pass),
-        )
-        if response.status_code == 503:
-            raise requests.exceptions.RequestException
-        query_res = [i for i in response.json()]
-        query_res = self.merge_alerts(query_res)
-        return query_res[0]
+        return ampel_api_name(ztf_name, logger=self.logger)
 
     def add_to_cache_by_names(self, *args):
         for ztf_name in args:
@@ -261,7 +235,7 @@ class AmpelWizard:
         self.logger.info(f"Retrieving alert history from AMPEL")
 
         results = self.ampel_object_search(
-            ztf_names=all_ztf_names, fast_query=self.fast_query
+            ztf_names=all_ztf_names
         )
 
         for res in results:
@@ -317,21 +291,9 @@ class AmpelWizard:
         if t_max is None:
             t_max = self.default_t_max
 
-        queryurl_conesearch = (
-            API_ZTF_ARCHIVE_URL
-            + f"/alerts/cone_search?ra={ra}&dec={dec}&radius={radius}&jd_start={self.t_min.jd}&jd_end={t_max.jd}&with_history=false&with_cutouts=false&chunk_size=500"
-        )
+        t_min = self.t_min
 
-        self.logger.debug(queryurl_conesearch)
-
-        response = requests.get(
-            queryurl_conesearch,
-            auth=HTTPBasicAuth(self.api_user, self.api_pass),
-        )
-        if response.status_code == 503:
-            raise requests.exceptions.RequestException
-
-        query_res = [i for i in response.json()["alerts"]]
+        query_res = ampel_api_cone(ra, dec, radius, t_min.jd, t_max.jd, logger=self.logger)
 
         ## LEGACY (KEPT FOR TIMING RESULTS FOR JVS)
         # result = ampel_client.get_alerts_in_cone(
@@ -355,7 +317,7 @@ class AmpelWizard:
         requests.exceptions.RequestException,
         max_time=600,
     )
-    def ampel_object_search(self, ztf_names: list, fast_query=False) -> list:
+    def ampel_object_search(self, ztf_names: list) -> list:
         """ """
         all_results = []
 
@@ -365,37 +327,14 @@ class AmpelWizard:
         # query_res = self.merge_alerts(query_res)
 
         for ztf_name in ztf_names:
-            queryurl_ztf_name = (
-                API_ZTF_ARCHIVE_URL + f"/object/{ztf_name}/alerts?with_history=true"
-            )
-            self.logger.debug(queryurl_ztf_name)
-            response = requests.get(
-                queryurl_ztf_name,
-                auth=HTTPBasicAuth(self.api_user, self.api_pass),
-            )
 
-            if response.status_code == 503:
-                raise requests.exceptions.RequestException
-            query_res = [i for i in response.json()]
+            query_res = ampel_api_name(ztf_name)
 
-            if not fast_query:
-                query_res = self.merge_alerts(query_res)
+            final_res = []
 
-                final_res = []
-
-                for res in query_res:
-                    if self.filter_f_history(res):
-                        final_res.append(res)
-
-            # do we actually need the fast query?
-            else:
-                indexes = []
-                for i, res in enumerate(query_res):
-                    if self.fast_filter_f_no_prv(res):
-                        if self.filter_ampel(res):
-                            indexes.append(i)
-
-                final_res = [query_res[i] for i in indexes]
+            for res in query_res:
+                if self.filter_f_history(res):
+                    final_res.append(res)
 
             all_results.append(final_res)
 
@@ -408,78 +347,6 @@ class AmpelWizard:
         requests.exceptions.RequestException,
         max_time=600,
     )
-    def ampel_get_cutouts(self, candid: int):
-        """ """
-        queryurl_cutouts = API_CUTOUT_URL + f"/{candid}"
-        response = requests.get(
-            queryurl_cutouts,
-            auth=HTTPBasicAuth(self.api_user, self.api_pass),
-        )
-        self.logger.debug(queryurl_cutouts)
-        if response.status_code == 503:
-            raise requests.exceptions.RequestException
-
-        cutouts = response.json()
-        return cutouts
-
-    # @staticmethod
-    def reassemble_alert(self, mock_alert):
-        """ """
-        ## LEGACY (KEPT FOR TIMING RESULTS FOR JVS)
-        # cutouts = ampel_client.get_cutout(mock_alert["candid"])
-        # for k in cutouts:
-        #     mock_alert[f"cutout{k.title()}"] = {
-        #         "stampData": cutouts[k],
-        #         "fileName": "dunno",
-        #     }
-
-        cutouts = self.ampel_get_cutouts(mock_alert["candid"])
-
-        for k in cutouts:
-            mock_alert[f"cutout{k.title()}"] = {
-                "stampData": b64decode(cutouts[k]),
-                "fileName": "dunno",
-            }
-        mock_alert["schemavsn"] = "dunno"
-        mock_alert["publisher"] = "dunno"
-        for pp in [mock_alert["candidate"]] + mock_alert["prv_candidates"]:
-            # if pp['isdiffpos'] is not None:
-            # pp['isdiffpos'] = ['f', 't'][pp['isdiffpos']]
-            pp["pdiffimfilename"] = "dunno"
-            pp["programpi"] = "dunno"
-            pp["ssnamenr"] = "dunno"
-
-        return mock_alert
-
-    @staticmethod
-    def merge_alerts(alert_list):
-        merged_list = []
-        keys = list(set([x["objectId"] for x in alert_list]))
-
-        for objectid in keys:
-            alerts = [x for x in alert_list if x["objectId"] == objectid]
-            if len(alerts) == 1:
-                merged_list.append(alerts[0])
-            else:
-                jds = [x["candidate"]["jd"] for x in alerts]
-                order = [jds.index(x) for x in sorted(jds)[::-1]]
-                latest = alerts[jds.index(max(jds))]
-                latest["candidate"]["jdstarthist"] = min(
-                    [x["candidate"]["jdstarthist"] for x in alerts]
-                )
-
-                for index in order[1:]:
-
-                    x = alerts[index]
-
-                    # Merge previous detections
-
-                    for prv in x["prv_candidates"] + [x["candidate"]]:
-                        if prv not in latest["prv_candidates"]:
-                            latest["prv_candidates"] = [prv] + latest["prv_candidates"]
-
-                merged_list.append(latest)
-        return merged_list
 
     @staticmethod
     def calculate_abs_mag(mag, redshift: float):
@@ -494,38 +361,6 @@ class AmpelWizard:
         requests.exceptions.RequestException,
         max_time=600,
     )
-    def query_tns(self, ra: float, dec: float, searchradius_arcsec: float = 3):
-        """ """
-        queryurl_catalogmatch = API_CATALOGMATCH_URL + f"/cone_search/nearest"
-
-        # First, we create a json body to post
-        headers = {"accept": "application/json", "Content-Type": "application/json"}
-        query = {
-            "ra_deg": ra,
-            "dec_deg": dec,
-            "catalogs": [
-                {"name": "TNS", "rs_arcsec": searchradius_arcsec, "use": "extcats"}
-            ],
-        }
-
-        # Now we retrieve results from the API
-        response = requests.post(url=queryurl_catalogmatch, json=query, headers=headers)
-
-        full_name = None
-        discovery_date = None
-        source_group = None
-
-        if response.json()[0]:
-            response_body = response.json()[0]["body"]
-            print(response_body)
-            name = response_body["objname"]
-            prefix = response_body["name_prefix"]
-            full_name = prefix + name
-            discovery_date = response_body["discoverydate"]
-            if "source_group" in response_body.keys():
-                source_group = response_body["source_group"]["group_name"]
-
-        return full_name, discovery_date, source_group
 
     def query_catalog(
         self,
@@ -570,7 +405,7 @@ class AmpelWizard:
         z = None
         dist_arcsec = None
 
-        query = self.query_catalog(
+        query = ampel_api_catalog(
             catalog="NEDz_extcats",
             catalog_type="extcats",
             ra=ra,
@@ -608,7 +443,7 @@ class AmpelWizard:
                     old_flag = "(MORE THAN ONE DAY SINCE SECOND DETECTION)"
 
             tns_result = " ------- "
-            tns_name, tns_date, tns_group = self.query_tns(
+            tns_name, tns_date, tns_group = ampel_api_tns(
                 latest["ra"], latest["dec"], searchradius_arcsec=3
             )
             if tns_name:
@@ -697,7 +532,7 @@ class AmpelWizard:
 
         with PdfPages(self.output_path) as pdf:
             for (name, old_alert) in tqdm(sorted(self.cache.items())):
-                mock_alert = self.reassemble_alert(old_alert)
+                mock_alert = reassemble_alert(old_alert)
                 try:
                     fig = alert.display_alert(mock_alert, show_ps_stamp=True)
                     fig.text(0.01, 0.01, name)

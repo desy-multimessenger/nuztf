@@ -2,13 +2,6 @@ import os
 import logging
 from ztfquery import io
 
-# AMPEL API credentials
-
-API_BASEURL = "https://ampel.zeuthen.desy.de"
-API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive"
-API_CATALOGMATCH_URL = API_BASEURL + "/api/catalogmatch"
-API_CUTOUT_URL = API_BASEURL + "/api/ztf/archive/cutouts"
-
 # Manage ztfquery logins from environment variables
 
 
