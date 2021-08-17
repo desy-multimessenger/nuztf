@@ -1,8 +1,8 @@
 # .coveragerc to control coverage.py
 [run]
-source = mmapy
+source = nuztf
 omit =
-    mmapy/slack_bot.py
+    nuztf/slack_bot.py
 
 [report]
 # Regexes for lines to exclude from consideration
