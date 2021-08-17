@@ -1,7 +1,7 @@
 import pickle
 import argparse
 from multiprocessing import JoinableQueue, Process
-from mmapy.gw_scanner import GravWaveScanner
+from nuztf.gw_scanner import GravWaveScanner
 import numpy as np
 import healpy as hp
 import os

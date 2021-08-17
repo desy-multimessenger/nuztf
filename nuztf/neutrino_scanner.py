@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-from mmapy.ampel_magic import AmpelWizard
+from nuztf.ampel_magic import AmpelWizard
 from astropy.time import Time
 import healpy as hp
 import numpy as np

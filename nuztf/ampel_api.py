@@ -2,7 +2,7 @@ import requests
 import backoff
 from base64 import b64decode
 from astropy.time import Time
-from mmapy.credentials import load_credentials
+from nuztf.credentials import load_credentials
 from requests.auth import HTTPBasicAuth
 
 # AMPEL API URLs

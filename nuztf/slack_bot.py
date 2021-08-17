@@ -4,7 +4,7 @@ import numpy as np
 import logging
 import io
 import os
-from mmapy.gw_multi_process import MultiGwProcessor
+from nuztf.gw_multi_process import MultiGwProcessor
 import traceback
 import time
 

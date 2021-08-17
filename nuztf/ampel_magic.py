@@ -29,7 +29,7 @@ from ampel.alert.PhotoAlert import PhotoAlert
 from ratelimit import limits, sleep_and_retry
 from gwemopt.ztf_tiling import get_quadrant_ipix
 from ampel.log.AmpelLogger import AmpelLogger
-from mmapy.ampel_api import ampel_api_cone, ampel_api_name, reassemble_alert, ampel_api_catalog, ampel_api_tns
+from nuztf.ampel_api import ampel_api_cone, ampel_api_name, reassemble_alert, ampel_api_catalog, ampel_api_tns
 
 DEBUG = False
 RATELIMIT_CALLS = 10

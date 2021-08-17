@@ -1,6 +1,6 @@
 import unittest
 
-from mmapy import NeutrinoScanner
+from nuztf import NeutrinoScanner
 from ampel.log.AmpelLogger import AmpelLogger
 
 

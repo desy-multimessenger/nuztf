@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="mmapy",
+    name="nuztf",
     version="2.0.0",
     author="Robert Stein",
     author_email="robert.stein@desy.de",
@@ -13,7 +13,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     license="MIT",
     keywords="astroparticle physics science multimessenger astronomy ZTF",
-    url="https://github.com/icecube/flarestack",
+    url="https://github.com/desy-multimessenger/nuztf",
     packages=setuptools.find_packages(),
     classifiers=[
         "License :: OSI Approved :: MIT License",

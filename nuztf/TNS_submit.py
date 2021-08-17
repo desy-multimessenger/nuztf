@@ -21,8 +21,8 @@ ztf_default_values = {
 
 RUN_CONFIG = {'submit_tns': True, 'sandbox': True, 'resubmit_tns_nonztf': False, 'resubmit_tns_ztf': False, 'submit_unless_journal': True, "lc_filters": [], "ztf_tns_at": ztf_default_values}
 
-from mmapy.ampel_magic import username
-from mmapy.ampel_magic import password
+from nuztf.ampel_magic import username
+from nuztf.ampel_magic import password
 
 TNS_API_KEYFILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".TNS_api_key.cred")
 try:

@@ -1,4 +1,4 @@
-from mmapy.ampel_magic import AmpelWizard
+from nuztf.ampel_magic import AmpelWizard
 from astropy.time import Time
 import matplotlib.pyplot as plt
 import healpy as hp
