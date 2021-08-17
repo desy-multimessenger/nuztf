@@ -17,6 +17,7 @@ NuZTF can be directly installed with pip, giving the latest stable release:
 Alternatively, the latest Github version of the code can be installed via pip:
 
 ```git clone https://github.com/desy-multimessenger/nuztf.git```
+
 ```pip install -e ztfnu```
 
 You will need the IRSA login details with a ZTF-enabled account, to fully utilise all features.
