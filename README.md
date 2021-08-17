@@ -18,7 +18,7 @@ Alternatively, the latest Github version of the code can be installed via pip:
 
 ```git clone https://github.com/desy-multimessenger/nuztf.git```
 
-```pip install -e ztfnu```
+```pip install -e nuztf```
 
 You will need the IRSA login details with a ZTF-enabled account, to fully utilise all features.
 
