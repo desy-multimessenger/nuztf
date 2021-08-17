@@ -4,14 +4,20 @@ This package enables ZTF follow-up analysis of neutrinos/gravitational waves/gam
 
 [![DOI](https://zenodo.org/badge/193068064.svg)](https://zenodo.org/badge/latestdoi/193068064) 
 [![CI](https://github.com/robertdstein/ampel_followup_pipeline/actions/workflows/continous_integration.yml/badge.svg)](https://github.com/robertdstein/ampel_followup_pipeline/actions/workflows/continous_integration.yml) 
+[![PyPI version](https://badge.fury.io/py/nuztf.svg)](https://badge.fury.io/py/nuztf) 
 ![Binder](https://mybinder.org/badge_logo.svg) 
 [![Coverage Status](https://coveralls.io/repos/github/desy-multimessenger/ampel_followup_pipeline/badge.svg?branch=master)](https://coveralls.io/github/desy-multimessenger/ampel_followup_pipeline?branch=master)
 
 ## Installation Instructions
 
-The majority of required packages can be installed with the command:
+NuZTF can be directly installed with pip, giving the latest stable release:
 
-```pip install -r requirements.txt```
+```pip install nuztf```
+
+Alternatively, the latest Github version of the code can be installed via pip:
+
+```git clone https://github.com/desy-multimessenger/nuztf.git```
+```pip install -e ztfnu```
 
 You will need the IRSA login details with a ZTF-enabled account, to fully utilise all features.
 
