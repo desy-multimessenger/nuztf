@@ -12,7 +12,15 @@ import requests
 import logging
 from ztf_plan_obs import gcn_parser
 
-nu_candidate_output_dir = os.path.join(Path(__file__).resolve().parents[1], "Neutrino_candidates")
+if environ.get("ZTFDATA") is not None:
+    basedir = os.getenv("ZTFDATA")
+else:
+    basedir = os.getcwd()
+
+nu_candidate_output_dir = os.path.join(basedir, "neutrino_candidates")
+
+if not os.path.exists(nu_candidate_output_dir):
+    os.makedirs(nu_candidate_output_dir)
 
 nu_run_config = {
     "min_ndet": 1,  # Default:2
