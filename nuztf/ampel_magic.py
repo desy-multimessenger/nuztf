@@ -448,29 +448,23 @@ class AmpelWizard:
 
     def draft_gcn(self):
 
+        first_obs_dt = self.first_obs.datetime
+        pretty_date = first_obs_dt.strftime('%Y-%m-%d')
+        pretty_time = first_obs_dt.strftime('%H:%M')
+
         text = (
-            "Astronomer Name (Institute of Somewhere), ............. report,\n"
-            "On behalf of the Zwicky Transient Facility (ZTF) and Global Relay of Observatories Watching Transients Happen (GROWTH) collaborations: \n"
-            "We observed the localization region of the {0} with the Palomar 48-inch telescope, equipped with the 47 square degree ZTF camera (Bellm et al. 2019, Graham et al. 2019). {1}"
-            "We started observations in the g-band and r-band beginning at {2} UTC, "
-            "approximately {3:.1f} hours after event time. {4}"
-            "{5} \n \n"
+            f"Astronomer Name (Institute of Somewhere), ............. report,\n"
+            f"On behalf of the Zwicky Transient Facility (ZTF) and Global Relay of Observatories Watching Transients Happen (GROWTH) collaborations: \n"
+            f"We observed the localization region of the {self.get_full_name()} with the Palomar 48-inch telescope, equipped with the 47 square degree ZTF camera (Bellm et al. 2019, Graham et al. 2019). {self.get_tiling_line()}"
+            f"We started observations in the g-band and r-band beginning at {pretty_date} {pretty_time} UTC, "
+            f"approximately {(self.first_obs.jd - self.t_min.jd) * 24.0:.1f} hours after event time. {self.get_overlap_line()}"
+            f"{self.get_obs_line()} \n \n"
             "The images were processed in real-time through the ZTF reduction and image subtraction pipelines at IPAC to search for potential counterparts (Masci et al. 2019). "
             "AMPEL (Nordin et al. 2019, Stein et al. 2021) was used to search the alerts database for candidates. "
             "We reject stellar sources (Tachibana and Miller 2018) and moving objects, and "
-            "apply machine learning algorithms (Mahabal et al. 2019) {6}. We are left with the following high-significance transient "
+            f"apply machine learning algorithms (Mahabal et al. 2019) {self.remove_variability_line()}. We are left with the following high-significance transient "
             "candidates by our pipeline, all lying within the "
-            "{7}% localization of the skymap. \n\n{8} \n\n".format(
-                self.get_full_name(),
-                self.get_tiling_line(),
-                self.first_obs.utc,
-                (self.first_obs.jd - self.t_min.jd) * 24.0,
-                self.get_overlap_line(),
-                self.get_obs_line(),
-                self.remove_variability_line(),
-                100 * self.prob_threshold,
-                self.parse_candidates(),
-            )
+            f"{100 * self.prob_threshold}% localization of the skymap.\n\n{self.parse_candidates()} \n\n"
         )
 
         if self.dist:
@@ -482,7 +476,7 @@ class AmpelWizard:
         else:
             pass
 
-        text += "Amongst our candidates, \n{0}. \n \n".format(self.text_summary())
+        text += "Amongst our candidates, \n{0}\n \n".format(self.text_summary())
 
         text += (
             "ZTF and GROWTH are worldwide collaborations comprising Caltech, USA; IPAC, USA; WIS, Israel; OKC, Sweden; JSI/UMd, USA; DESY, Germany; TANGO, Taiwan; UW Milwaukee, USA; LANL, USA; TCD, Ireland; IN2P3, France.\n\n"
