@@ -485,11 +485,11 @@ class AmpelWizard:
         text += "Amongst our candidates, \n{0}. \n \n".format(self.text_summary())
 
         text += (
-            "ZTF and GROWTH are worldwide collaborations comprising Caltech, USA; IPAC, USA; WIS, Israel; OKC, Sweden; JSI/UMd, USA; DESY, Germany; TANGO, Taiwan; UW Milwaukee, USA; LANL, USA; TCD, Ireland; IN2P3, France. \n"
-            "GROWTH acknowledges generous support of the NSF under PIRE Grant No 1545949. \n"
-            "Alert distribution service provided by DIRAC@UW (Patterson et al. 2019). \n"
-            "Alert database searches are done by AMPEL (Nordin et al. 2019). \n"
-            "Alert filtering is performed with the AMPEL Follow-up Pipeline (Stein et al. 2021). \n"
+            "ZTF and GROWTH are worldwide collaborations comprising Caltech, USA; IPAC, USA; WIS, Israel; OKC, Sweden; JSI/UMd, USA; DESY, Germany; TANGO, Taiwan; UW Milwaukee, USA; LANL, USA; TCD, Ireland; IN2P3, France.\n\n"
+            "GROWTH acknowledges generous support of the NSF under PIRE Grant No 1545949.\n"
+            "Alert distribution service provided by DIRAC@UW (Patterson et al. 2019).\n"
+            "Alert database searches are done by AMPEL (Nordin et al. 2019).\n"
+            "Alert filtering is performed with the AMPEL Follow-up Pipeline (Stein et al. 2021).\n"
         )
         if self.dist:
             text += "Alert filtering and follow-up coordination is being undertaken by the Fritz marshal system (FIXME CITATION NEEDED)."
