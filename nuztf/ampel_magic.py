@@ -476,7 +476,7 @@ class AmpelWizard:
         else:
             pass
 
-        text += "Amongst our candidates, \n{0}\n \n".format(self.text_summary())
+        text += f"Amongst our candidates, \n{self.text_summary()}\n\n"
 
         text += (
             "ZTF and GROWTH are worldwide collaborations comprising Caltech, USA; IPAC, USA; WIS, Israel; OKC, Sweden; JSI/UMd, USA; DESY, Germany; TANGO, Taiwan; UW Milwaukee, USA; LANL, USA; TCD, Ireland; IN2P3, France.\n\n"
