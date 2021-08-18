@@ -47,7 +47,7 @@ setuptools.setup(
         "ligo-gracedb == 2.7.6",
         "lxml==4.6.3",
         "matplotlib==3.4.3",
-        "numpy==1.21.1",
+        "numpy==1.21.2",
         "pandas == 1.3.2",
         "psycopg2-binary == 2.9.1",
         "pydantic == 1.4",
