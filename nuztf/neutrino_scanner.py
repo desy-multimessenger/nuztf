@@ -7,6 +7,7 @@ import healpy as hp
 import numpy as np
 from tqdm import tqdm
 import os
+from os import environ
 from pathlib import Path
 import requests
 import logging
