@@ -22,7 +22,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
     ],
-    python_requires='>=3.8',
+    python_requires='=3.8',
     install_requires=[
         "ampel-alerts == 0.7.2",
         "ampel-core == 0.7.4",
