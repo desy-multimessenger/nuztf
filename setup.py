@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="nuztf",
-    version="1.2.1",
+    version="2.0.0",
     author="Robert Stein",
     author_email="robert.stein@desy.de",
     description="Package for multi-messenger correlation searches with ZTF",
