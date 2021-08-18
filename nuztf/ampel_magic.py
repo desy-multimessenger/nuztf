@@ -485,7 +485,7 @@ class AmpelWizard:
         text += "Amongst our candidates, \n{0}. \n \n".format(self.text_summary())
 
         text += (
-            "Based on observations obtained with the Samuel Oschin Telescope 48-inch and the 60-inch Telescope at the Palomar Observatory as part of the Zwicky Transient Facility project. ZTF is supported by the National Science Foundation under Grant No. AST-2034437 and a collaboration including Caltech, IPAC, the Weizmann Institute for Science, the Oskar Klein Center at Stockholm University, the University of Maryland, Deutsches Elektronen-Synchrotron and Humboldt University, the TANGO Consortium of Taiwan, the University of Wisconsin at Milwaukee, Trinity College Dublin, Lawrence Livermore National Laboratories, and IN2P3, France. Operations are conducted by COO, IPAC, and UW. \n"
+            "ZTF and GROWTH are worldwide collaborations comprising Caltech, USA; IPAC, USA; WIS, Israel; OKC, Sweden; JSI/UMd, USA; DESY, Germany; TANGO, Taiwan; UW Milwaukee, USA; LANL, USA; TCD, Ireland; IN2P3, France. \n"
             "GROWTH acknowledges generous support of the NSF under PIRE Grant No 1545949. \n"
             "Alert distribution service provided by DIRAC@UW (Patterson et al. 2019). \n"
             "Alert database searches are done by AMPEL (Nordin et al. 2019). \n"

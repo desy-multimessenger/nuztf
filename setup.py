@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="nuztf",
-    version="2.0.5",
+    version="2.1.0",
     author="Robert Stein",
     author_email="robert.stein@desy.de",
     description="Package for multi-messenger correlation searches with ZTF",
@@ -21,7 +21,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.8",
     ],
-    python_requires='==3.8',
+    python_requires='>=3.8.0,<3.9.0',
     install_requires=[
         "ampel-alerts == 0.7.2",
         "ampel-core == 0.7.4",
