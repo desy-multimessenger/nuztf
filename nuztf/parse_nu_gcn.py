@@ -3,23 +3,10 @@ import numpy as np
 from ztf_plan_obs.gcn_parser import parse_gcn_circular
 
 
-def strip_numbers(line):
-    vals = []
-    line = line.replace("- ", "-")
-    line = line.replace("-", " -")
+class ParsingError(Exception):
+    """Base class for parsing error"""
 
-    for x in line.replace(",", " ").replace("/", " ").split(" "):
-        try:
-            vals.append(
-                float(
-                    "".join(
-                        [y for y in x if y not in ["(", "+", ")", "[", "]", "/"]]
-                    )
-                )
-            )
-        except ValueError:
-            pass
-    return vals
+    pass
 
 
 def parse_gcn_archive():

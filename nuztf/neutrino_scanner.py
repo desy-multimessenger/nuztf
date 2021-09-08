@@ -47,12 +47,6 @@ nu_run_config = {
 }
 
 
-class ParsingError(Exception):
-    """Base class for parsing error"""
-
-    pass
-
-
 class NeutrinoScanner(AmpelWizard):
     def __init__(
         self,
