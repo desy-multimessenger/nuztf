@@ -590,8 +590,6 @@ class AmpelWizard:
     def peak_mag_summary(self):
         for name, res in sorted(self.cache.items()):
 
-            res = list(res)[0]
-
             detections = [
                 x
                 for x in res["prv_candidates"] + [res["candidate"]]
