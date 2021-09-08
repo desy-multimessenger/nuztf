@@ -39,3 +39,21 @@ class TestNeutrinoScanner(unittest.TestCase):
             res,
             true_gcn
         )
+
+        # Test manually adding candidates
+
+        nu.add_to_cache_by_names("ZTF18abteipt",)
+
+        # Check
+
+        false_candidate = nu.check_ampel_filter("ZTF18abteipt")
+
+        logger.info(f"For the false candidate, the pipeline bool is {false_candidate}")
+
+        self.assertFalse(false_candidate)
+
+        true_candidate = nu.check_ampel_filter("ZTF20abgvabi")
+
+        logger.info(f"For the true candidate, the pipeline bool is {true_candidate}")
+
+        self.assertTrue(true_candidate)
