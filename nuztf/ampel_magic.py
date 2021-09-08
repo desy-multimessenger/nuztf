@@ -136,9 +136,20 @@ class AmpelWizard:
     def get_avro_by_name(self, ztf_name):
         return ampel_api_name(ztf_name, logger=self.logger)
 
+    def add_res_to_cache(self, res):
+        for res_alert in res:
+
+            if res_alert["objectId"] not in self.cache.keys():
+                self.cache[res_alert["objectId"]] = res_alert
+            elif (
+                    res_alert["candidate"]["jd"]
+                    > self.cache[res_alert["objectId"]]["candidate"]["jd"]
+            ):
+                self.cache[res_alert["objectId"]] = res_alert
+
     def add_to_cache_by_names(self, *args):
         for ztf_name in args:
-            self.cache[ztf_name] = self.get_avro_by_name(ztf_name)
+            self.add_res_to_cache(self.get_avro_by_name(ztf_name))
 
     def check_ampel_filter(self, ztf_name):
         lvl = logging.getLogger().getEffectiveLevel()
@@ -239,16 +250,7 @@ class AmpelWizard:
         )
 
         for res in results:
-
-            for res_alert in res:
-
-                if res_alert["objectId"] not in self.cache.keys():
-                    self.cache[res_alert["objectId"]] = res_alert
-                elif (
-                    res_alert["candidate"]["jd"]
-                    > self.cache[res_alert["objectId"]]["candidate"]["jd"]
-                ):
-                    self.cache[res_alert["objectId"]] = res_alert
+            self.add_res_to_cache(res)
 
         self.logger.info(f"Found {len(self.cache)} candidates")
 
@@ -584,6 +586,21 @@ class AmpelWizard:
                 ]
             )
             print("\n")
+
+    def peak_mag_summary(self):
+        for name, res in sorted(self.cache.items()):
+
+            res = list(res)[0]
+
+            detections = [
+                x
+                for x in res["prv_candidates"] + [res["candidate"]]
+                if "isdiffpos" in x.keys()
+            ]
+            detection_mags = [x["magpsf"] for x in detections]
+            brightest = detections[detection_mags.index(min(detection_mags))]
+            print(f"Candidate {name} peaked at {brightest['magpsf']:.1f} on "
+                  f"{brightest['jd']:.1f} with filter {self.parse_ztf_filter(brightest['fid'])}")
 
     def candidate_text(self, name, first_detection, lul_lim, lul_jd):
         raise NotImplementedError
