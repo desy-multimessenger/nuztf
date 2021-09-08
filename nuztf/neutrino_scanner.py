@@ -11,7 +11,7 @@ from os import environ
 from pathlib import Path
 import requests
 import logging
-from ztf_plan_obs import gcn_parser
+from nuztf.parse_nu_gcn import find_gcn_no, parse_gcn_circular, get_latest_gcn
 
 if environ.get("ZTFDATA") is not None:
     basedir = os.getenv("ZTFDATA")
@@ -69,14 +69,12 @@ class NeutrinoScanner(AmpelWizard):
         if manual_args is None:
 
             if nu_name is not None:
-                gcn_no = self.find_gcn_no(nu_name)
+                gcn_no = find_gcn_no(nu_name)
 
             elif gcn_no is None:
-                gcn_no = self.get_latest_gcn()
+                gcn_no = get_latest_gcn()
 
-            # nu_name, author, ra, dec, nu_time = self.parse_gcn(gcn_no)
-
-            gcn_info = gcn_parser.parse_gcn_circular(gcn_no)
+            gcn_info = parse_gcn_circular(gcn_no)
             print(gcn_info)
 
             nu_name = gcn_info["name"]
@@ -154,10 +152,6 @@ class NeutrinoScanner(AmpelWizard):
 
         return text
 
-    # @staticmethod
-    # def get_tiling_line():
-    #     return ""
-
     @staticmethod
     def get_obs_line():
         return "Each exposure was 300s with a typical depth of 21.0 mag."
@@ -165,149 +159,6 @@ class NeutrinoScanner(AmpelWizard):
     @staticmethod
     def remove_variability_line():
         return ""
-
-    @staticmethod
-    def strip_numbers(line):
-        vals = []
-        line = line.replace("- ", "-")
-        line = line.replace("-", " -")
-
-        for x in line.replace(",", " ").replace("/", " ").split(" "):
-            try:
-                vals.append(
-                    float(
-                        "".join(
-                            [y for y in x if y not in ["(", "+", ")", "[", "]", "/"]]
-                        )
-                    )
-                )
-            except ValueError:
-                pass
-        return vals
-
-    # def parse_gcn(self, gcn_number):
-    #     url = self.gcn_url(gcn_number)
-    #     page = requests.get(url)
-    #     print(f"Found GCN: {url}")
-    #     name = author = ra = dec = time = None
-    #     print(page.text)
-    #     for line in page.text.splitlines():
-    #         line = "".join([x for x in line if x not in ["Â"]])
-    #         if "SUBJECT" in line:
-    #             name = line.split(" - ")[0].split(": ")[1]
-    #         elif "FROM" in line:
-    #             base = line.split("at")[0].split(": ")[1].split(" ")
-    #             author = [x for x in base if x != ""][1]
-    #         elif np.logical_and(np.sum([x in line for x in ["Ra", "RA"]]) > 0, ra is None):
-    #             ra = self.strip_numbers(line)
-    #         elif np.logical_and(np.sum([x in line for x in ["Dec", "DEC"]]) > 0, dec is None):
-    #             dec = self.strip_numbers(line)
-    #         elif np.logical_and(np.sum([x in line for x in ["Time", "TIME"]]) > 0, dec is None):
-    #             raw_time = [x for x in  line.split(" ") if x not in ["Time", "", "UT", "UTC"]][1]
-    #             raw_time = "".join([x for x in raw_time if np.logical_or(
-    #                 x.isdigit(), x in [":", "."]
-    #             )])
-    #             raw_date = name.split("-")[1][:6]
-    #             ut_time = f"20{raw_date[0:2]}-{raw_date[2:4]}-{raw_date[4:6]}T{raw_time}"
-    #             time = Time(ut_time, format='isot', scale='utc')
-
-    #     try:
-
-    #         if np.sum([x is not None for x in [name, author, ra, dec, time]]) == 5:
-    #             ra2 = ra[1]
-    #             ra2 = ra2*-1
-    #             ra.append(ra2)
-    #             if np.logical_and(len(ra) == 3, len(dec) == 3):
-    #                 print(name, author, ra, dec, time)
-    #                 return name, author, ra, dec, time
-
-    #     except:
-    #         pass
-
-    #     raise ParsingError(f"Error parsing GCN {0}".format(url))
-
-    def parse_gcn_archive(self):
-        page = requests.get("https://gcn.gsfc.nasa.gov/gcn3_archive.html")
-
-        nu_circulars = []
-
-        for line in page.text.splitlines():
-            if "IceCube observation of a high-energy neutrino" in line:
-                res = line.split(">")
-                gcn_no = "".join([x for x in res[2] if x.isdigit()])
-                name = res[3].split(" - ")[0]
-                nu_circulars.append((name, gcn_no))
-
-        return nu_circulars
-
-    @staticmethod
-    def parse_gcn_for_no(
-        base_nu_name, url="https://gcn.gsfc.nasa.gov/gcn3_archive.html"
-    ):
-
-        print(f"Checking for GCN on {url}")
-
-        nu_name = str(base_nu_name)
-
-        page = requests.get(url)
-
-        gcn_no = None
-        name = None
-
-        while not nu_name[0].isdigit():
-            nu_name = nu_name[1:]
-
-        latest_archive_no = None
-
-        for line in page.text.splitlines():
-            if np.logical_and(
-                "IceCube observation of a high-energy neutrino" in line, nu_name in line
-            ):
-                res = line.split(">")
-                if gcn_no is None:
-                    gcn_no = "".join([x for x in res[2] if x.isdigit()])
-                    name = res[3].split(" - ")[0]
-                    print(f"Found match to {base_nu_name}: {name}")
-                else:
-                    raise Exception(f"Multiple matches found to {base_nu_name}")
-
-            elif np.logical_and("gcn3_arch_old" in line, latest_archive_no is None):
-                url = line.split('"')[1]
-                latest_archive_no = int(url[13:].split(".")[0])
-
-        return gcn_no, name, latest_archive_no
-
-    def find_gcn_no(self, base_nu_name):
-
-        gcn_no, name, latest_archive_no = self.parse_gcn_for_no(base_nu_name)
-
-        if gcn_no is None:
-
-            print(
-                f"No GCN found for {base_nu_name} on GCN page, checking archive instead. "
-                f"The latest page is {latest_archive_no}"
-            )
-
-            while np.logical_and(latest_archive_no > 0, gcn_no is None):
-                gcn_no, name, _ = self.parse_gcn_for_no(
-                    base_nu_name,
-                    url=f"https://gcn.gsfc.nasa.gov/gcn3_arch_old{latest_archive_no}.html",
-                )
-                latest_archive_no -= 1
-
-        # while
-
-        if name is None:
-            raise ParsingError("No GCN match found for {0}".format(base_nu_name))
-
-        print(f"Match is {name} (GCN #{gcn_no})")
-
-        return gcn_no
-
-    def get_latest_gcn(self):
-        latest = self.parse_gcn_archive()[0]
-        print(f"Latest GCN is {latest[0]} (GCN #{latest[1]})")
-        return latest[1]
 
     def filter_f_no_prv(self, res):
 
