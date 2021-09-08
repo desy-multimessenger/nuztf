@@ -4,6 +4,11 @@ from base64 import b64decode
 from astropy.time import Time
 from nuztf.credentials import load_credentials
 from requests.auth import HTTPBasicAuth
+from json import JSONDecodeError
+import numpy as np
+import gzip
+from astropy.io import fits
+import io
 
 # AMPEL API URLs
 
@@ -115,7 +120,6 @@ def ampel_api_name(ztf_name, logger=None):
     requests.exceptions.RequestException,
     max_time=600,
 )
-
 def ampel_api_cutout(candid: int, logger=None):
     """Function to query ampel for cutouts by candidate ID"""
     queryurl_cutouts = API_CUTOUT_URL + f"/{candid}"
@@ -124,7 +128,7 @@ def ampel_api_cutout(candid: int, logger=None):
         auth=HTTPBasicAuth(api_user, api_pass),
     )
     if logger is not None:
-        self.logger.debug(queryurl_cutouts)
+        logger.debug(queryurl_cutouts)
 
     if response.status_code == 503:
         raise requests.exceptions.RequestException
@@ -133,15 +137,34 @@ def ampel_api_cutout(candid: int, logger=None):
     return cutouts
 
 
+# Create an empty image for missing cutouts
+
+blank = np.ones((63, 63))
+blank *= np.linspace(0., 1., 63)
+hdu = fits.PrimaryHDU(blank)
+hdul = fits.HDUList([hdu])
+comp = io.BytesIO()
+hdul.writeto(comp)
+blank_compressed = gzip.compress(comp.getvalue())
+
+
 def reassemble_alert(mock_alert):
     """Function to recreate ztf alerts"""
     cutouts = ampel_api_cutout(mock_alert["candid"])
 
-    for k in cutouts:
-        mock_alert[f"cutout{k.title()}"] = {
-            "stampData": b64decode(cutouts[k]),
-            "fileName": "dunno",
-        }
+    if 'detail' in cutouts.keys():
+        if cutouts['detail'] == "Not Found":
+            for k in ['science', 'difference', 'template']:
+                mock_alert[f"cutout{k.title()}"] = {
+                    "stampData": blank_compressed,
+                    "fileName": "dunno",
+                }
+    else:
+        for k in cutouts:
+            mock_alert[f"cutout{k.title()}"] = {
+                "stampData": b64decode(cutouts[k]),
+                "fileName": "dunno",
+            }
 
     mock_alert["schemavsn"] = "dunno"
     mock_alert["publisher"] = "dunno"
@@ -153,6 +176,11 @@ def reassemble_alert(mock_alert):
     return mock_alert
 
 
+@backoff.on_exception(
+    backoff.expo,
+    requests.exceptions.RequestException,
+    max_time=600,
+)
 def ampel_api_tns(ra: float, dec: float, searchradius_arcsec: float = 3):
     """Function to query TNS via ampel api"""
     queryurl_catalogmatch = API_CATALOGMATCH_URL + f"/cone_search/nearest"
@@ -170,13 +198,21 @@ def ampel_api_tns(ra: float, dec: float, searchradius_arcsec: float = 3):
     # Now we retrieve results from the API
     response = requests.post(url=queryurl_catalogmatch, json=query, headers=headers)
 
+    if response.status_code == 503:
+        raise requests.exceptions.RequestException
+
     full_name = None
     discovery_date = None
     source_group = None
 
-    if response.json()[0]:
-        response_body = response.json()[0]["body"]
-        print(response_body)
+    try:
+        res = response.json()
+    except JSONDecodeError:
+        print(response)
+        raise Exception
+
+    if res[0]:
+        response_body = res[0]["body"]
         name = response_body["objname"]
         prefix = response_body["name_prefix"]
         full_name = prefix + name
@@ -186,7 +222,11 @@ def ampel_api_tns(ra: float, dec: float, searchradius_arcsec: float = 3):
 
     return full_name, discovery_date, source_group
 
-
+@backoff.on_exception(
+    backoff.expo,
+    requests.exceptions.RequestException,
+    max_time=600,
+)
 def ampel_api_catalog(
         catalog: str,
         catalog_type: str,
@@ -221,5 +261,8 @@ def ampel_api_catalog(
     response = requests.post(
         url=queryurl_catalogmatch, json=query, headers=headers
     ).json()[0]
+    
+    if response.status_code == 503:
+        raise requests.exceptions.RequestException
 
     return response

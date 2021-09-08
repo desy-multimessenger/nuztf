@@ -18,15 +18,13 @@ from astropy.time import Time
 from astropy import units as u
 from astropy.coordinates import SkyCoord, Distance
 from astropy.cosmology import Planck18 as cosmo
-from ztfquery import alert, query, skyvision, io
+from ztfquery import alert, skyvision
 from ztfquery import fields as ztfquery_fields
 from matplotlib.backends.backend_pdf import PdfPages
-from requests.auth import HTTPBasicAuth
 from tqdm import tqdm
 from ampel.ztf.t0.DecentFilter import DecentFilter
 from ampel.ztf.dev.DevAlertProcessor import DevAlertProcessor
 from ampel.alert.PhotoAlert import PhotoAlert
-from ratelimit import limits, sleep_and_retry
 from gwemopt.ztf_tiling import get_quadrant_ipix
 from ampel.log.AmpelLogger import AmpelLogger
 from nuztf.ampel_api import ampel_api_cone, ampel_api_name, reassemble_alert, ampel_api_catalog, ampel_api_tns
@@ -133,6 +131,7 @@ class AmpelWizard:
         max_time=600,
     )
 
+
     def get_avro_by_name(self, ztf_name):
         return ampel_api_name(ztf_name, logger=self.logger)
 
@@ -155,19 +154,25 @@ class AmpelWizard:
         lvl = logging.getLogger().getEffectiveLevel()
         logging.getLogger().setLevel(logging.DEBUG)
         self.logger.info("Set logger level to DEBUG")
-        query_res = self.get_avro_by_name(ztf_name)
-        self.logger.info("Checking filter f (no prv)")
-        no_prv_bool = self.filter_f_no_prv(query_res)
-        self.logger.info(f"Filter f (np prv): {no_prv_bool}")
-        self.logger.info("Checking ampel filter")
-        bool_ampel = self.filter_ampel(query_res)
-        self.logger.info(f"ampel filter: {bool_ampel}")
-        self.logger.info("Checking filter f (history)")
-        history_bool = self.filter_f_history(query_res)
-        self.logger.info(f"Filter f (history): {history_bool}")
+        all_query_res = self.get_avro_by_name(ztf_name)
+        pipeline_bool = False
+        for query_res in all_query_res:
+            self.logger.info("Checking filter f (no prv)")
+            no_prv_bool = self.filter_f_no_prv(query_res)
+            self.logger.info(f"Filter f (np prv): {no_prv_bool}")
+            if no_prv_bool:
+                self.logger.info("Checking ampel filter")
+                bool_ampel = self.filter_ampel(query_res)
+                self.logger.info(f"ampel filter: {bool_ampel}")
+                if bool_ampel:
+                    self.logger.info("Checking filter f (history)")
+                    history_bool = self.filter_f_history(query_res)
+                    self.logger.info(f"Filter f (history): {history_bool}")
+                    if history_bool:
+                        pipeline_bool = True
         self.logger.info(f"Setting logger back to {lvl}")
         logging.getLogger().setLevel(lvl)
-        return bool_ampel
+        return pipeline_bool
 
     def plot_ztf_observations(self, **kwargs):
         self.get_multi_night_summary().show_gri_fields(**kwargs)
@@ -514,8 +519,12 @@ class AmpelWizard:
                     fig.text(0.01, 0.01, name)
                     pdf.savefig()
                     plt.close()
-                except TypeError:
-                    self.logger.info(
+                # except TypeError:
+                except KeyError:
+
+                    print(mock_alert)
+
+                    self.logger.warn(
                         f"WARNING!!! {name} will be missing from the report pdf for some reason."
                     )
                     pass
@@ -597,7 +606,15 @@ class AmpelWizard:
             ]
             detection_mags = [x["magpsf"] for x in detections]
             brightest = detections[detection_mags.index(min(detection_mags))]
-            print(f"Candidate {name} peaked at {brightest['magpsf']:.1f} on "
+
+            tns_result = ""
+            tns_name, tns_date, tns_group = ampel_api_tns(
+                brightest["ra"], brightest["dec"], searchradius_arcsec=3.0
+            )
+            if tns_name:
+                tns_result = f'({tns_name})'
+
+            print(f"Candidate {name} peaked at {brightest['magpsf']:.1f} {tns_result}on "
                   f"{brightest['jd']:.1f} with filter {self.parse_ztf_filter(brightest['fid'])}")
 
     def candidate_text(self, name, first_detection, lul_lim, lul_jd):
