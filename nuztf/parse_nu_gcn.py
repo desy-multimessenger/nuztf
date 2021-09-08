@@ -3,6 +3,13 @@ import numpy as np
 from ztf_plan_obs.gcn_parser import parse_gcn_circular
 
 
+base_gcn_url = "https://gcn.gsfc.nasa.gov/gcn3"
+
+
+def gcn_url(gcn_number):
+    return f"{base_gcn_url}/{gcn_number}.gcn3"
+
+
 class ParsingError(Exception):
     """Base class for parsing error"""
 
@@ -10,7 +17,7 @@ class ParsingError(Exception):
 
 
 def parse_gcn_archive():
-    page = requests.get("https://gcn.gsfc.nasa.gov/gcn3_archive.html")
+    page = requests.get(f"{base_gcn_url}_archive.html")
 
     nu_circulars = []
 
@@ -25,7 +32,7 @@ def parse_gcn_archive():
 
 
 def parse_gcn_for_no(
-        base_nu_name, url="https://gcn.gsfc.nasa.gov/gcn3_archive.html"
+        base_nu_name, url=f"{base_gcn_url}_archive.html"
 ):
     print(f"Checking for GCN on {url}")
 
@@ -73,7 +80,7 @@ def find_gcn_no(base_nu_name):
         while np.logical_and(latest_archive_no > 0, gcn_no is None):
             gcn_no, name, _ = parse_gcn_for_no(
                 base_nu_name,
-                url=f"https://gcn.gsfc.nasa.gov/gcn3_arch_old{latest_archive_no}.html",
+                url=f"{base_gcn_url}_arch_old{latest_archive_no}.html",
             )
             latest_archive_no -= 1
 

@@ -123,10 +123,6 @@ class NeutrinoScanner(AmpelWizard):
             self.key,
         ) = self.unpack_map()
 
-    @staticmethod
-    def gcn_url(gcn_number):
-        return f"https://gcn.gsfc.nasa.gov/gcn3/{gcn_number}.gcn3"
-
     def get_name(self):
         return self.nu_name
 
