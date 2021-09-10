@@ -139,8 +139,15 @@ def ampel_api_cutout(candid: int, logger=None):
 
 # Create an empty image for missing cutouts
 
-blank = np.ones((63, 63))
-blank *= np.linspace(0., 1., 63)
+npix = 63
+
+blank = np.ones((npix, npix))
+
+for i in range(npix):
+    c = abs(npix/2 - i)/(0.5*npix)
+    blank[i-1][i-1] = c
+    blank[i-1][npix-i-1] = c
+
 hdu = fits.PrimaryHDU(blank)
 hdul = fits.HDUList([hdu])
 comp = io.BytesIO()
