@@ -260,9 +260,33 @@ def ampel_api_catalog(
 
     response = requests.post(
         url=queryurl_catalogmatch, json=query, headers=headers
-    ).json()[0]
-    
+    )
+
     if response.status_code == 503:
         raise requests.exceptions.RequestException
 
-    return response
+    return response.json()[0]
+
+@backoff.on_exception(
+    backoff.expo,
+    requests.exceptions.RequestException,
+    max_time=600,
+)
+def query_ned_for_z(ra: float, dec: float, searchradius_arcsec: float = 20):
+
+    z = None
+    dist_arcsec = None
+
+    query = ampel_api_catalog(
+        catalog="NEDz_extcats",
+        catalog_type="extcats",
+        ra=ra,
+        dec=dec,
+        searchradius_arcsec=searchradius_arcsec,
+        searchtype="nearest",
+    )
+
+    if query:
+        z = query["body"]["z"]
+        dist_arcsec = query["dist_arcsec"]
+    return z, dist_arcsec

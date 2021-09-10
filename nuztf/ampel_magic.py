@@ -27,7 +27,7 @@ from ampel.ztf.dev.DevAlertProcessor import DevAlertProcessor
 from ampel.alert.PhotoAlert import PhotoAlert
 from gwemopt.ztf_tiling import get_quadrant_ipix
 from ampel.log.AmpelLogger import AmpelLogger
-from nuztf.ampel_api import ampel_api_cone, ampel_api_name, reassemble_alert, ampel_api_catalog, ampel_api_tns
+from nuztf.ampel_api import ampel_api_cone, ampel_api_name, reassemble_alert, ampel_api_catalog, ampel_api_tns, query_ned_for_z
 
 DEBUG = False
 RATELIMIT_CALLS = 10
@@ -349,63 +349,6 @@ class AmpelWizard:
         abs_mag = mag - 5 * (np.log10(luminosity_distance) - 1)
         return abs_mag
 
-    def query_catalog(
-        self,
-        catalog: str,
-        catalog_type: str,
-        ra: float,
-        dec: float,
-        searchradius_arcsec: float = 10,
-        searchtype: str = "all",
-    ):
-        """
-        Method for querying catalogs via the Ampel API
-        'catalog' must be the name of a supported catalog, e.g.
-        SDSS_spec, PS1, NEDz_extcats...
-        For a full list of catalogs, confer
-        https://ampel.zeuthen.desy.de/api/catalogmatch/catalogs
-
-        """
-        assert catalog_type in ["extcats", "catsHTM"]
-        assert searchtype in ["all", "nearest"]
-
-        queryurl_catalogmatch = API_CATALOGMATCH_URL + "/cone_search/" + searchtype
-
-        # First, we create a json body to post
-        headers = {"accept": "application/json", "Content-Type": "application/json"}
-        query = {
-            "ra_deg": ra,
-            "dec_deg": dec,
-            "catalogs": [
-                {"name": catalog, "rs_arcsec": searchradius_arcsec, "use": catalog_type}
-            ],
-        }
-
-        response = requests.post(
-            url=queryurl_catalogmatch, json=query, headers=headers
-        ).json()[0]
-
-        return response
-
-    def query_ned_for_z(self, ra: float, dec: float, searchradius_arcsec: float = 20):
-
-        z = None
-        dist_arcsec = None
-
-        query = ampel_api_catalog(
-            catalog="NEDz_extcats",
-            catalog_type="extcats",
-            ra=ra,
-            dec=dec,
-            searchradius_arcsec=searchradius_arcsec,
-            searchtype="nearest",
-        )
-
-        if query:
-            z = query["body"]["z"]
-            dist_arcsec = query["dist_arcsec"]
-        return z, dist_arcsec
-
     def parse_candidates(self):
 
         table = (
@@ -655,7 +598,7 @@ class AmpelWizard:
             except IndexError:
                 text += self.candidate_text(name, first_detection["jd"], None, None)
 
-            ned_z, ned_dist = self.query_ned_for_z(
+            ned_z, ned_dist = query_ned_for_z(
                 latest["ra"], latest["dec"], searchradius_arcsec=20
             )
 
