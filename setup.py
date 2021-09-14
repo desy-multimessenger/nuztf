@@ -38,7 +38,7 @@ setuptools.setup(
         "datetime == 4.3",
         "extcats == 2.4.1",
         "fastavro == 1.4.4",
-        "fitsio == 1.1.4",
+        "fitsio == 1.1.5",
         "gwemopt == 0.0.73",
         "healpy == 1.15.0",
         "ipykernel == 6.3.1",
