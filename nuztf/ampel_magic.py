@@ -192,6 +192,18 @@ class AmpelWizard:
             start_date_jd = Time(start_date_jd, format="jd").jd
             end_date_jd = Time(now).jd
 
+            
+            """Because ztfquery does not re-download a queue, check if one exists for the current day
+                and delete it if yes """
+
+            ztfdata_directory = os.environ['ZTFDATA']
+            today = datetime.date.today()
+            
+            todays_log = os.path.join(ztfdata_directory, "skyvision", f"{today}_completed_log.csv")
+
+            if os.path.isfile(todays_log):
+                os.remove(todays_log)
+
             self.mns = skyvision.CompletedLog.from_daterange(
                 self.mns_time, end=end_date, verbose=False
             )
