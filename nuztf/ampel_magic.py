@@ -20,6 +20,7 @@ from astropy.coordinates import SkyCoord, Distance
 from astropy.cosmology import Planck18 as cosmo
 from ztfquery import alert, skyvision
 from ztfquery import fields as ztfquery_fields
+from ztfquery.io import LOCALSOURCE
 from matplotlib.backends.backend_pdf import PdfPages
 from tqdm import tqdm
 from ampel.ztf.t0.DecentFilter import DecentFilter
@@ -196,10 +197,8 @@ class AmpelWizard:
             """Because ztfquery does not re-download a queue, check if one exists for the current day
                 and delete it if yes """
 
-            ztfdata_directory = os.environ['ZTFDATA']
             today = datetime.date.today()
-            
-            todays_log = os.path.join(ztfdata_directory, "skyvision", f"{today}_completed_log.csv")
+            todays_log = os.path.join(LOCALSOURCE, "skyvision", f"{today}_completed_log.csv")
 
             if os.path.isfile(todays_log):
                 os.remove(todays_log)
