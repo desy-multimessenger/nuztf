@@ -56,9 +56,11 @@ class NeutrinoScanner(AmpelWizard):
         logger=None,
         cone_nside=128,
         t_precursor=None,
+        min_forceddiffsig=5
     ):
 
         self.prob_threshold = 0.9
+        self.min_forceddiffsig = min_forceddiffsig
 
         if manual_args is None:
 
@@ -179,9 +181,21 @@ class NeutrinoScanner(AmpelWizard):
     def filter_f_history(self, res):
         # Require 2 detections
 
-        n_detections = len(
-            [x for x in res["prv_candidates"] if "isdiffpos" in x.keys()]
-        )
+        # check whether alert has old or new (from 1st Dec 21) avro schema
+        is_old_schema = 'isdiffpos' in res["prv_candidates"][0]
+
+        if is_old_schema:
+            logging.debug('alert with avro scheme up to 1st Dec 2021')
+            n_detections = len(
+                [x for x in res["prv_candidates"] if "isdiffpos" in x.keys()]
+            )
+        else:
+            logging.debug('alert with schema from 1st Dec 2021')
+            # count forced photometry datapoints when they are above the chosen uncertainty level
+            n_detections = len(
+                [x for x in res["prv_candidates"] if
+                 x["forcediffimflux"] > self.min_forceddiffsig * x["forcediffimfluxunc"]]
+            )
 
         if n_detections < 1:
             logging.debug("{0} has insufficient detection".format(res["objectId"]))
