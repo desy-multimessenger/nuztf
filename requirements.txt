@@ -2,7 +2,7 @@ ampel-alerts==0.7.2
 ampel-core==0.7.4
 ampel-interface==0.7.1
 ampel-photometry==0.7.1
-ampel-ztf==0.7.3
+ampel-ztf==0.7.4
 astrobject==0.8.6
 astropy==4.2.1
 astropy_healpix==0.6
@@ -12,7 +12,7 @@ catsHTM==0.1.32
 coveralls==3.2.0
 datetime==4.3
 extcats==2.4.1
-fastavro==1.4.4
+fastavro==1.4.5
 fitsio==1.1.5
 gwemopt==0.0.73
 healpy==1.15.0
