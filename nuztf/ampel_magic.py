@@ -227,7 +227,6 @@ class AmpelWizard:
 
     def scan_cones(self, t_max=None, max_cones=None):
         """ """
-
         if max_cones is None:
             max_cones = len(self.cone_ids)
 
