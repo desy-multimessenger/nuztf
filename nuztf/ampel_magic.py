@@ -28,7 +28,7 @@ from ampel.ztf.dev.DevAlertProcessor import DevAlertProcessor
 from ampel.alert.PhotoAlert import PhotoAlert
 from gwemopt.ztf_tiling import get_quadrant_ipix
 from ampel.log.AmpelLogger import AmpelLogger
-from nuztf.ampel_api import ampel_api_cone, ampel_api_name, reassemble_alert, ampel_api_catalog, ampel_api_tns, query_ned_for_z
+from nuztf.ampel_api import ampel_api_cone, ampel_api_timerange, ampel_api_name, reassemble_alert, ampel_api_catalog, ampel_api_tns, query_ned_for_z
 
 DEBUG = False
 RATELIMIT_CALLS = 10
@@ -57,9 +57,12 @@ class AmpelWizard:
             }
 
         if logger is None:
-            self.logger = AmpelLogger()
+        #     self.logger = AmpelLogger()
+            import logging
+            self.logger = logging.getLogger(__name__)
         else:
             self.logger = logger
+
 
         self.logger.info("AMPEL run config:")
         self.logger.info(run_config)
@@ -74,10 +77,12 @@ class AmpelWizard:
             self.output_path = None
 
         self.scanned_pixels = []
+
         if cones_to_scan is None:
             self.cone_ids, self.cone_coords = self.find_cone_coords()
         else:
             self.cone_ids, self.cone_coords = cones_to_scan
+
         self.cache = dict()
         self.default_t_max = t_min + 10.
 
@@ -292,11 +297,6 @@ class AmpelWizard:
         ra[ra > np.pi] -= 2 * np.pi
         return ra
 
-    # The backoff-stuff is to handle serverside
-    # rate-limits when querying the API
-
-    # @sleep_and_retry
-    # @limits(calls=RATELIMIT_CALLS, period=RATELIMIT_PERIOD)
     @backoff.on_exception(
         backoff.expo,
         requests.exceptions.RequestException,
@@ -313,11 +313,6 @@ class AmpelWizard:
 
         query_res = ampel_api_cone(ra, dec, radius, t_min.jd, t_max.jd, logger=self.logger)
 
-        ## LEGACY (KEPT FOR TIMING RESULTS FOR JVS)
-        # result = ampel_client.get_alerts_in_cone(
-        #     ra=ra, dec=dec, radius=radius, jd_min=self.t_min.jd, jd_max=t_max.jd, with_history=False, max_blocks=100)
-        # query_res = [i for i in result]
-
         ztf_names = []
         for res in query_res:
             if self.filter_f_no_prv(res):
@@ -328,21 +323,51 @@ class AmpelWizard:
 
         return ztf_names
 
-    # @sleep_and_retry
-    # @limits(calls=RATELIMIT_CALLS, period=RATELIMIT_PERIOD)
+    @backoff.on_exception(
+        backoff.expo,
+        requests.exceptions.RequestException,
+        max_time=600,
+    )
+    def ampel_timerange_search(
+        self, t_min=None, t_max=None, with_history: bool=False, chunk_size: int=500,
+    ) -> list:
+        """ """
+        if t_max is None:
+            t_max = self.default_t_max
 
-    def ampel_object_search(self, ztf_names: list) -> list:
+        self.t_min = t_min
+
+        query_res = ampel_api_timerange(
+            t_min_jd=t_min.jd,
+            t_max_jd=t_max.jd,
+            with_history=with_history,
+            chunk_size=chunk_size,
+            logger=self.logger
+        )
+
+        ztf_names_unfiltered = []
+
+        ztf_names = []
+
+        for res in query_res:
+            ztf_names_unfiltered.append(res["objectId"])
+            if self.filter_f_no_prv(res):
+                if self.filter_ampel(res):
+                    ztf_names.append(res["objectId"])
+
+        ztf_names_unfiltered = list(set(ztf_names_unfiltered))
+        ztf_names = list(set(ztf_names))
+        print(len(ztf_names_unfiltered))
+        # return ztf_names
+        return ztf_names_unfiltered
+
+    def ampel_object_search(self, ztf_names: list, with_history: bool=True) -> list:
         """ """
         all_results = []
 
-        ## LEGACY (KEPT FOR TIMING RESULTS FOR JVS)
-        # ztf_object = ampel_client.get_alerts_for_object(objectids, with_history=True)
-        # query_res = [i for i in ztf_object]
-        # query_res = self.merge_alerts(query_res)
-
         for ztf_name in ztf_names:
 
-            query_res = ampel_api_name(ztf_name)
+            query_res = ampel_api_name(ztf_name=ztf_name, with_history=with_history)
 
             final_res = []
 
@@ -355,9 +380,11 @@ class AmpelWizard:
         return all_results
 
     @staticmethod
-    def calculate_abs_mag(mag, redshift: float):
+    def calculate_abs_mag(mag: float, redshift: float) -> float:
+        """ """
         luminosity_distance = cosmo.luminosity_distance(redshift).value * 10 ** 6
         abs_mag = mag - 5 * (np.log10(luminosity_distance) - 1)
+
         return abs_mag
 
     def parse_candidates(self):
@@ -452,14 +479,27 @@ class AmpelWizard:
 
     @staticmethod
     def extract_ra_dec(nside, index):
-        (colat, ra) = hp.pix2ang(nside, index, nest=True)
-        dec = np.pi / 2.0 - colat
+        # (colat, ra) = hp.pix2ang(nside, index, nest=True)
+        # dec = np.pi / 2.0 - colat
+        # print("old")
+        # print(ra)
+        # print(dec)
+        theta, phi = hp.pix2ang(nside, index, nest=True)
+        ra = np.rad2deg(phi)
+        dec = np.rad2deg(0.5 * np.pi - theta)
+        # print("new")
+        # print(ra)
+        # print(dec)
+        # quit()
         return (ra, dec)
 
     @staticmethod
     def extract_npix(nside, ra, dec):
-        colat = np.pi / 2.0 - dec
-        return hp.ang2pix(nside, colat, ra, nest=True)
+        # colat = np.pi / 2.0 - dec
+        theta = 0.5 * np.pi - np.deg2rad(dec)
+        phi = np.deg2rad(ra)
+        return hp.ang2pix(nside, theta, phi, nest=True)
+        # return hp.ang2pix(nside, colat, ra, nest=True)
 
     def create_candidate_summary(self):
 

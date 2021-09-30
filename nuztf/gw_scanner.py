@@ -7,6 +7,7 @@ from tqdm import tqdm
 from ligo.gracedb.rest import GraceDb
 import os
 import requests
+import logging
 import lxml.etree
 from astropy_healpix import HEALPix
 from astropy.coordinates import SkyCoord
@@ -15,18 +16,23 @@ from astropy import units as u
 import wget
 from pathlib import Path
 from numpy.lib.recfunctions import append_fields
+from ztfquery.io import LOCALSOURCE
 
-# Setup LIGO client
+# # Setup LIGO client
 
-ligo_client = GraceDb()
+# ligo_client = GraceDb()
 
-try:
-    r = ligo_client.ping()
-except HTTPError as e:
-    raise(e.message)
+# try:
+#     r = ligo_client.ping()
+# except HTTPError as e:
+#     raise(e.message)
 
-base_ligo_dir = os.path.join(Path(__file__).resolve().parents[1], "../LIGO_skymaps")
-ligo_candidate_output_dir = os.path.join(Path(__file__).resolve().parents[1], "../LIGO_candidates")
+base_ligo_dir = os.path.join(LOCALSOURCE, "LIGO_skymaps")
+ligo_candidate_output_dir = os.path.join(LOCALSOURCE, "LIGO_candidates")
+
+for entry in [base_ligo_dir, ligo_candidate_output_dir]:
+    if not os.path.exists(entry):
+        os.makedirs(entry)
 
 gw_run_config = {
     "min_ndet": 1,  # Default:2
@@ -58,8 +64,27 @@ class RetractionError(Exception):
 
 class GravWaveScanner(AmpelWizard):
 
-    def __init__(self, gw_name=None, gw_file=None, rev=None, logger=None, prob_threshold=0.95, cone_nside=64,
-                 fast_query=False, n_days=None):
+    def __init__(
+        self, 
+        gw_name=None,
+        gw_file=None,
+        rev=None,
+        logger=None,
+        prob_threshold=0.95,
+        cone_nside=64,
+        fast_query=False,
+        n_days=None,
+        verbose=False,
+    ):
+        if logger:
+            self.logger = logger
+        else:
+            self.logger = logging.getLogger(__name__)
+
+        if verbose:
+            self.logger.setLevel(logging.DEBUG)
+        else:
+            self.logger.setLevel(logging.INFO)
 
         self.prob_threshold = prob_threshold
 
@@ -71,23 +96,30 @@ class GravWaveScanner(AmpelWizard):
             self.gw_path = "{0}/{1}".format(base_ligo_dir, basename)
             if gw_file[:8] == "https://":
                 logger.info("Downloading from: {0}".format(gw_file))
-                self.gw_path = "{0}/{1}".format(base_ligo_dir, os.path.basename(gw_file[7:]))
+                self.gw_path = os.path.join(base_ligo_dir, os.path.basename(gw_file[7:]))
                 wget.download(gw_file, self.gw_path)
 
-            self.output_path = "{0}/{1}_{2}.pdf".format(
-                ligo_candidate_output_dir, os.path.basename(gw_file), self.prob_threshold)
+            self.output_path = os.path.join(ligo_candidate_output_dir, f"{os.path.basename(gw_file)}_{self.prob_threshold}.pdf")
+
             self.gw_name = os.path.basename(gw_file[7:])
         self.data, t_obs, self.hpm, self.key, self.dist, self.dist_unc = self.read_map()
 
         t_min = Time(t_obs, format="isot", scale="utc")
 
-        logging.info("MERGER TIME: {0}".format(t_min))
-        logging.info("Reading map")
+        self.logger.info("MERGER TIME: {0}".format(t_min))
+        self.logger.info("Reading map")
 
         self.pixel_threshold = self.find_pixel_threshold(self.data[self.key])
         self.map_coords, self.pixel_nos, self.map_probs, self.ligo_nside, self.pixel_area = self.unpack_skymap()
-        AmpelWizard.__init__(self, run_config=gw_run_config, t_min=t_min, logger=logger, cone_nside=cone_nside,
-                             fast_query=fast_query)
+
+        AmpelWizard.__init__(
+            self,
+            run_config=gw_run_config,
+            t_min=t_min,
+            logger=logger,
+            cone_nside=cone_nside,
+            # fast_query=fast_query
+        )
 
         # By default, accept things detected within 72 hours of merger
         if n_days is None:
@@ -139,20 +171,20 @@ class GravWaveScanner(AmpelWizard):
 
         # Positive detection
         if res['candidate']['isdiffpos'] not in ["t", "1"]:
-            logging.debug("Negative subtraction.")
+            self.logger.debug(f"{res['objectId']}: Negative subtraction.")
             return False
 
         # Veto old transients
         if res["candidate"]["jdstarthist"] < self.t_min.jd:
-            logging.debug("Transient is too old. (jdstarthist history predates event)")
+            self.logger.debug(f"{res['objectId']}: Transient is too old. (jdstarthist history predates event)")
             return False
 
         # Check contour
         if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
-            logging.debug("Outside of event contour.")
+            self.logger.debug(f"{res['objectId']}: Outside of event contour.")
             return False
 
-        logging.debug("Passed filter f (no prv)")
+        self.logger.debug(f"{res['objectId']}: Passed filter f (no prv)")
 
         return True
 
@@ -175,29 +207,29 @@ class GravWaveScanner(AmpelWizard):
     def filter_f_history(self, res):
         # Veto old transients
         if res["candidate"]["jdstarthist"] < self.t_min.jd:
-            logging.debug("Transient is too old. (jdstarthist history predates event)")
+            self.logger.debug(f"{res['objectId']}: Transient is too old. (jdstarthist history predates event)")
             return False
 
         # Veto new transients
         if res["candidate"]["jdstarthist"] > self.default_t_max.jd:
-            logging.debug("Transient is too new. (jdstarthist too late after event)")
+            self.logger.debug(f"{res['objectId']}: Transient is too new. (jdstarthist too late after event)")
             return False
 
         # Require 2 detections separated by 15 mins
         if (res["candidate"]["jdendhist"] - res["candidate"]["jdstarthist"]) < 0.01:
-            logging.debug("Not passed mover cut")
+            self.logger.debug(f"{res['objectId']}: Not passed mover cut")
             return False
 
         # Require 2 positive detections
         old_detections = [x for x in res["prv_candidates"] if np.logical_and(
-            x["isdiffpos"] is not None,
+            "isdiffpos" in x.keys(),
             x["jd"] > self.t_min.jd
         )]
 
-        pos_detections = [x for x in old_detections if x['isdiffpos'] in ["t", "1"]]
+        pos_detections = [x for x in old_detections if 'isdiffpos' in x.keys()]
 
         if len(pos_detections) < 1:
-            logging.debug("Does not have two detections")
+            self.logger.debug(f"{res['objectId']}: Does not have two detections")
             return False
 
         return True
@@ -282,7 +314,7 @@ class GravWaveScanner(AmpelWizard):
             # print(type(data))
             data = np.array(probs, dtype=np.dtype([("PROB", np.float)]))
 
-        logging.info(f"Summed probability is {100. * np.sum(data['PROB']):.1f}%")
+        self.logger.info(f"Summed probability is {100. * np.sum(data['PROB']):.1f}%")
 
         if h["ORDERING"] == "RING":
             data["PROB"] = hp.pixelfunc.reorder(data["PROB"], inp="RING", out="NESTED")
@@ -337,7 +369,7 @@ class GravWaveScanner(AmpelWizard):
 
         pixel_area = hp.nside2pixarea(ligo_nside, degrees=True) * float(len(map_coords))
 
-        print("Total pixel area: {0} degrees".format(pixel_area))
+        print(f"Total pixel area: {pixel_area} degrees")
 
         map_coords = np.array(map_coords, dtype=np.dtype([("ra", np.float),
                                                           ("dec", np.float)]))
@@ -382,7 +414,9 @@ class GravWaveScanner(AmpelWizard):
         return fig
 
     def interpolate_map(self, ra_deg, dec_deg):
-        return self.hpm.interpolate_bilinear_skycoord(SkyCoord(ra_deg * u.deg, dec_deg * u.deg), self.data[self.key])
+        interpol_map = self.hpm.interpolate_bilinear_skycoord(SkyCoord(ra_deg * u.deg, dec_deg * u.deg), self.data[self.key])
+        print(interpol_map)
+        return interpol_map
 
     def in_contour(self, ra_deg, dec_deg):
         return self.interpolate_map(ra_deg, dec_deg) > self.pixel_threshold

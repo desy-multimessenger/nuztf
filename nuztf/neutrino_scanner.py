@@ -12,13 +12,9 @@ from pathlib import Path
 import requests
 import logging
 from nuztf.parse_nu_gcn import find_gcn_no, parse_gcn_circular, get_latest_gcn
+from ztfquery.io import LOCALSOURCE
 
-if environ.get("ZTFDATA") is not None:
-    basedir = os.getenv("ZTFDATA")
-else:
-    basedir = os.getcwd()
-
-nu_candidate_output_dir = os.path.join(basedir, "neutrino_candidates")
+nu_candidate_output_dir = os.path.join(LOCALSOURCE, "neutrino_candidates")
 
 if not os.path.exists(nu_candidate_output_dir):
     os.makedirs(nu_candidate_output_dir)

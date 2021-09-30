@@ -54,23 +54,33 @@ def merge_alerts(alert_list):
     requests.exceptions.RequestException,
     max_time=600,
 )
-
-
-def ampel_api_cone(ra, dec, radius,
-                   t_min_jd=Time(
-                       '2018-04-01T00:00:00.123456789',
-                       format='isot',
-                       scale='utc'
-                   ).jd,
-                   t_max_jd=Time.now().jd, logger=None):
+def ampel_api_cone(
+    ra, 
+    dec,
+    radius,
+    t_min_jd=Time(
+        '2018-04-01T00:00:00.123456789',
+        format='isot',
+        scale='utc'
+    ).jd,
+    t_max_jd=Time.now().jd,
+    with_history=False,
+    chunk_size=500,
+    logger=None
+    ):
     """Function to query ampel via a cone search"""
+
+    if with_history:
+        hist = "true"
+    else:
+        hist = "false"
 
     queryurl_conesearch = (
             API_ZTF_ARCHIVE_URL
             + f"/alerts/cone_search?ra={ra}&dec={dec}&"
               f"radius={radius}&jd_start={t_min_jd}&"
-              f"jd_end={t_max_jd}&with_history=false&"
-              f"with_cutouts=false&chunk_size=500"
+              f"jd_end={t_max_jd}&with_history={hist}&"
+              f"with_cutouts=false&chunk_size={chunk_size}"
     )
 
     if logger is not None:
@@ -78,6 +88,52 @@ def ampel_api_cone(ra, dec, radius,
 
     response = requests.get(
         queryurl_conesearch,
+        auth=HTTPBasicAuth(api_user, api_pass),
+    )
+    if response.status_code == 503:
+        raise requests.exceptions.RequestException
+
+    try:
+        query_res = [i for i in response.json()["alerts"]]
+    except JSONDecodeError:
+        raise requests.exceptions.RequestException
+
+    return query_res
+
+@backoff.on_exception(
+    backoff.expo,
+    requests.exceptions.RequestException,
+    max_time=600,
+)
+def ampel_api_timerange(
+    t_min_jd=Time(
+        '2018-04-01T00:00:00.123456789',
+        format='isot',
+        scale='utc'
+    ).jd,
+    t_max_jd=Time.now().jd,
+    with_history=False,
+    chunk_size=500,
+    logger=None):
+    """Function to query ampel via a time-range search"""
+
+    if with_history:
+        hist = "true"
+    else:
+        hist = "false"
+
+    queryurl_timerange = (
+            API_ZTF_ARCHIVE_URL
+            + f"/alerts/time_range?jd_start={t_min_jd}&"
+              f"jd_end={t_max_jd}&with_history={hist}&"
+              f"with_cutouts=false&chunk_size={chunk_size}"
+    )
+
+    if logger is not None:
+        logger.debug(queryurl_timerange)
+
+    response = requests.get(
+        queryurl_timerange,
         auth=HTTPBasicAuth(api_user, api_pass),
     )
     if response.status_code == 503:
@@ -94,11 +150,16 @@ def ampel_api_cone(ra, dec, radius,
 )
 
 
-def ampel_api_name(ztf_name, logger=None):
+def ampel_api_name(ztf_name, with_history=True, logger=None):
     """Function to query ampel via name"""
 
+    if with_history:
+        hist = "true"
+    else:
+        hist = "false"
+
     queryurl_ztf_name = (
-        API_ZTF_ARCHIVE_URL + f"/object/{ztf_name}/alerts?with_history=true"
+        API_ZTF_ARCHIVE_URL + f"/object/{ztf_name}/alerts?with_history={hist}"
     )
 
     if logger is not None:
