@@ -34,7 +34,7 @@ DEBUG = False
 RATELIMIT_CALLS = 10
 RATELIMIT_PERIOD = 1
 
-class AmpelWizard:
+class BaseScanner:
     def __init__(
         self,
         run_config,

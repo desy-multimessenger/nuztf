@@ -1,4 +1,4 @@
-from nuztf.ampel_magic import AmpelWizard
+from nuztf.base_scanner import BaseScanner
 from astropy.time import Time
 import matplotlib.pyplot as plt
 import healpy as hp
@@ -62,7 +62,7 @@ class RetractionError(Exception):
    pass
 
 
-class GravWaveScanner(AmpelWizard):
+class GravWaveScanner(BaseScanner):
 
     def __init__(
         self, 
@@ -112,7 +112,7 @@ class GravWaveScanner(AmpelWizard):
         self.pixel_threshold = self.find_pixel_threshold(self.data[self.key])
         self.map_coords, self.pixel_nos, self.map_probs, self.ligo_nside, self.pixel_area = self.unpack_skymap()
 
-        AmpelWizard.__init__(
+        BaseScanner.__init__(
             self,
             run_config=gw_run_config,
             t_min=t_min,

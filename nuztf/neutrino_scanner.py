@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-from nuztf.ampel_magic import AmpelWizard
+from nuztf.base_scanner import BaseScanner
 from astropy.time import Time
 import healpy as hp
 import numpy as np
@@ -43,7 +43,7 @@ nu_run_config = {
 }
 
 
-class NeutrinoScanner(AmpelWizard):
+class NeutrinoScanner(BaseScanner):
     def __init__(
         self,
         nu_name=None,
@@ -96,7 +96,7 @@ class NeutrinoScanner(AmpelWizard):
         print(f"Coordinates: DEC = {dec[0]} ({self.dec_min} - {self.dec_max})")
 
         self.output_path = f"{nu_candidate_output_dir}/{nu_name}.pdf"
-        AmpelWizard.__init__(
+        BaseScanner.__init__(
             self,
             t_min=nu_time,
             run_config=nu_run_config,
