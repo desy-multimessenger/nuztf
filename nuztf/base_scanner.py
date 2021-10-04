@@ -198,15 +198,16 @@ class BaseScanner:
             start_date_jd = Time(start_date_jd, format="jd").jd
             end_date_jd = Time(now).jd
 
-            
-            """Because ztfquery does not re-download a queue, check if one exists for the current day
-                and delete it if yes """
+            # ztfquery saves nightly observations in a cache, and does not redownload them.
+            # If the nightly log was not complete, it will never be updated.
+            # Here we simply clear the cache and cleanly re-download everything.
 
-            today = datetime.date.today()
-            todays_log = os.path.join(LOCALSOURCE, "skyvision", f"{today}_completed_log.csv")
+            skyvision_log = os.path.join(LOCALSOURCE, "skyvision")
 
-            if os.path.isfile(todays_log):
-                os.remove(todays_log)
+            for filename in os.listdir(skyvision_log):
+                if ".csv" in filename:
+                    path = os.path.join(skyvision_log, filename)
+                    os.remove(path)
 
             self.mns = skyvision.CompletedLog.from_daterange(
                 self.mns_time, end=end_date, verbose=False
