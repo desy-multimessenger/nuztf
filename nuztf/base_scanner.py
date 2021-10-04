@@ -133,7 +133,6 @@ class BaseScanner:
         requests.exceptions.RequestException,
         max_time=600,
     )
-
     def get_avro_by_name(self, ztf_name):
         return ampel_api_name(ztf_name, logger=self.logger)
 
@@ -692,9 +691,11 @@ class BaseScanner:
             else:
                 veto_fields.append(field)
 
-        self.logger.info(
-            f"No RA/Dec found by ztfquery for fields {veto_fields}. These observation have to be ignored."
-        )
+        if len(veto_fields) > 0:
+            self.logger.info(
+                f"No RA/Dec found by ztfquery for fields {veto_fields}. "
+                f"These observation have to be ignored."
+            )
 
         data["ra"] = ras
         data["dec"] = decs
