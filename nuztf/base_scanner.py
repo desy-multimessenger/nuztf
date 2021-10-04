@@ -18,9 +18,8 @@ from astropy.time import Time
 from astropy import units as u
 from astropy.coordinates import SkyCoord, Distance
 from astropy.cosmology import Planck18 as cosmo
-from ztfquery import alert, skyvision
+from ztfquery import alert
 from ztfquery import fields as ztfquery_fields
-from ztfquery.io import LOCALSOURCE
 from matplotlib.backends.backend_pdf import PdfPages
 from tqdm import tqdm
 from ampel.ztf.t0.DecentFilter import DecentFilter
@@ -29,6 +28,7 @@ from ampel.alert.PhotoAlert import PhotoAlert
 from gwemopt.ztf_tiling import get_quadrant_ipix
 from ampel.log.AmpelLogger import AmpelLogger
 from nuztf.ampel_api import ampel_api_cone, ampel_api_timerange, ampel_api_name, reassemble_alert, ampel_api_catalog, ampel_api_tns, query_ned_for_z
+from nuztf.observation_log import get_obs_summary
 
 DEBUG = False
 RATELIMIT_CALLS = 10
@@ -86,9 +86,6 @@ class BaseScanner:
         self.cache = dict()
         self.default_t_max = t_min + 10.
 
-        self.mns_time = str(self.t_min).split("T")[0].replace("-", "")
-        self.mns = None
-
         self.overlap_prob = None
         self.overlap_fields = None
         self.first_obs = None
@@ -137,7 +134,6 @@ class BaseScanner:
         max_time=600,
     )
 
-
     def get_avro_by_name(self, ztf_name):
         return ampel_api_name(ztf_name, logger=self.logger)
 
@@ -184,47 +180,7 @@ class BaseScanner:
         self.get_multi_night_summary().show_gri_fields(**kwargs)
 
     def get_multi_night_summary(self, max_days=None):
-        now = datetime.datetime.now()
-
-        if max_days is not None:
-            date_1 = datetime.datetime.strptime(self.mns_time, "%Y%m%d")
-            end_date = date_1 + datetime.timedelta(days=max_days)
-            end_date = end_date.strftime("%Y-%m-%d")
-        else:
-            end_date = now.strftime("%Y-%m-%d")
-
-        if self.mns is None:
-            start_date_jd = self.t_min.jd
-            start_date_jd = Time(start_date_jd, format="jd").jd
-            end_date_jd = Time(now).jd
-
-            # ztfquery saves nightly observations in a cache, and does not redownload them.
-            # If the nightly log was not complete, it will never be updated.
-            # Here we simply clear the cache and cleanly re-download everything.
-
-            skyvision_log = os.path.join(LOCALSOURCE, "skyvision")
-
-            for filename in os.listdir(skyvision_log):
-                if ".csv" in filename:
-                    path = os.path.join(skyvision_log, filename)
-                    os.remove(path)
-
-            self.mns = skyvision.CompletedLog.from_daterange(
-                self.mns_time, end=end_date, verbose=False
-            )
-
-            self.mns.data["obsjd"] = Time(
-                list(self.mns.data.datetime.values), format="isot"
-            ).jd
-
-            self.mns.data.query(f"obsjd > {start_date_jd}", inplace=True)
-
-            self.mns.data.reset_index(inplace=True)
-            self.mns.data.drop(columns=["index"], inplace=True)
-
-        return self.mns
-
-    # def simulate_observations(self, fields):
+        return get_obs_summary(self.t_min, max_days=max_days)
 
     def scan_cones(self, t_max=None, max_cones=None):
         """ """
@@ -672,391 +628,6 @@ class BaseScanner:
             text += "\n"
         return text
 
-    # def simple_plot_overlap_with_observations(
-    #     self, fields=None, first_det_window_days=None
-    # ):
-    #
-    #     try:
-    #         nside = self.ligo_nside
-    #     except AttributeError:
-    #         nside = self.nside
-    #
-    #     fig = plt.figure()
-    #     plt.subplot(projection="aitoff")
-    #
-    #     probs = []
-    #     single_probs = []
-    #
-    #     if fields is None:
-    #         mns = self.get_multi_night_summary(first_det_window_days)
-    #
-    #     else:
-    #
-    #         class MNS:
-    #             def __init__(self, data):
-    #                 self.data = pandas.DataFrame(
-    #                     data, columns=["field", "ra", "dec", "datetime"]
-    #                 )
-    #
-    #         data = []
-    #
-    #         for f in fields:
-    #             ra, dec = ztfquery_fields.field_to_coords(f)[0]
-    #             t = Time(Time.now().jd + 1.0, format="jd").utc
-    #             t.format = "isot"
-    #             t = t.value
-    #             for _ in range(2):
-    #                 data.append([f, ra, dec, t])
-    #
-    #         mns = MNS(data)
-    #
-    #     ras = np.degrees(
-    #         self.wrap_around_180(
-    #             np.array([np.radians(float(x)) for x in mns.data["ra"]])
-    #         )
-    #     )
-    #     fields = list(mns.data["field"])
-    #
-    #     plot_ras = []
-    #     plot_decs = []
-    #
-    #     single_ras = []
-    #     single_decs = []
-    #
-    #     veto_ras = []
-    #     veto_decs = []
-    #
-    #     overlapping_fields = []
-    #
-    #     base_ztf_rad = 3.5
-    #     ztf_dec_deg = 30.0
-    #
-    #     for j, (ra, dec) in enumerate(tqdm(self.map_coords)):
-    #         ra_deg = np.degrees(self.wrap_around_180(np.array([ra])))
-    #         # ra_deg = self.wrap_around_180(np.array(np.degrees(ra)))
-    #         dec_deg = np.degrees(dec)
-    #         # (np.cos(dec - np.radians(ztf_dec_deg))
-    #         ztf_rad = base_ztf_rad
-    #         ztf_height = 3.7
-    #
-    #         n_obs = 0
-    #
-    #         for i, x in enumerate(mns.data["dec"]):
-    #             if np.logical_and(
-    #                 not dec_deg < float(x) - ztf_height,
-    #                 not dec_deg > float(x) + ztf_height,
-    #             ):
-    #                 if abs(dec_deg - ztf_dec_deg) < 70.0:
-    #                     if np.logical_and(
-    #                         not ra_deg < float(ras[i]) - ztf_rad / abs(np.cos(dec)),
-    #                         not ra_deg > float(ras[i]) + ztf_rad / abs(np.cos(dec)),
-    #                     ):
-    #                         n_obs += 1
-    #                         fid = fields[i]
-    #                         if fid not in overlapping_fields:
-    #                             overlapping_fields.append(fields[i])
-    #
-    #         if n_obs > 1:
-    #             probs.append(self.map_probs[j])
-    #             plot_ras.append(ra)
-    #             plot_decs.append(dec)
-    #
-    #         elif n_obs > 0:
-    #             single_probs.append(self.map_probs[j])
-    #             single_ras.append(ra)
-    #             single_decs.append(dec)
-    #
-    #         else:
-    #             veto_ras.append(ra)
-    #             veto_decs.append(dec)
-    #
-    #     overlapping_fields = list(set(overlapping_fields))
-    #
-    #     obs_times = np.array(
-    #         [
-    #             Time(mns.data["datetime"].iat[i], format="isot", scale="utc")
-    #             for i in range(len(mns.data))
-    #             if mns.data["field"].iat[i] in overlapping_fields
-    #         ]
-    #     )
-    #
-    #     self.first_obs = min(obs_times)
-    #     self.last_obs = max(obs_times)
-    #
-    #     size = hp.max_pixrad(nside, degrees=True) ** 2
-    #
-    #     # print(hp.max_pixrad(self.ligo_nside, degrees=True)**2 * np.pi, size)
-    #
-    #     plt.scatter(
-    #         self.wrap_around_180(np.array([plot_ras])),
-    #         plot_decs,
-    #         c=probs,
-    #         vmin=0.0,
-    #         vmax=max(self.data[self.key]),
-    #         s=size,
-    #     )
-    #
-    #     plt.scatter(
-    #         self.wrap_around_180(np.array([single_ras])),
-    #         single_decs,
-    #         c=single_probs,
-    #         vmin=0.0,
-    #         vmax=max(self.data[self.key]),
-    #         s=size,
-    #         cmap="gray",
-    #     )
-    #
-    #     plt.scatter(
-    #         self.wrap_around_180(np.array([veto_ras])), veto_decs, color="red", s=size
-    #     )
-    #
-    #     red_patch = mpatches.Patch(color="red", label="Not observed")
-    #     gray_patch = mpatches.Patch(color="gray", label="Observed once")
-    #     plt.legend(handles=[red_patch, gray_patch])
-    #
-    #     self.overlap_prob = 100.0 * np.sum(probs)
-    #     once_observed_prob = 100 * (np.sum(probs) + np.sum(single_probs))
-    #     message = (
-    #         f"In total, {once_observed_prob} % of the contour was observed at least once. \n "
-    #         f"In total, {self.overlap_prob} % of the contour was observed at least twice. \n"
-    #         "THIS DOES NOT INCLUDE CHIP GAPS!!!"
-    #     )
-    #
-    #     print(message)
-    #
-    #     self.area = (2.0 * base_ztf_rad) ** 2 * float(len(overlapping_fields))
-    #     self.n_fields = len(overlapping_fields)
-    #     self.overlap_fields = overlapping_fields
-    #
-    #     print(
-    #         f"{self.n_fields} fields were covered, covering approximately {self.area} sq deg."
-    #     )
-    #     return fig, message
-
-    # def plot_overlap_with_observations(self, fields=None, pid=None, first_det_window_days=None, min_sep=0.01):
-    #
-    #     try:
-    #         nside = self.ligo_nside
-    #     except AttributeError:
-    #         nside = self.nside
-    #
-    #     fig = plt.figure()
-    #     plt.subplot(projection="aitoff")
-    #
-    #     double_in_plane_probs = []
-    #     single_in_plane_prob = []
-    #
-    #     if fields is None:
-    #         mns = self.get_multi_night_summary(first_det_window_days)
-    #
-    #     else:
-    #
-    #         class MNS:
-    #             def __init__(self, data):
-    #                 self.data = pandas.DataFrame(data, columns=["field", "ra", "dec", "datetime"])
-    #
-    #         data = []
-    #
-    #         for f in fields:
-    #             ra, dec = ztfquery_fields.field_to_coords(f)[0]
-    #             for i in range(2):
-    #                 t = Time(self.t_min.jd + 0.1*i, format="jd").utc
-    #                 t.format = "isot"
-    #                 t = t.value
-    #                 data.append([f, ra, dec, t])
-    #
-    #         mns = MNS(data)
-    #
-    #     data = mns.data.copy()
-    #
-    #     if pid is not None:
-    #         pid_mask = data["pid"] == str(pid)
-    #         data = data[pid_mask]
-    #
-    #     obs_times = np.array([Time(data["datetime"].iat[i], format="isot", scale="utc")
-    #                           for i in range(len(data))])
-    #
-    #
-    #     if first_det_window_days is not None:
-    #         first_det_mask = [x < Time(self.t_min.jd + first_det_window_days, format="jd").utc for x in obs_times]
-    #         data = data[first_det_mask]
-    #         obs_times = obs_times[first_det_mask]
-    #
-    #
-    #     pix_obs_times = dict()
-    #
-    #     print("Unpacking observations")
-    #     pix_map = dict()
-    #     for i, obs_time in enumerate(tqdm(obs_times)):
-    #         radec = [f"{data['ra'].iat[i]} {data['dec'].iat[i]}"]
-    #         coords = SkyCoord(radec, unit=(u.hourangle, u.deg))
-    #         # pix = get_quadrant_ipix(nside, data["ra"].iat[i], data["dec"].iat[i])
-    #         pix = get_quadrant_ipix(nside, coords.ra.deg[0], coords.dec.deg[0])
-    #
-    #         field = data["field"].iat[i]
-    #
-    #         flat_pix = []
-    #
-    #         for sub_list in pix:
-    #             for p in sub_list:
-    #                 flat_pix.append(p)
-    #
-    #         flat_pix = list(set(flat_pix))
-    #
-    #         t = obs_time.jd
-    #         for p in flat_pix:
-    #             if p not in pix_obs_times.keys():
-    #                 pix_obs_times[p] = [t]
-    #             else:
-    #                 pix_obs_times[p] += [t]
-    #
-    #             if p not in pix_map.keys():
-    #                 pix_map[p] = [field]
-    #             else:
-    #                 pix_map[p] += [field]
-    #
-    #
-    #     npix = hp.nside2npix(nside)
-    #     theta, phi = hp.pix2ang(nside, np.arange(npix), nest=False)
-    #     radecs = SkyCoord(ra=phi * u.rad, dec=(0.5 * np.pi - theta) * u.rad)
-    #     idx = np.where(np.abs(radecs.galactic.b.deg) <= 10.0)[0]
-    #
-    #     double_in_plane_pixels = []
-    #     double_in_plane_probs = []
-    #     single_in_plane_pixels = []
-    #     single_in_plane_prob = []
-    #     veto_pixels = []
-    #     plane_pixels = []
-    #     plane_probs = []
-    #     times = []
-    #     double_no_plane_prob = []
-    #     double_no_plane_pixels = []
-    #     single_no_plane_prob = []
-    #     single_no_plane_pixels = []
-    #
-    #     overlapping_fields = []
-    #     for i, p in enumerate(tqdm(hp.nest2ring(nside, self.pixel_nos))):
-    #         if p in pix_obs_times.keys():
-    #             if p in idx:
-    #                 plane_pixels.append(p)
-    #                 plane_probs.append(self.map_probs[i])
-    #
-    #             obs = pix_obs_times[p]
-    #
-    #             # check which healpix are observed twice
-    #             if max(obs) - min(obs) > min_sep:
-    #                 # is it in galactic plane or not?
-    #                 if p not in idx:
-    #                     double_no_plane_prob.append(self.map_probs[i])
-    #                     double_no_plane_pixels.append(p)
-    #                 else:
-    #                     double_in_plane_probs.append(self.map_probs[i])
-    #                     double_in_plane_pixels.append(p)
-    #
-    #             else:
-    #                 if p not in idx:
-    #                     single_no_plane_pixels.append(p)
-    #                     single_no_plane_prob.append(self.map_probs[i])
-    #                 else:
-    #                     single_in_plane_prob.append(self.map_probs[i])
-    #                     single_in_plane_pixels.append(p)
-    #
-    #             overlapping_fields += pix_map[p]
-    #
-    #             times += obs
-    #         else:
-    #             veto_pixels.append(p)
-    #
-    #     # print(f"double no plane prob = {double_no_plane_prob}")
-    #     # print(f"probs = {probs}")
-    #     # print(f"single no plane prob = {single_no_plane_prob}")
-    #     # print(f"single probs = {single_probs}")
-    #
-    #     overlapping_fields = sorted(list(set(overlapping_fields)))
-    #     self.overlap_fields = list(set(overlapping_fields))
-    #
-    #     self.overlap_prob = np.sum(double_in_plane_probs + double_no_plane_prob) * 100.
-    #
-    #     size = hp.max_pixrad(nside) ** 2 * 50.
-    #
-    #     veto_pos = np.array([hp.pixelfunc.pix2ang(nside, i, lonlat=True) for i in veto_pixels]).T
-    #
-    #     if len(veto_pos) > 0:
-    #
-    #         plt.scatter(self.wrap_around_180(np.radians(veto_pos[0])), np.radians(veto_pos[1]),
-    #                     color="red", s=size)
-    #
-    #     plane_pos = np.array([hp.pixelfunc.pix2ang(nside, i, lonlat=True) for i in plane_pixels]).T
-    #
-    #     if len(plane_pos) > 0:
-    #
-    #         plt.scatter(self.wrap_around_180(np.radians(plane_pos[0])), np.radians(plane_pos[1]),
-    #                     color="green", s=size)
-    #
-    #     single_pos = np.array([hp.pixelfunc.pix2ang(nside, i, lonlat=True) for i in single_no_plane_pixels]).T
-    #
-    #     if len(single_pos) > 0:
-    #         plt.scatter(self.wrap_around_180(np.radians(single_pos[0])), np.radians(single_pos[1]),
-    #                     c=single_no_plane_prob, vmin=0., vmax=max(self.data[self.key]), s=size, cmap='gray')
-    #
-    #     plot_pos = np.array([hp.pixelfunc.pix2ang(nside, i, lonlat=True) for i in double_no_plane_pixels]).T
-    #
-    #     if len(plot_pos) > 0:
-    #         plt.scatter(self.wrap_around_180(np.radians(plot_pos[0])), np.radians(plot_pos[1]),
-    #                     c=double_no_plane_prob, vmin=0., vmax=max(self.data[self.key]), s=size)
-    #
-    #     red_patch = mpatches.Patch(color='red', label='Not observed')
-    #     gray_patch = mpatches.Patch(color='gray', label='Observed once')
-    #     violet_patch = mpatches.Patch(color='green', label='Observed Galactic Plane (|b|<10)')
-    #     plt.legend(handles=[red_patch, gray_patch, violet_patch])
-    #
-    #     message = "In total, {0:.2f} % of the contour was observed at least once. \n " \
-    #               "This estimate includes {1:.2f} % of the contour " \
-    #               "at a galactic latitude <10 deg. \n " \
-    #               "In total, {2:.2f} % of the contour was observed at least twice. \n" \
-    #               "In total, {3:.2f} % of the contour was observed at least twice, " \
-    #               "and excluding low galactic latitudes. \n" \
-    #               "These estimates accounts for chip gaps.".format(
-    #         100 * (np.sum(double_in_plane_probs) + np.sum(single_in_plane_prob) + np.sum(single_no_plane_prob) + np.sum(double_no_plane_prob)),
-    #         100 * np.sum(plane_probs),
-    #         100.*(np.sum(double_in_plane_probs) + np.sum(double_no_plane_prob)),
-    #         100.*np.sum(double_no_plane_prob)
-    #         )
-    #
-    #     all_pix = single_in_plane_pixels + double_in_plane_pixels
-    #
-    #     n_pixels = len(single_in_plane_pixels + double_in_plane_pixels + double_no_plane_pixels + single_no_plane_pixels)
-    #     n_double = len(double_no_plane_pixels + double_in_plane_pixels)
-    #     n_plane = len(plane_pixels)
-    #
-    #     self.area = hp.pixelfunc.nside2pixarea(nside, degrees=True) * n_pixels
-    #     self.double_extragalactic_area = hp.pixelfunc.nside2pixarea(nside, degrees=True) * n_double
-    #     plane_area  = hp.pixelfunc.nside2pixarea(nside, degrees=True) * n_plane
-    #     try:
-    #         self.first_obs = Time(min(times), format="jd")
-    #         self.first_obs.utc.format = "isot"
-    #         self.last_obs = Time(max(times), format="jd")
-    #         self.last_obs.utc.format = "isot"
-    #
-    #     except ValueError:
-    #         raise Exception(f"No observations of this field were found at any time after {self.t_min.jd:.2f} JD ({self.t_min}). "
-    #                         "Coverage overlap is 0%!")
-    #
-    #     print("Observations started at {0}".format(self.first_obs.jd))
-    #
-    #     self.overlap_fields = overlapping_fields
-    #
-    #     #     area = (2. * base_ztf_rad)**2 * float(len(overlapping_fields))
-    #     #     n_fields = len(overlapping_fields)
-    #
-    #     print("{0} pixels were covered, covering approximately {1:.2g} sq deg.".format(
-    #         n_pixels, self.area))
-    #     print("{0} pixels were covered at least twice (b>10), covering approximately {1:.2g} sq deg.".format(
-    #         n_double, self.double_extragalactic_area))
-    #     print("{0} pixels were covered at low galactic latitude, covering approximately {1:.2g} sq deg.".format(
-    #         n_plane, plane_area))
-    #     return fig, message
-
     def plot_overlap_with_observations(
         self, fields=None, pid=None, first_det_window_days=None, min_sep=0.01
     ):
@@ -1444,12 +1015,12 @@ class BaseScanner:
             f"Intergrating all fields overlapping 90% contour gives {100*field_prob:.2g}%"
         )
 
-    def export_fields(self):
-        mask = np.array([x in self.overlap_fields for x in self.mns.data["field"]])
-        lim_mag = [20.5 for _ in range(np.sum(mask))]
-        coincident_obs = self.mns.data[mask].assign(lim_mag=lim_mag)
-        print(
-            coincident_obs[["field", "pid", "datetime", "lim_mag", "exp"]].to_csv(
-                index=False, sep=" "
-            )
-        )
+    # def export_fields(self):
+    #     mask = np.array([x in self.overlap_fields for x in self.mns.data["field"]])
+    #     lim_mag = [20.5 for _ in range(np.sum(mask))]
+    #     coincident_obs = self.mns.data[mask].assign(lim_mag=lim_mag)
+    #     print(
+    #         coincident_obs[["field", "pid", "datetime", "lim_mag", "exp"]].to_csv(
+    #             index=False, sep=" "
+    #         )
+    #     )
