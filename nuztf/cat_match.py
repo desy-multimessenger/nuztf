@@ -68,7 +68,12 @@ def get_cross_match_info(raw):
     )
     if res is not None:
         if len(res) == 1:
-            label = f"[MILLIQUAS: '{res[0]['body']['broad_type']}'-type source ({res[0]['dist_arcsec']:.2f} arsec)]"
+
+            if "q" in res[0]['body']['broad_type']:
+                label = f"[MILLIQUAS: Likely QSO (prob = {res[0]['body']['qso_prob']}%) ({res[0]['dist_arcsec']:.2f} arsec)]"
+            else:
+
+                label = f"[MILLIQUAS: '{res[0]['body']['broad_type']}'-type source ({res[0]['dist_arcsec']:.2f} arsec)]"
         else:
             label = "[MULTIPLE MILLIQUAS MATCHES]"
 

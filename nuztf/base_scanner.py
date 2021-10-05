@@ -634,7 +634,7 @@ class BaseScanner:
                 text += f"It is located at a galactic latitude of {g_lat:.2f} degrees. "
 
             xmatch_info = get_cross_match_info(res)
-            test += xmatch_info
+            text += xmatch_info
             text += "\n"
         return text
 
