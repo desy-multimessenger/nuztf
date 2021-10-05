@@ -568,8 +568,11 @@ class BaseScanner:
             if tns_name:
                 tns_result = f'({tns_name})'
 
+            xmatch_info = get_cross_match_info(res)
+
             print(f"Candidate {name} peaked at {brightest['magpsf']:.1f} {tns_result}on "
-                  f"{brightest['jd']:.1f} with filter {self.parse_ztf_filter(brightest['fid'])}")
+                  f"{brightest['jd']:.1f} with filter {self.parse_ztf_filter(brightest['fid'])} "
+                  f"{xmatch_info}")
 
     def candidate_text(self, name, first_detection, lul_lim, lul_jd):
         raise NotImplementedError
@@ -629,6 +632,9 @@ class BaseScanner:
             g_lat = c.galactic.b.degree
             if abs(g_lat) < 15.0:
                 text += f"It is located at a galactic latitude of {g_lat:.2f} degrees. "
+
+            xmatch_info = get_cross_match_info(res)
+            test += xmatch_info
             text += "\n"
         return text
 

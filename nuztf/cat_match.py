@@ -57,6 +57,8 @@ def get_cross_match_info(raw):
 
     label = ""
 
+    # Check if known QSO/AGN
+
     res = ampel_api_catalog(
         catalog="milliquas",
         catalog_type="extcats",
@@ -69,5 +71,38 @@ def get_cross_match_info(raw):
             label = f"[MILLIQUAS: '{res[0]['body']['broad_type']}'-type source ({res[0]['dist_arcsec']:.2f} arsec)]"
         else:
             label = "[MULTIPLE MILLIQUAS MATCHES]"
+
+    # Check if measured parallax in Gaia (i.e galactic)
+
+    if label == "":
+        res = ampel_api_catalog(
+            catalog="GAIADR2",
+            catalog_type="catsHTM",
+            ra_deg=alert["ra"],
+            dec_deg=alert["dec"],
+            searchradius_arcsec=5.
+        )
+        if res is not None:
+            if res[0]['body']['Plx'] is not None:
+                plx_sig = res[0]['body']['Plx']/res[0]['body']['ErrPlx']
+                if plx_sig > 1.5:
+                    label = f"[GAIADR2: {plx_sig:.1f}-sigma parallax ({res[0]['dist_arcsec']:.2f} arsec)]"
+
+    # Check if classified as probable star in SDSS
+
+    if label == "":
+        res = ampel_api_catalog(
+            catalog="SDSSDR10",
+            catalog_type="catsHTM",
+            ra_deg=alert["ra"],
+            dec_deg=alert["dec"],
+            searchradius_arcsec=search_rad
+        )
+        if res is not None:
+            if len(res) == 1:
+                if float(res[0]['body']['type']) == 6.0:
+                    label = f"[SDSS Morphology: 'Star'-type source ({res[0]['dist_arcsec']:.2f} arsec)]"
+            else:
+                label = "[MULTIPLE SDSS MATCHES]"
 
     return label
