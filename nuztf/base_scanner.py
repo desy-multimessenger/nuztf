@@ -27,7 +27,8 @@ from ampel.ztf.dev.DevAlertProcessor import DevAlertProcessor
 from ampel.alert.PhotoAlert import PhotoAlert
 from gwemopt.ztf_tiling import get_quadrant_ipix
 from ampel.log.AmpelLogger import AmpelLogger
-from nuztf.ampel_api import ampel_api_cone, ampel_api_timerange, ampel_api_name, reassemble_alert, ampel_api_catalog, ampel_api_tns, query_ned_for_z
+from nuztf.ampel_api import ampel_api_cone, ampel_api_timerange, ampel_api_name, reassemble_alert
+from nuztf.cat_match import get_cross_match_info, ampel_api_tns, query_ned_for_z
 from nuztf.observation_log import get_obs_summary
 
 DEBUG = False
