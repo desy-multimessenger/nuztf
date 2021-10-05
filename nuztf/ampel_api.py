@@ -249,15 +249,15 @@ def reassemble_alert(mock_alert):
     requests.exceptions.RequestException,
     max_time=600,
 )
-def ampel_api_tns(ra: float, dec: float, searchradius_arcsec: float = 3):
+def ampel_api_tns(ra_deg: float, dec_deg: float, searchradius_arcsec: float = 3):
     """Function to query TNS via ampel api"""
     queryurl_catalogmatch = API_CATALOGMATCH_URL + f"/cone_search/nearest"
 
     # First, we create a json body to post
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     query = {
-        "ra_deg": ra,
-        "dec_deg": dec,
+        "ra_deg": ra_deg,
+        "dec_deg": dec_deg,
         "catalogs": [
             {"name": "TNS", "rs_arcsec": searchradius_arcsec, "use": "extcats"}
         ],
