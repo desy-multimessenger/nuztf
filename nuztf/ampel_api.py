@@ -171,8 +171,14 @@ def ampel_api_name(ztf_name, with_history=True, logger=None):
     )
     if response.status_code == 503:
         raise requests.exceptions.RequestException
-    query_res = [i for i in response.json()]
-    query_res = merge_alerts(query_res)
+
+    try:
+        query_res = [i for i in response.json()]
+        query_res = merge_alerts(query_res)
+
+    except JSONDecodeError:
+        raise requests.exceptions.RequestException
+
     return query_res
 
 
