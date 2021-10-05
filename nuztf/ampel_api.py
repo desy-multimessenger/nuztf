@@ -255,15 +255,15 @@ def reassemble_alert(mock_alert):
     requests.exceptions.RequestException,
     max_time=600,
 )
-def ampel_api_tns(ra: float, dec: float, searchradius_arcsec: float = 3):
+def ampel_api_tns(ra_deg: float, dec_deg: float, searchradius_arcsec: float = 3):
     """Function to query TNS via ampel api"""
     queryurl_catalogmatch = API_CATALOGMATCH_URL + f"/cone_search/nearest"
 
     # First, we create a json body to post
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     query = {
-        "ra_deg": ra,
-        "dec_deg": dec,
+        "ra_deg": ra_deg,
+        "dec_deg": dec_deg,
         "catalogs": [
             {"name": "TNS", "rs_arcsec": searchradius_arcsec, "use": "extcats"}
         ],
@@ -304,8 +304,8 @@ def ampel_api_tns(ra: float, dec: float, searchradius_arcsec: float = 3):
 def ampel_api_catalog(
         catalog: str,
         catalog_type: str,
-        ra: float,
-        dec: float,
+        ra_deg: float,
+        dec_deg: float,
         searchradius_arcsec: float = 10,
         searchtype: str = "all",
     ):
@@ -325,8 +325,8 @@ def ampel_api_catalog(
     # First, we create a json body to post
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     query = {
-        "ra_deg": ra,
-        "dec_deg": dec,
+        "ra_deg": ra_deg,
+        "dec_deg": dec_deg,
         "catalogs": [
             {"name": catalog, "rs_arcsec": searchradius_arcsec, "use": catalog_type}
         ],
@@ -346,7 +346,7 @@ def ampel_api_catalog(
     requests.exceptions.RequestException,
     max_time=600,
 )
-def query_ned_for_z(ra: float, dec: float, searchradius_arcsec: float = 20):
+def query_ned_for_z(ra_deg: float, dec_deg: float, searchradius_arcsec: float = 20):
 
     z = None
     dist_arcsec = None
@@ -354,8 +354,8 @@ def query_ned_for_z(ra: float, dec: float, searchradius_arcsec: float = 20):
     query = ampel_api_catalog(
         catalog="NEDz_extcats",
         catalog_type="extcats",
-        ra=ra,
-        dec=dec,
+        ra_deg=ra_deg,
+        dec_deg=dec_deg,
         searchradius_arcsec=searchradius_arcsec,
         searchtype="nearest",
     )
