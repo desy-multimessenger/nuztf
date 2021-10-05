@@ -90,7 +90,7 @@ def get_cross_match_info(raw):
         if res is not None:
             if res[0]['body']['Plx'] is not None:
                 plx_sig = res[0]['body']['Plx']/res[0]['body']['ErrPlx']
-                if plx_sig > 1.5:
+                if plx_sig > 3.0:
                     label = f"[GAIADR2: {plx_sig:.1f}-sigma parallax ({res[0]['dist_arcsec']:.2f} arsec)]"
 
     # Check if classified as probable star in SDSS
