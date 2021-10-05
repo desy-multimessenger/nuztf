@@ -26,6 +26,9 @@ def lightcurve_from_alert(
     ): 
     """ plot AMPEL alerts as lightcurve """
 
+    if np.isnan(z):
+        z = None
+
     # ZTF color and naming scheme
     BAND_NAMES = {1: "ZTF g", 2: "ZTF r", 3: "ZTF i"}
     BAND_COLORS = {1: "green", 2: "red", 3: "orange"}
