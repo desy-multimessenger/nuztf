@@ -463,11 +463,15 @@ class BaseScanner:
 
         with PdfPages(self.output_path) as pdf:
             for (name, old_alert) in tqdm(sorted(self.cache.items())):
+                xmatch_info = get_cross_match_info(old_alert)
                 mock_alert = reassemble_alert(old_alert)
                 try:
                     fig = alert.display_alert(mock_alert, show_ps_stamp=True)
-                    fig.text(0.01, 0.01, name)
-                    pdf.savefig()
+
+                    label = f"{name} {xmatch_info}"
+
+                    fig.text(0.01, -0.015, label)
+                    pdf.savefig(bbox_inches='tight', pad_inches=0)
                     plt.close()
                 # except TypeError:
                 except KeyError:
