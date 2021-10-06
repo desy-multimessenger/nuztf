@@ -107,12 +107,12 @@ def lightcurve_from_alert(
         cutoutdiff = fig.add_subplot(5, 4, (3,7))
         cutoutps1 = fig.add_subplot(5,4, (4,8))
     else:
-        lc_ax1 = plt.subplots(1, 1, figsize=figsize)
+        lc_ax1 = fig.add_subplot(1, 1, 1)
+        fig.subplots_adjust(top=0.8, bottom=0.15)
 
-    plt.subplots_adjust(wspace=0.4, hspace=1.3)
+    plt.subplots_adjust(wspace=0.4, hspace=1.8)
 
-    # fig.subplots_adjust(top=0.8)
-    # lc_ax2 = lc_ax1.secondary_xaxis("top", functions=(t0_dist, t0_to_mjd))
+    # 
 
     if include_cutouts:
         for cutout_, ax_, type_ in zip([cutouts, cutouts, cutouts], [cutoutsci, cutouttemp, cutoutdiff], ["Science", "Template", "Difference"]):
@@ -143,25 +143,23 @@ def lightcurve_from_alert(
         if not include_cutouts:
             lc_ax3.set_ylabel(f"Absolute Magnitude [AB]")
 
-    # Get time now as UTC time
-    ts = time.time()
-    utc_now = datetime.utcfromtimestamp(ts)
-    utc_string = utc_now.strftime("%Y-%m-%d")
-
-
-    # lc_ax2.set_xlabel(f"Days from {utc_string}")
 
     # Give the figure a title
-    # if title is None:
-    #     fig.suptitle(f"{name}", fontweight="bold")
-    # else:
-    #     fig.suptitle(title, fontweight="bold")
+    if not include_cutouts:
+        if title is None:
+            fig.suptitle(f"{name}", fontweight="bold")
+        else:
+            fig.suptitle(title, fontweight="bold")
 
     # grid line every 100 days
     # lc_ax1.xaxis.set_major_locator(MultipleLocator(100))
+
     lc_ax1.grid(b=True, axis="both", alpha=0.5)
-    # lc_ax1.set_xlabel("MJD")
     lc_ax1.set_ylabel("Magnitude [AB]")
+
+    if not include_cutouts:
+        lc_ax1.set_xlabel("MJD")
+    
 
     # Determine magnitude limits
     if mag_range is None:
@@ -250,7 +248,9 @@ def lightcurve_from_alert(
     lc_ax2.tick_params(axis='both', which='major', labelsize=6, rotation=45)
     lc_ax1.tick_params(axis='x', which='major', labelsize=9, rotation=45)
     lc_ax1.tick_params(axis='y', which='major', labelsize=9)
-    lc_ax3.tick_params(axis='both', which='major', labelsize=9)
+
+    if z is not None:
+        lc_ax3.tick_params(axis='both', which='major', labelsize=9)
 
     if z is not None:
         axes = [lc_ax1, lc_ax2, lc_ax3]
