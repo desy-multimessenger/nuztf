@@ -91,6 +91,13 @@ def lightcurve_from_alert(
         t0 = Time(time.time(), format="unix", scale="utc").mjd
         return t0 + dist_to_t0
 
+    def mjd_to_date(mjd):
+        # return mjd + 20000
+        return Time(mjd, format="mjd").mjd
+
+    def date_to_mjd(date):
+        return Time(date, format="mjd").mjd
+
     fig = plt.figure(figsize=figsize)
 
     if include_cutouts:
@@ -105,7 +112,7 @@ def lightcurve_from_alert(
     plt.subplots_adjust(wspace=0.4, hspace=1.3)
 
     # fig.subplots_adjust(top=0.8)
-    lc_ax2 = lc_ax1.secondary_xaxis("top", functions=(t0_dist, t0_to_mjd))
+    # lc_ax2 = lc_ax1.secondary_xaxis("top", functions=(t0_dist, t0_to_mjd))
 
     if include_cutouts:
         for cutout_, ax_, type_ in zip([cutouts, cutouts, cutouts], [cutoutsci, cutouttemp, cutoutdiff], ["Science", "Template", "Difference"]):
@@ -140,7 +147,9 @@ def lightcurve_from_alert(
     ts = time.time()
     utc_now = datetime.utcfromtimestamp(ts)
     utc_string = utc_now.strftime("%Y-%m-%d")
-    lc_ax2.set_xlabel(f"Days from {utc_string}")
+
+
+    # lc_ax2.set_xlabel(f"Days from {utc_string}")
 
     # Give the figure a title
     # if title is None:
@@ -149,9 +158,9 @@ def lightcurve_from_alert(
     #     fig.suptitle(title, fontweight="bold")
 
     # grid line every 100 days
-    lc_ax1.xaxis.set_major_locator(MultipleLocator(100))
+    # lc_ax1.xaxis.set_major_locator(MultipleLocator(100))
     lc_ax1.grid(b=True, axis="both", alpha=0.5)
-    lc_ax1.set_xlabel("MJD")
+    # lc_ax1.set_xlabel("MJD")
     lc_ax1.set_ylabel("Magnitude [AB]")
 
     # Determine magnitude limits
@@ -222,9 +231,26 @@ def lightcurve_from_alert(
             for k in [k for k in candidate.keys() if kk in k]:
                 info.append(f"{k}: {candidate.get(k):.3f}")
 
-        fig.text(0.75,0.55, "\n".join(info), va="top", fontsize="medium", color="0.4")
+        fig.text(0.77,0.55, "\n".join(info), va="top", fontsize="medium", color="0.4")
 
-    # plt.tight_layout()
+    # Ugly hack because secondary_axis does not work with astropy.time.Time datetime conversion
+
+    
+    mjd_min = np.min(df.mjd.values)
+    mjd_max = np.max(df.mjd.values)
+    length = mjd_max - mjd_min
+
+    lc_ax1.set_xlim([mjd_min-(length/20), mjd_max+(length/20)])
+
+    lc_ax2 = lc_ax1.twiny()
+
+    datetimes = [Time(x, format="mjd").datetime for x in [mjd_min, mjd_max]]
+
+    lc_ax2.scatter([Time(x, format="mjd").datetime for x in [mjd_min, mjd_max]], [20, 20], alpha=0)
+    lc_ax2.tick_params(axis='both', which='major', labelsize=6, rotation=45)
+    lc_ax1.tick_params(axis='x', which='major', labelsize=9, rotation=45)
+    lc_ax1.tick_params(axis='y', which='major', labelsize=9)
+    lc_ax3.tick_params(axis='both', which='major', labelsize=9)
 
     if z is not None:
         axes = [lc_ax1, lc_ax2, lc_ax3]
