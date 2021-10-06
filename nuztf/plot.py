@@ -1,46 +1,70 @@
 #!/usr/bin/env python3
 # License: BSD-3-Clause
 
-import os, time
-from astropy.time import Time
+import os, time, gzip, io
 from datetime import datetime
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.ticker import (AutoMinorLocator, MultipleLocator)
+from matplotlib.colors import Normalize
+from base64 import b64decode
+
+from astropy.time import Time
 from astropy.cosmology import FlatLambdaCDM
 from astropy import units as u
+from astropy.io import fits
+from astropy import visualization
+from ztfquery.utils.stamps import get_ps_stamp
+        
 
 # For absolute magnitude calculation
 GENERIC_COSMOLOGY = FlatLambdaCDM(H0=70, Om0=0.3)
 
-
 def lightcurve_from_alert(
         alert: dict,
-        figsize: list=[6.47, 4],
+        # figsize: list=[6.47, 4],
+        figsize: list=[8,5],
         title: str=None,
-        include_ulims: bool=False,
+        include_ulims: bool=True,
+        include_cutouts: bool=True,
         mag_range: list=None,
         z: float=None,
+        legend: bool=False,
         logger=None,
     ): 
     """ plot AMPEL alerts as lightcurve """
 
-    if np.isnan(z):
-        z = None
+    if logger is None:
+        import logging
+        logger = logging.getLogger(__name__)
+    else:
+        logger = logger
+
+    if z is not None:
+        if np.isnan(z):
+            z = None
+            logger.debug("Redshift is nan, will be ignored")
 
     # ZTF color and naming scheme
     BAND_NAMES = {1: "ZTF g", 2: "ZTF r", 3: "ZTF i"}
     BAND_COLORS = {1: "green", 2: "red", 3: "orange"}
 
     name = alert[0]["objectId"]
-    candid = alert[0]["candidate"]
+    candidate = alert[0]["candidate"]
     prv_candid = alert[0]["prv_candidates"]
 
-    if logger is not None:
-        logger.debug(f"Plotting {name}")
+    if include_cutouts:
+        try:
+            cutouts = alert[0]["cutouts"]
+        except:
+            logger.info("The alert dictionary does not contain cutouts. Will proceed without them.")
+            include_cutouts = False
 
-    df = pd.DataFrame(candid, index=[0])
+    logger.debug(f"Plotting {name}")
+    logger.debug(f"Found {len(prv_candid)+1} alerts")
+
+    df = pd.DataFrame(candidate, index=[0])
     df_ulims = pd.DataFrame()
 
     # Filter out images with negative difference flux
@@ -67,10 +91,31 @@ def lightcurve_from_alert(
         t0 = Time(time.time(), format="unix", scale="utc").mjd
         return t0 + dist_to_t0
 
-    fig, ax = plt.subplots(1, 1, figsize=figsize)
+    fig = plt.figure(figsize=figsize)
 
-    fig.subplots_adjust(top=0.8)
-    ax2 = ax.secondary_xaxis("top", functions=(t0_dist, t0_to_mjd))
+    if include_cutouts:
+        lc_ax1 = fig.add_subplot(5, 4, (9, 19))
+        cutoutsci = fig.add_subplot(5, 4, (1,5))
+        cutouttemp = fig.add_subplot(5, 4, (2,6))
+        cutoutdiff = fig.add_subplot(5, 4, (3,7))
+        cutoutps1 = fig.add_subplot(5,4, (4,8))
+    else:
+        lc_ax1 = plt.subplots(1, 1, figsize=figsize)
+
+    plt.subplots_adjust(wspace=0.4, hspace=1.3)
+
+    # fig.subplots_adjust(top=0.8)
+    lc_ax2 = lc_ax1.secondary_xaxis("top", functions=(t0_dist, t0_to_mjd))
+
+    if include_cutouts:
+        for cutout_, ax_, type_ in zip([cutouts, cutouts, cutouts], [cutoutsci, cutouttemp, cutoutdiff], ["Science", "Template", "Difference"]):
+            create_stamp_plot(cutouts=cutout_, ax=ax_, type=type_)
+
+        img = get_ps_stamp(candidate["ra"], candidate["dec"],  size=240, color=["y","g","i"])
+        cutoutps1.imshow(np.asarray(img))
+        cutoutps1.set_title("PS1", fontdict={"fontsize" : "small"})
+        cutoutps1.set_xticks([])
+        cutoutps1.set_yticks([])
 
     # If redshift is given, calculate absolute magnitude via luminosity distance
     # and plot as right axis
@@ -86,37 +131,42 @@ def lightcurve_from_alert(
             mag = absmag + 5 * (np.log10(dist_l) - 1)
             return mag
 
-        ax3 = ax.secondary_yaxis("right", functions=(mag_to_absmag, absmag_to_mag))
-        ax3.set_ylabel(f"Absolute Magnitude [AB]")
+        lc_ax3 = lc_ax1.secondary_yaxis("right", functions=(mag_to_absmag, absmag_to_mag))
+
+        if not include_cutouts:
+            lc_ax3.set_ylabel(f"Absolute Magnitude [AB]")
 
     # Get time now as UTC time
     ts = time.time()
     utc_now = datetime.utcfromtimestamp(ts)
     utc_string = utc_now.strftime("%Y-%m-%d")
-    ax2.set_xlabel(f"Days from {utc_string}")
+    lc_ax2.set_xlabel(f"Days from {utc_string}")
 
     # Give the figure a title
-    if title is None:
-        fig.suptitle(f"{name}", fontweight="bold")
-    else:
-        fig.suptitle(title, fontweight="bold")
+    # if title is None:
+    #     fig.suptitle(f"{name}", fontweight="bold")
+    # else:
+    #     fig.suptitle(title, fontweight="bold")
 
     # grid line every 100 days
-    ax.xaxis.set_major_locator(MultipleLocator(100))
-    ax.grid(b=True, axis="both", alpha=0.5)
-    ax.set_xlabel("MJD")
-    ax.set_ylabel("Magnitude [AB]")
+    lc_ax1.xaxis.set_major_locator(MultipleLocator(100))
+    lc_ax1.grid(b=True, axis="both", alpha=0.5)
+    lc_ax1.set_xlabel("MJD")
+    lc_ax1.set_ylabel("Magnitude [AB]")
 
+    # Determine magnitude limits
     if mag_range is None:
-        ax.set_ylim([23, 15])
+        max_mag = np.max(df.magpsf.values) + 0.3
+        min_mag = np.min(df.magpsf.values) - 0.3
+        lc_ax1.set_ylim([max_mag, min_mag])
     else:
-        ax.set_ylim([np.max(mag_range), np.min(mag_range)])
+        lc_ax1.set_ylim([np.max(mag_range), np.min(mag_range)])
 
     for fid in BAND_NAMES.keys():
 
-        # Plot datapoints
-        df_temp = df.query("fid == @fid")
-        ax.errorbar(
+        # Plot older datapoints
+        df_temp = df.iloc[1:].query("fid == @fid")
+        lc_ax1.errorbar(
             df_temp["mjd"],
             df_temp["magpsf"],
             df_temp["sigmapsf"],
@@ -130,7 +180,7 @@ def lightcurve_from_alert(
         # Plot upper limits
         if include_ulims:
             df_temp2 = df_ulims.query("fid == @fid")
-            ax.scatter(
+            lc_ax1.scatter(
                 df_temp2["mjd"],
                 df_temp2["diffmaglim"],
                 c=BAND_COLORS[fid],
@@ -139,11 +189,60 @@ def lightcurve_from_alert(
                 alpha=0.5,
             )
 
-    plt.tight_layout()
+    # Plot datapoint from alert
+    df_temp = df.iloc[0]
+    fid = df_temp["fid"]
+    lc_ax1.errorbar(
+        df_temp["mjd"],
+        df_temp["magpsf"],
+        df_temp["sigmapsf"],
+        color=BAND_COLORS[fid],
+        fmt=".",
+        label=BAND_NAMES[fid],
+        mec="black",
+        mew=0.5,
+        markersize=12,
+    )
+
+    if legend:
+        plt.legend()
+
+    # Now we create an infobox
+    if include_cutouts:
+        info = []
+
+        info.append(name)
+        info.append("------------------------")
+        info.append(f"RA: {candidate['ra']:.8f}")
+        info.append(f"Dec: {candidate['dec']:.8f}")
+        info.append(f"rb: {candidate['rb']:.3f}")
+        info.append("------------------------")
+
+        for kk in ["sgscore", "distpsnr","srmag"]:
+            for k in [k for k in candidate.keys() if kk in k]:
+                info.append(f"{k}: {candidate.get(k):.3f}")
+
+        fig.text(0.75,0.55, "\n".join(info), va="top", fontsize="medium", color="0.4")
+
+    # plt.tight_layout()
 
     if z is not None:
-        axes = [ax, ax2, ax3]
+        axes = [lc_ax1, lc_ax2, lc_ax3]
     else:
-        axes = [ax, ax2]
+        axes = [lc_ax1, lc_ax2]
 
     return fig, axes
+
+def create_stamp_plot(cutouts: dict, ax, type: str):
+    """ Helper function to create cutout subplot """
+    with gzip.open(io.BytesIO(cutouts[f"cutout{type}"]["data"]), "rb") as f:
+        data = fits.open(io.BytesIO(f.read()))[0].data
+    vmin, vmax = np.percentile(data[data==data], [0,100])
+    data_ = visualization.AsinhStretch()((data-vmin)/(vmax-vmin))
+    ax.imshow(data_, norm=Normalize(*np.percentile(data_[data_==data_], [0.5,99.5])), aspect="auto")
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_title(type, fontdict={"fontsize" : "small"})
+
+
+

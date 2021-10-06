@@ -55,17 +55,18 @@ def merge_alerts(alert_list):
     max_time=600,
 )
 def ampel_api_cone(
-    ra, 
-    dec,
-    radius,
+    ra: float, 
+    dec: float,
+    radius: float,
     t_min_jd=Time(
         '2018-04-01T00:00:00.123456789',
         format='isot',
         scale='utc'
     ).jd,
     t_max_jd=Time.now().jd,
-    with_history=False,
-    chunk_size=500,
+    with_history: bool=False,
+    with_cutouts: bool=False,
+    chunk_size: int=500,
     logger=None
     ):
     """Function to query ampel via a cone search"""
@@ -75,12 +76,17 @@ def ampel_api_cone(
     else:
         hist = "false"
 
+    if with_cutouts:
+        cutouts = "true"
+    else:
+        cutouts = "false"
+
     queryurl_conesearch = (
             API_ZTF_ARCHIVE_URL
             + f"/alerts/cone_search?ra={ra}&dec={dec}&"
               f"radius={radius}&jd_start={t_min_jd}&"
               f"jd_end={t_max_jd}&with_history={hist}&"
-              f"with_cutouts=false&chunk_size={chunk_size}"
+              f"with_cutouts={cutouts}&chunk_size={chunk_size}"
     )
 
     if logger is not None:
@@ -112,8 +118,9 @@ def ampel_api_timerange(
         scale='utc'
     ).jd,
     t_max_jd=Time.now().jd,
-    with_history=False,
-    chunk_size=500,
+    with_history: bool=False,
+    with_cutouts: bool=False,
+    chunk_size: int=500,
     logger=None):
     """Function to query ampel via a time-range search"""
 
@@ -122,11 +129,16 @@ def ampel_api_timerange(
     else:
         hist = "false"
 
+    if with_cutouts:
+        cutouts = "true"
+    else:
+        cutouts = "false"
+
     queryurl_timerange = (
             API_ZTF_ARCHIVE_URL
             + f"/alerts/time_range?jd_start={t_min_jd}&"
               f"jd_end={t_max_jd}&with_history={hist}&"
-              f"with_cutouts=false&chunk_size={chunk_size}"
+              f"with_cutouts={cutouts}&chunk_size={chunk_size}"
     )
 
     if logger is not None:
@@ -150,7 +162,12 @@ def ampel_api_timerange(
 )
 
 
-def ampel_api_name(ztf_name, with_history=True, logger=None):
+def ampel_api_name(
+    ztf_name: str, 
+    with_history: bool=True,
+    with_cutouts: bool=False,
+    logger=None
+    ):
     """Function to query ampel via name"""
 
     if with_history:
@@ -179,6 +196,26 @@ def ampel_api_name(ztf_name, with_history=True, logger=None):
     except JSONDecodeError:
         raise requests.exceptions.RequestException
 
+    if with_cutouts:
+        candid = query_res[0]["candid"]
+        cutouts = ampel_api_cutout(candid)
+
+        final_cutouts = {}
+
+        if 'detail' in cutouts.keys():
+            if cutouts['detail'] == "Not Found":
+                for k in ['science', 'difference', 'template']:
+                    final_cutouts[f"cutout{k.title()}"] = {
+                        "data": create_empty_cutout()
+                    }
+        else:
+            for k in cutouts:
+                final_cutouts[f"cutout{k.title()}"] = {
+                    "data": b64decode(cutouts[k]),
+                }
+
+        query_res[0].update({"cutouts": final_cutouts})
+
     return query_res
 
 
@@ -200,26 +237,31 @@ def ampel_api_cutout(candid: int, logger=None):
     if response.status_code == 503:
         raise requests.exceptions.RequestException
 
-    cutouts = response.json()
+    try:
+        cutouts = response.json()
+    except JSONDecodeError:
+        raise requests.exceptions.RequestException
+
     return cutouts
 
+def create_empty_cutout():
+    """ Function to reate an empty image for missing cutouts"""
+    npix = 63
 
-# Create an empty image for missing cutouts
+    blank = np.ones((npix, npix))
 
-npix = 63
+    for i in range(npix):
+        c = abs(npix/2 - i)/(0.5*npix)
+        blank[i-1][i-1] = c
+        blank[i-1][npix-i-1] = c
 
-blank = np.ones((npix, npix))
+    hdu = fits.PrimaryHDU(blank)
+    hdul = fits.HDUList([hdu])
+    comp = io.BytesIO()
+    hdul.writeto(comp)
+    blank_compressed = gzip.compress(comp.getvalue())
 
-for i in range(npix):
-    c = abs(npix/2 - i)/(0.5*npix)
-    blank[i-1][i-1] = c
-    blank[i-1][npix-i-1] = c
-
-hdu = fits.PrimaryHDU(blank)
-hdul = fits.HDUList([hdu])
-comp = io.BytesIO()
-hdul.writeto(comp)
-blank_compressed = gzip.compress(comp.getvalue())
+    return blank_compressed
 
 
 def reassemble_alert(mock_alert):

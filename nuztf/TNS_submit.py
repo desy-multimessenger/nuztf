@@ -10,7 +10,7 @@ from ampel.ztf.pipeline.common.ZTFUtils import ZTFUtils
 from ampel.contrib.hu.t3.ampel_tns import sendTNSreports
 
 # Create a logger
-logger = logging.getLogger('simeon')
+logger = logging.getLogger(__name__)
 
 # Run config for TNSTalker
 ztf_default_values = {
