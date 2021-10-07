@@ -15,6 +15,8 @@ class TestAPI(unittest.TestCase):
 
     def test_api(self):
 
+        logger.info('\n\n Testing API queries \n\n')
+
         ztf_id = "ZTF21abyonuw"
 
         t_min_jd = Time(
@@ -30,16 +32,21 @@ class TestAPI(unittest.TestCase):
             len(api_name),
             1
         )
+        logger.info(f"Successfully retrieved the alert for {ztf_id}")
 
         candid = api_name[0]["candid"]
 
         logger.info(f"Retrieving cutouts for {ztf_id}")
         api_cutouts = ampel_api_cutout(candid=candid)
         nr_cutouts = len(api_cutouts)
+        ref = 3
+
+        logger.info(f"Retrieved {nr_cutouts}. Reference value is {ref}")
+
         self.assertEqual(
             nr_cutouts,
-            3
-        )  
+            ref
+        )
 
         logger.info("Commencing API cone search")
         api_cone = ampel_api_cone(ra=30, dec=30, radius=0.1)
@@ -50,9 +57,13 @@ class TestAPI(unittest.TestCase):
         ztf_ids =  list(set(ztf_ids))
 
         nr_transients = len(ztf_ids)
+        ref = 94
+
+        logger.info(f"Found {nr_transients} transients. Reference value is {ref}")
+
         self.assertEqual(
             nr_transients,
-            94
+            ref
         )
 
         logger.info("Commencing API time search")
@@ -64,8 +75,14 @@ class TestAPI(unittest.TestCase):
         ztf_ids =  list(set(ztf_ids))
 
         nr_transients = len(ztf_ids)
+        ref = 1887
+
+        logger.info(f"Found {nr_transients} transients. Reference value is {ref}")
+
         self.assertEqual(
             nr_transients,
-            1887
+            ref
         )
+
+
 
