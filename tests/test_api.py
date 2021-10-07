@@ -13,19 +13,16 @@ class TestAPI(unittest.TestCase):
 
     maxDiff = None
 
-    ztf_id = "ZTF21abyonuw"
+    def test_api(self, ztf_id=ztf_id):
 
-    t_min_jd = Time(
-        "2019-04-01T00:00:00.123456789",
-        format="isot",
-        scale="utc"
-    ).jd
-    t_max_jd = t_min_jd+0.127163
+        ztf_id = "ZTF21abyonuw"
 
-    ztf_id = "ZTF21abyonuw"
-
-
-    def test_query_ztfid(self):
+        t_min_jd = Time(
+            "2019-04-01T00:00:00.123456789",
+            format="isot",
+            scale="utc"
+        ).jd
+        t_max_jd = t_min_jd+0.127163
 
         logger.info(f"Retrieving alerts for {ztf_id}")
         api_name = ampel_api_name(ztf_name=ztf_id, with_history=True, with_cutouts=False)
@@ -34,7 +31,15 @@ class TestAPI(unittest.TestCase):
             1
         )
 
-    def test_query_cone(self):
+        candid = api_name[0]["candid"]
+
+        logger.info(f"Retrieving cutouts for {ztf_id}")
+        api_cutouts = ampel_api_cutout(candid=candid)
+        nr_cutouts = len(api_cutouts)
+        self.assertEqual(
+            nr_cutouts,
+            3
+        )  
 
         logger.info("Commencing API cone search")
         api_cone = ampel_api_cone(ra=30, dec=30, radius=0.1)
@@ -44,7 +49,6 @@ class TestAPI(unittest.TestCase):
             94
         )
 
-    def test_query_time(self):
         logger.info("Commencing API time search")
         api_time = ampel_api_timerange(t_min_jd=t_min_jd, t_max_jd=t_max_jd, chunk_size=2000)
         nr_transients = len(get_ztf_ids(api_time))
@@ -52,15 +56,7 @@ class TestAPI(unittest.TestCase):
             nr_transients,
             1887
         )
-
-    def test_query_cutouts(self):
-        logger.info(f"Retrieving cutouts for {ztf_id}")
-        api_cutouts = ampel_api_cutout(candid=candid)
-        nr_cutouts = len(api_cutouts)
-        self.assertEqual(
-            nr_cutouts,
-            3
-        )      
+    
 
     @staticmethod
     def get_ztf_ids(query_result):
