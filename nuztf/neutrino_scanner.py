@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-from nuztf.ampel_magic import AmpelWizard
+from nuztf.base_scanner import BaseScanner
 from astropy.time import Time
 import healpy as hp
 import numpy as np
@@ -12,13 +12,9 @@ from pathlib import Path
 import requests
 import logging
 from nuztf.parse_nu_gcn import find_gcn_no, parse_gcn_circular, get_latest_gcn
+from ztfquery.io import LOCALSOURCE
 
-if environ.get("ZTFDATA") is not None:
-    basedir = os.getenv("ZTFDATA")
-else:
-    basedir = os.getcwd()
-
-nu_candidate_output_dir = os.path.join(basedir, "neutrino_candidates")
+nu_candidate_output_dir = os.path.join(LOCALSOURCE, "neutrino_candidates")
 
 if not os.path.exists(nu_candidate_output_dir):
     os.makedirs(nu_candidate_output_dir)
@@ -47,7 +43,7 @@ nu_run_config = {
 }
 
 
-class NeutrinoScanner(AmpelWizard):
+class NeutrinoScanner(BaseScanner):
     def __init__(
         self,
         nu_name=None,
@@ -102,7 +98,7 @@ class NeutrinoScanner(AmpelWizard):
         print(f"Coordinates: DEC = {dec[0]} ({self.dec_min} - {self.dec_max})")
 
         self.output_path = f"{nu_candidate_output_dir}/{nu_name}.pdf"
-        AmpelWizard.__init__(
+        BaseScanner.__init__(
             self,
             t_min=nu_time,
             run_config=nu_run_config,
@@ -218,16 +214,16 @@ class NeutrinoScanner(AmpelWizard):
 
         for i in tqdm(range(hp.nside2npix(self.cone_nside))):
             ra, dec = self.extract_ra_dec(self.cone_nside, i)
-            ra_deg = np.degrees(ra)
-            dec_deg = np.degrees(dec)
+            ra_rad = np.radians(ra)
+            dec_rad = np.radians(dec)
             if np.logical_and(
-                ra_deg > self.ra_min - scan_radius, ra_deg < self.ra_max + scan_radius
+                ra > self.ra_min - scan_radius, ra < self.ra_max + scan_radius
             ):
                 if np.logical_and(
-                    dec_deg > self.dec_min - scan_radius,
-                    dec_deg < self.dec_max + scan_radius,
+                    dec > self.dec_min - scan_radius,
+                    dec < self.dec_max + scan_radius,
                 ):
-                    cone_coords.append((ra, dec))
+                    cone_coords.append((ra_rad, dec_rad))
                     cone_ids.append(i)
 
         cone_coords = np.array(
@@ -268,7 +264,7 @@ class NeutrinoScanner(AmpelWizard):
 
         for i in tqdm(nearish_pixels):
             ra, dec = self.extract_ra_dec(nside, i)
-            if self.in_contour(np.degrees(ra), np.degrees(dec)):
+            if self.in_contour(ra, dec):
                 map_coords.append((ra, dec))
                 pixel_nos.append(i)
 
