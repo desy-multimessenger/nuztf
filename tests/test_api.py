@@ -43,7 +43,13 @@ class TestAPI(unittest.TestCase):
 
         logger.info("Commencing API cone search")
         api_cone = ampel_api_cone(ra=30, dec=30, radius=0.1)
-        nr_transients = len(get_ztf_ids(api_cone))
+
+        ztf_ids = []
+        for entry in api_cone:
+            ztf_ids.append(entry["objectId"])
+        ztf_ids =  list(set(ztf_ids))
+
+        nr_transients = len(ztf_ids)
         self.assertEqual(
             nr_transients,
             94
@@ -51,19 +57,15 @@ class TestAPI(unittest.TestCase):
 
         logger.info("Commencing API time search")
         api_time = ampel_api_timerange(t_min_jd=t_min_jd, t_max_jd=t_max_jd, chunk_size=2000)
-        nr_transients = len(get_ztf_ids(api_time))
+
+        ztf_ids = []
+        for entry in api_time:
+            ztf_ids.append(entry["objectId"])
+        ztf_ids =  list(set(ztf_ids))
+
+        nr_transients = len(ztf_ids)
         self.assertEqual(
             nr_transients,
             1887
         )
-    
-
-    @staticmethod
-    def get_ztf_ids(query_result):
-        ztf_ids = []
-        for entry in query_result:
-            ztf_ids.append(entry["objectId"])
-        return list(set(ztf_ids))
-
-
 
