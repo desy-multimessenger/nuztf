@@ -12,7 +12,7 @@ logger = AmpelLogger()
 class TestAPI(unittest.TestCase):
 
     maxDiff = None
-    
+
     ztf_id = "ZTF21abyonuw"
 
     t_min_jd = Time(
@@ -22,13 +22,13 @@ class TestAPI(unittest.TestCase):
     ).jd
     t_max_jd = t_min_jd+0.127163
 
-    self.ztf_id = "ZTF21abyonuw"
+    ztf_id = "ZTF21abyonuw"
 
 
     def test_query_ztfid(self):
 
-        logger.info(f"Retrieving alerts for {self.ztf_id}")
-        api_name = ampel_api_name(ztf_name=self.ztf_id, with_history=True, with_cutouts=False)
+        logger.info(f"Retrieving alerts for {ztf_id}")
+        api_name = ampel_api_name(ztf_name=ztf_id, with_history=True, with_cutouts=False)
         self.assertEqual(
             len(api_name),
             1
@@ -54,7 +54,7 @@ class TestAPI(unittest.TestCase):
         )
 
     def test_query_cutouts(self):
-        logger.info(f"Retrieving cutouts for {self.ztf_id}")
+        logger.info(f"Retrieving cutouts for {ztf_id}")
         api_cutouts = ampel_api_cutout(candid=candid)
         nr_cutouts = len(api_cutouts)
         self.assertEqual(
