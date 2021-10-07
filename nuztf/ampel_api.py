@@ -49,6 +49,7 @@ def merge_alerts(alert_list):
             merged_list.append(latest)
     return merged_list
 
+
 @backoff.on_exception(
     backoff.expo,
     requests.exceptions.RequestException,
@@ -108,6 +109,7 @@ def ampel_api_cone(
 
     return query_res
 
+
 @backoff.on_exception(
     backoff.expo,
     requests.exceptions.RequestException,
@@ -156,17 +158,19 @@ def ampel_api_timerange(
     if response.status_code == 503:
         raise requests.exceptions.RequestException
 
-    query_res = [i for i in response.json()["alerts"]]
+    try:
+        query_res = [i for i in response.json()["alerts"]]
+    except JSONDecodeError:
+        raise requests.exceptions.RequestException
 
     return query_res
+
 
 @backoff.on_exception(
     backoff.expo,
     requests.exceptions.RequestException,
     max_time=600,
 )
-
-
 def ampel_api_name(
     ztf_name: str, 
     with_history: bool=True,
@@ -232,6 +236,59 @@ def ampel_api_name(
     requests.exceptions.RequestException,
     max_time=600,
 )
+def ampel_api_healpix(
+        ipix:int,
+        t_min_jd=Time(
+            '2018-04-01T00:00:00.123456789',
+            format='isot',
+            scale='utc'
+        ).jd,
+        t_max_jd=Time.now().jd,
+        with_history: bool=False,
+        with_cutouts: bool=False,
+        chunk_size: int=500,
+        logger=None,
+    ):
+    """Function to query ampel based on a healpix pixel-index (gird has nside=64)"""
+    
+    if with_history:
+        hist = "true"
+    else:
+        hist = "false"
+
+    if with_cutouts:
+        cutouts = "true"
+    else:
+        cutouts = "false"
+
+    queryurl_healpix = API_ZTF_ARCHIVE_URL + f"/alerts/healpix?ipix={ipix}&jd_start={t_min_jd}&jd_end={t_max_jd}&with_history={hist}&with_cutouts={cutouts}&chunk_size={chunk_size}"
+
+    if logger is not None:
+        logger.debug(queryurl_healpix)
+
+    headers={"Authorization": f"Bearer {ampel_api_archive_token}"}
+
+    response = requests.get(
+        queryurl_healpix,
+        headers=headers,
+    )
+
+    if response.status_code == 503:
+        raise requests.exceptions.RequestException
+
+    try:
+        query_res = [i for i in response.json()["alerts"]]
+    except JSONDecodeError:
+        raise requests.exceptions.RequestException
+
+    return query_res
+
+
+@backoff.on_exception(
+    backoff.expo,
+    requests.exceptions.RequestException,
+    max_time=600,
+)
 def ampel_api_cutout(candid: int, logger=None):
     """Function to query ampel for cutouts by candidate ID"""
     queryurl_cutouts = API_CUTOUT_URL + f"/{candid}"
@@ -255,6 +312,13 @@ def ampel_api_cutout(candid: int, logger=None):
         raise requests.exceptions.RequestException
 
     return cutouts
+
+@backoff.on_exception(
+    backoff.expo,
+    requests.exceptions.RequestException,
+    max_time=600,
+)
+
 
 def create_empty_cutout():
     """ Function to reate an empty image for missing cutouts"""
