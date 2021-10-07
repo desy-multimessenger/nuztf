@@ -13,11 +13,12 @@ import io
 # AMPEL API URLs
 
 API_BASEURL = "https://ampel.zeuthen.desy.de"
-API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive"
+API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive/v2"
 API_CATALOGMATCH_URL = API_BASEURL + "/api/catalogmatch"
-API_CUTOUT_URL = API_BASEURL + "/api/ztf/archive/cutouts"
+API_CUTOUT_URL = API_BASEURL + "/api/ztf/archive/v2/cutouts"
 
 api_user, api_pass = load_credentials("ampel_api")
+_, api_archive_token = load_credentials("ampel_api_archive_token")
 
 
 def merge_alerts(alert_list):
@@ -92,9 +93,11 @@ def ampel_api_cone(
     if logger is not None:
         logger.debug(queryurl_conesearch)
 
+    headers={"Authorization": f"Bearer {api_archive_token}"}
+
     response = requests.get(
         queryurl_conesearch,
-        auth=HTTPBasicAuth(api_user, api_pass),
+        headers=headers,
     )
     if response.status_code == 503:
         raise requests.exceptions.RequestException
@@ -144,10 +147,13 @@ def ampel_api_timerange(
     if logger is not None:
         logger.debug(queryurl_timerange)
 
+    headers={"Authorization": f"Bearer {api_archive_token}"}
+
     response = requests.get(
         queryurl_timerange,
-        auth=HTTPBasicAuth(api_user, api_pass),
+        headers=headers,
     )
+
     if response.status_code == 503:
         raise requests.exceptions.RequestException
 
@@ -182,10 +188,13 @@ def ampel_api_name(
     if logger is not None:
         logger.debug(queryurl_ztf_name)
 
+    headers={"Authorization": f"Bearer {api_archive_token}"}
+
     response = requests.get(
         queryurl_ztf_name,
-        auth=HTTPBasicAuth(api_user, api_pass),
+        headers=headers,
     )
+
     if response.status_code == 503:
         raise requests.exceptions.RequestException
 
@@ -227,10 +236,14 @@ def ampel_api_name(
 def ampel_api_cutout(candid: int, logger=None):
     """Function to query ampel for cutouts by candidate ID"""
     queryurl_cutouts = API_CUTOUT_URL + f"/{candid}"
+
+    headers={"Authorization": f"Bearer {api_archive_token}"}
+
     response = requests.get(
         queryurl_cutouts,
-        auth=HTTPBasicAuth(api_user, api_pass),
+        headers=headers,
     )
+
     if logger is not None:
         logger.debug(queryurl_cutouts)
 
