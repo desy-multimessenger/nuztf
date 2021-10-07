@@ -12,16 +12,6 @@ def load_credentials(name):
 
 
 try:
-    io.set_account("ampel_api",
-                   username=os.environ["AMPEL_API_USER"],
-                   password=os.environ["AMPEL_API_PASSWORD"])
-    logging.info('Set up "ampel_api" credentials')
-
-except KeyError:
-    logging.info('No Credentials for AMPEL API found in environment'
-                 'Assume they are set.')
-
-try:
     io.set_account("irsa",
                    username=os.environ["IRSA_USER"],
                    password=os.environ["IRSA_PASSWORD"])
@@ -40,7 +30,6 @@ try:
 except KeyError:
     logging.info('No Credentials for "skyvision" found in environment'
                  'Assuming they are set.')
-
 
 try:
     io.set_account("ampel_api_archive_token",
