@@ -40,3 +40,14 @@ try:
 except KeyError:
     logging.info('No Credentials for "skyvision" found in environment'
                  'Assuming they are set.')
+
+
+try:
+    io.set_account("ampel_api_archive_token",
+                   username=os.environ["AMPEL_API_ARCHIVE_TOKEN_USER"],
+                   password=os.environ["AMPEL_API_ARCHIVE_TOKEN_PASSWORD"])
+    logging.info('Set up "ampel_api_archive_token" credentials')
+
+except KeyError:
+    logging.info('No Token for AMPEL API found in environment'
+                 'Assume they are set.')
