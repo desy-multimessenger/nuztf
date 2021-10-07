@@ -13,7 +13,7 @@ class TestAPI(unittest.TestCase):
 
     maxDiff = None
 
-    def test_api(self, ztf_id=ztf_id):
+    def test_api(self):
 
         ztf_id = "ZTF21abyonuw"
 
