@@ -166,6 +166,29 @@ def ampel_api_timerange(
     return query_res
 
 
+def add_cutouts(
+        alert: list
+):
+    candid = alert[0]["candid"]
+    cutouts = ampel_api_cutout(candid)
+
+    final_cutouts = {}
+
+    if 'detail' in cutouts.keys():
+        if cutouts['detail'] == "Not Found":
+            for k in ['science', 'difference', 'template']:
+                final_cutouts[f"cutout{k.title()}"] = {
+                    "data": create_empty_cutout()
+                }
+    else:
+        for k in cutouts:
+            final_cutouts[f"cutout{k.title()}"] = {
+                "data": b64decode(cutouts[k]),
+            }
+
+    alert[0].update({"cutouts": final_cutouts})
+
+
 @backoff.on_exception(
     backoff.expo,
     requests.exceptions.RequestException,
@@ -209,24 +232,7 @@ def ampel_api_name(
         raise requests.exceptions.RequestException
 
     if with_cutouts:
-        candid = query_res[0]["candid"]
-        cutouts = ampel_api_cutout(candid)
-
-        final_cutouts = {}
-
-        if 'detail' in cutouts.keys():
-            if cutouts['detail'] == "Not Found":
-                for k in ['science', 'difference', 'template']:
-                    final_cutouts[f"cutout{k.title()}"] = {
-                        "data": create_empty_cutout()
-                    }
-        else:
-            for k in cutouts:
-                final_cutouts[f"cutout{k.title()}"] = {
-                    "data": b64decode(cutouts[k]),
-                }
-
-        query_res[0].update({"cutouts": final_cutouts})
+        add_cutouts(query_res)
 
     return query_res
 
@@ -313,12 +319,6 @@ def ampel_api_cutout(candid: int, logger=None):
 
     return cutouts
 
-@backoff.on_exception(
-    backoff.expo,
-    requests.exceptions.RequestException,
-    max_time=600,
-)
-
 
 def create_empty_cutout():
     """ Function to reate an empty image for missing cutouts"""
@@ -339,33 +339,6 @@ def create_empty_cutout():
 
     return blank_compressed
 
-
-def reassemble_alert(mock_alert):
-    """Function to recreate ztf alerts"""
-    cutouts = ampel_api_cutout(mock_alert["candid"])
-
-    if 'detail' in cutouts.keys():
-        if cutouts['detail'] == "Not Found":
-            for k in ['science', 'difference', 'template']:
-                mock_alert[f"cutout{k.title()}"] = {
-                    "stampData": blank_compressed,
-                    "fileName": "dunno",
-                }
-    else:
-        for k in cutouts:
-            mock_alert[f"cutout{k.title()}"] = {
-                "stampData": b64decode(cutouts[k]),
-                "fileName": "dunno",
-            }
-
-    mock_alert["schemavsn"] = "dunno"
-    mock_alert["publisher"] = "dunno"
-    for pp in [mock_alert["candidate"]] + mock_alert["prv_candidates"]:
-        pp["pdiffimfilename"] = "dunno"
-        pp["programpi"] = "dunno"
-        pp["ssnamenr"] = "dunno"
-
-    return mock_alert
 
 @backoff.on_exception(
     backoff.expo,

@@ -27,9 +27,10 @@ from ampel.ztf.dev.DevAlertProcessor import DevAlertProcessor
 from ampel.alert.PhotoAlert import PhotoAlert
 from gwemopt.ztf_tiling import get_quadrant_ipix
 from ampel.log.AmpelLogger import AmpelLogger
-from nuztf.ampel_api import ampel_api_cone, ampel_api_timerange, ampel_api_name, reassemble_alert
+from nuztf.ampel_api import ampel_api_cone, ampel_api_timerange, ampel_api_name, add_cutouts
 from nuztf.cat_match import get_cross_match_info, ampel_api_tns, query_ned_for_z
 from nuztf.observation_log import get_obs_summary
+from nuztf.plot import lightcurve_from_alert
 
 DEBUG = False
 RATELIMIT_CALLS = 10
@@ -462,26 +463,13 @@ class BaseScanner:
         self.logger.info(f"Saving to: {self.output_path}")
 
         with PdfPages(self.output_path) as pdf:
-            for (name, old_alert) in tqdm(sorted(self.cache.items())):
-                xmatch_info = get_cross_match_info(old_alert)
-                mock_alert = reassemble_alert(old_alert)
-                try:
-                    fig = alert.display_alert(mock_alert, show_ps_stamp=True)
+            for (name, alert) in tqdm(sorted(self.cache.items())):
 
-                    label = f"{name} {xmatch_info}"
+                add_cutouts([alert])
+                fig, _ = lightcurve_from_alert([alert], include_cutouts=True)
 
-                    fig.text(0.01, -0.015, label)
-                    pdf.savefig(bbox_inches='tight', pad_inches=0)
-                    plt.close()
-                # except TypeError:
-                except KeyError:
-
-                    print(mock_alert)
-
-                    self.logger.warn(
-                        f"WARNING!!! {name} will be missing from the report pdf for some reason."
-                    )
-                    pass
+                pdf.savefig()
+                plt.close()
 
     @staticmethod
     def parse_ztf_filter(fid):
