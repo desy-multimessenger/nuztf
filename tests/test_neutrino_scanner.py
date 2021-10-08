@@ -1,10 +1,6 @@
 import unittest
-
+import logging
 from nuztf import NeutrinoScanner
-from ampel.log.AmpelLogger import AmpelLogger
-
-
-logger = AmpelLogger()
 
 
 class TestNeutrinoScanner(unittest.TestCase):
@@ -12,19 +8,19 @@ class TestNeutrinoScanner(unittest.TestCase):
     maxDiff = None
 
     def test_scan(self):
-        logger.info('\n\n Testing Neutrino Scanner \n\n')
+        logging.info('\n\n Testing Neutrino Scanner \n\n')
         name = "IC200620A"
         expected_candidates = 2
 
-        logger.info(f'scanning with neutrino {name}')
-        nu = NeutrinoScanner(name, logger=logger)
+        logging.info(f'scanning with neutrino {name}')
+        nu = NeutrinoScanner(name)
 
         t_max = nu.default_t_max - 8
 
         nu.scan_cones(t_max=t_max)
         retrieved_candidates = len(nu.cache)
 
-        logger.info(f"found {retrieved_candidates}, expected {expected_candidates}")
+        logging.info(f"found {retrieved_candidates}, expected {expected_candidates}")
         self.assertEqual(expected_candidates, retrieved_candidates)
 
         nu.plot_overlap_with_observations(
@@ -48,12 +44,12 @@ class TestNeutrinoScanner(unittest.TestCase):
 
         false_candidate = nu.check_ampel_filter("ZTF18abteipt")
 
-        logger.info(f"For the false candidate, the pipeline bool is {false_candidate}")
+        logging.info(f"For the false candidate, the pipeline bool is {false_candidate}")
 
         self.assertFalse(false_candidate)
 
         true_candidate = nu.check_ampel_filter("ZTF20abgvabi")
 
-        logger.info(f"For the true candidate, the pipeline bool is {true_candidate}")
+        logging.info(f"For the true candidate, the pipeline bool is {true_candidate}")
 
         self.assertTrue(true_candidate)
