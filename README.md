@@ -20,7 +20,9 @@ Alternatively, the latest Github version of the code can be installed via pip:
 
 ```pip install -e nuztf```
 
-You will need the IRSA login details with a ZTF-enabled account, to fully utilise all features.
+You will need the [IRSA login details](https://irsa.ipac.caltech.edu/account/signon/logout.do) with a ZTF-enabled account to fully utilise all features.
+
+Additionally, you need an AMPEL API token. This can be obtained [here](https://ampel.zeuthen.desy.de/live/dashboard/tokens).
 
 # Citing the code
 

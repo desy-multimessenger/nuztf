@@ -49,7 +49,10 @@ class TestAPI(unittest.TestCase):
         )
 
         logger.info("Commencing API cone search")
-        api_cone = ampel_api_cone(ra=30, dec=30, radius=0.1)
+
+        t_max_jd = Time("2021-10-07", format="isot").jd
+
+        api_cone = ampel_api_cone(ra=30, dec=30, radius=0.1, t_max_jd=t_max_jd)
 
         ztf_ids = []
         for entry in api_cone:
