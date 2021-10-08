@@ -16,18 +16,20 @@ from astropy import units as u
 from astropy.io import fits
 from astropy import visualization
 from ztfquery.utils.stamps import get_ps_stamp
+from nuztf.cat_match import get_cross_match_info
         
 
 # For absolute magnitude calculation
 GENERIC_COSMOLOGY = FlatLambdaCDM(H0=70, Om0=0.3)
 
 def lightcurve_from_alert(
-        alert: dict,
+        alert: list,
         # figsize: list=[6.47, 4],
         figsize: list=[8,5],
         title: str=None,
         include_ulims: bool=True,
         include_cutouts: bool=True,
+        include_crossmatch: bool=True,
         mag_range: list=None,
         z: float=None,
         legend: bool=False,
@@ -58,7 +60,7 @@ def lightcurve_from_alert(
         try:
             cutouts = alert[0]["cutouts"]
         except:
-            logger.info("The alert dictionary does not contain cutouts. Will proceed without them.")
+            logger.warning("The alert dictionary does not contain cutouts. Will proceed without them.")
             include_cutouts = False
 
     logger.debug(f"Plotting {name}")
@@ -230,6 +232,10 @@ def lightcurve_from_alert(
                 info.append(f"{k}: {candidate.get(k):.3f}")
 
         fig.text(0.77,0.55, "\n".join(info), va="top", fontsize="medium", color="0.4")
+
+    if include_crossmatch:
+        xmatch_info = get_cross_match_info(alert[0])
+        fig.text(0.5, 0.975, xmatch_info, va="top", ha='center', fontsize="medium", color="0.4")
 
     # Ugly hack because secondary_axis does not work with astropy.time.Time datetime conversion
 
