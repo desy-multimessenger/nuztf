@@ -1,4 +1,6 @@
-from nuztf.ampel_api import ampel_api_catalog
+from astropy.coordinates import SkyCoord
+from astropy import units as u
+from nuztf.ampel_api import ampel_api_catalog, ampel_api_name
 
 
 def query_ned_for_z(ra_deg: float, dec_deg: float, searchradius_arcsec: float = 20):
@@ -57,6 +59,20 @@ def get_cross_match_info(raw):
 
     label = ""
 
+    # Check if known variable star (https://arxiv.org/pdf/1405.4290.pdf)
+
+    if label == "":
+        res = ampel_api_catalog(
+            catalog="CRTS_DR1",
+            catalog_type="extcats",
+            ra_deg=alert["ra"],
+            dec_deg=alert["dec"],
+            searchradius_arcsec=5.
+        )
+        if res is not None:
+            print(res)
+            label = f"[CRTS variable star: {res[0]['body']['name']} ({res[0]['dist_arcsec']:.2f} arsec)]"
+
     # Check if known QSO/AGN
 
     res = ampel_api_catalog(
@@ -70,10 +86,9 @@ def get_cross_match_info(raw):
         if len(res) == 1:
 
             if "q" in res[0]['body']['broad_type']:
-                label = f"[MILLIQUAS: Likely QSO (prob = {res[0]['body']['qso_prob']}%) ({res[0]['dist_arcsec']:.2f} arsec)]"
+                label = f"[MILLIQUAS: {res[0]['body']['name']} - Likely QSO (prob = {res[0]['body']['qso_prob']}%) ({res[0]['dist_arcsec']:.2f} arsec)]"
             else:
-
-                label = f"[MILLIQUAS: '{res[0]['body']['broad_type']}'-type source ({res[0]['dist_arcsec']:.2f} arsec)]"
+                label = f"[MILLIQUAS: {res[0]['body']['name']} - '{res[0]['body']['broad_type']}'-type source ({res[0]['dist_arcsec']:.2f} arsec)]"
         else:
             label = "[MULTIPLE MILLIQUAS MATCHES]"
 
@@ -110,4 +125,30 @@ def get_cross_match_info(raw):
             else:
                 label = "[MULTIPLE SDSS MATCHES]"
 
+    # WISE colour cuts (https://iopscience.iop.org/article/10.3847/1538-4365/)
+
+    if label == "":
+        res = ampel_api_catalog(
+            catalog="wise_color",
+            catalog_type="extcats",
+            ra_deg=alert["ra"],
+            dec_deg=alert["dec"],
+            searchradius_arcsec=search_rad
+        )
+        if res is not None:
+            if len(res) == 1:
+                w1mw2 = res[0]['body']['W1mW2']
+                if w1mw2 > 0.8:
+                    label = f"[Probable WISE-selected quasar:W1-W2={w1mw2:.1f}>0.8  " \
+                            f"({res[0]['dist_arcsec']:.2f} arsec)]"
+                elif w1mw2 > 0.8:
+                    label = f"[Possible WISE-selected quasar:W1-W2={w1mw2:.1f}>0.5  " \
+                            f"({res[0]['dist_arcsec']:.2f} arsec)]"
+            else:
+                label = "[MULTIPLE WISE MATCHES]"
+
     return label
+
+
+def check_cross_match_info_by_name(name):
+    return get_cross_match_info(ampel_api_name(name, with_history=False)[0])
