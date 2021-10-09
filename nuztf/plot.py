@@ -268,7 +268,7 @@ def lightcurve_from_alert(
 def create_stamp_plot(cutouts: dict, ax, type: str):
     """ Helper function to create cutout subplot """
     with gzip.open(io.BytesIO(cutouts[f"cutout{type}"]["data"]), "rb") as f:
-        data = fits.open(io.BytesIO(f.read()))[0].data
+        data = fits.open(io.BytesIO(f.read()), ignore_missing_simple=True)[0].data
     vmin, vmax = np.percentile(data[data==data], [0,100])
     data_ = visualization.AsinhStretch()((data-vmin)/(vmax-vmin))
     ax.imshow(data_, norm=Normalize(*np.percentile(data_[data_==data_], [0.5,99.5])), aspect="auto")
