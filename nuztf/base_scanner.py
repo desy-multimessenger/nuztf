@@ -1,32 +1,32 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-import os
-import time
+import os, time, json, logging, datetime
+
 import backoff
-import json
 import requests
 import pandas
-import datetime
-import logging
 import healpy as hp
 import numpy as np
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from matplotlib.backends.backend_pdf import PdfPages
 
 from astropy.time import Time
 from astropy import units as u
 from astropy.coordinates import SkyCoord, Distance
 from astropy.cosmology import Planck18 as cosmo
+
 from ztfquery import alert
 from ztfquery import fields as ztfquery_fields
-from matplotlib.backends.backend_pdf import PdfPages
-from tqdm import tqdm
+
+from gwemopt.ztf_tiling import get_quadrant_ipix
+
 from ampel.ztf.t0.DecentFilter import DecentFilter
 from ampel.ztf.dev.DevAlertProcessor import DevAlertProcessor
 from ampel.alert.PhotoAlert import PhotoAlert
-from gwemopt.ztf_tiling import get_quadrant_ipix
-from ampel.log.AmpelLogger import AmpelLogger
+
 from nuztf.ampel_api import ampel_api_cone, ampel_api_timerange, ampel_api_name, add_cutouts
 from nuztf.cat_match import get_cross_match_info, ampel_api_tns, query_ned_for_z
 from nuztf.observation_log import get_obs_summary
@@ -41,11 +41,11 @@ class BaseScanner:
         self,
         run_config,
         t_min,
-        logger=None,
         resource=None,
         filter_class=DecentFilter,
         cone_nside=64,
         cones_to_scan=None,
+        logger=None,
     ):
         self.cone_nside = cone_nside
         self.t_min = t_min
@@ -59,7 +59,6 @@ class BaseScanner:
             }
 
         if logger is None:
-        #     self.logger = AmpelLogger()
             import logging
             self.logger = logging.getLogger(__name__)
         else:
@@ -183,7 +182,7 @@ class BaseScanner:
     def get_multi_night_summary(self, max_days=None):
         return get_obs_summary(self.t_min, max_days=max_days)
 
-    def scan_cones(self, t_max=None, max_cones=None):
+    def scan_cones(self, t_max=None, max_cones: int=None):
         """ """
         if max_cones is None:
             max_cones = len(self.cone_ids)
@@ -196,35 +195,35 @@ class BaseScanner:
             f"So far, {len(self.scanned_pixels)} pixels out of {len(self.cone_ids)} have already been scanned."
         )
 
-        all_ztf_names = []
+        all_ztf_ids = []
 
         for i, cone_id in enumerate(tqdm(list(self.cone_ids)[:max_cones])):
             ra, dec = self.cone_coords[i]
 
             if cone_id not in self.scanned_pixels:
-                ztf_names = self.ampel_cone_search(
+                ztf_ids = self.ampel_cone_search(
                     ra=np.degrees(ra),
                     dec=np.degrees(dec),
                     radius=scan_radius,
                     t_max=t_max,
                 )
 
-                if ztf_names:
-                    for ztf_name in ztf_names:
-                        all_ztf_names.append(ztf_name)
+                if ztf_ids:
+                    for ztf_id in ztf_ids:
+                        all_ztf_ids.append(ztf_id)
 
                 self.scanned_pixels.append(cone_id)
 
         self.logger.info(f"Scanned {len(self.scanned_pixels)} pixels")
 
         # remove duplicates
-        all_ztf_names = list(set(all_ztf_names))
+        all_ztf_ids = list(set(all_ztf_ids))
 
-        self.logger.info(f"Before filtering: Found {len(all_ztf_names)} candidates")
+        self.logger.info(f"Before filtering: Found {len(all_ztf_ids)} candidates")
         self.logger.info(f"Retrieving alert history from AMPEL")
 
         results = self.ampel_object_search(
-            ztf_names=all_ztf_names
+            ztf_ids=all_ztf_ids
         )
 
         for res in results:
@@ -286,7 +285,11 @@ class BaseScanner:
         max_time=600,
     )
     def ampel_timerange_search(
-        self, t_min=None, t_max=None, with_history: bool=False, chunk_size: int=500,
+        self,
+        t_min=None,
+        t_max=None,
+        with_history: bool=False,
+        chunk_size: int=500,
     ) -> list:
         """ """
         if t_max is None:
@@ -307,24 +310,28 @@ class BaseScanner:
         ztf_names = []
 
         for res in query_res:
-            ztf_names_unfiltered.append(res["objectId"])
+            ztf_id = res["objectId"]
+            ztf_names_unfiltered.append(ztf_id)
             if self.filter_f_no_prv(res):
                 if self.filter_ampel(res):
-                    ztf_names.append(res["objectId"])
+                    ztf_names.append(ztf_id)
 
         ztf_names_unfiltered = list(set(ztf_names_unfiltered))
         ztf_names = list(set(ztf_names))
-        print(len(ztf_names_unfiltered))
-        # return ztf_names
+
         return ztf_names_unfiltered
 
-    def ampel_object_search(self, ztf_names: list, with_history: bool=True) -> list:
+    def ampel_object_search(self, ztf_ids: list, with_history: bool=True) -> list:
         """ """
         all_results = []
 
-        for ztf_name in ztf_names:
+        for ztf_id in ztf_ids:
 
-            query_res = ampel_api_name(ztf_name=ztf_name, with_history=with_history)
+            query_res = ampel_api_name(
+                ztf_name=ztf_id,
+                with_history=with_history,
+                logger=self.logger
+            )
 
             final_res = []
 
@@ -556,7 +563,7 @@ class BaseScanner:
             if tns_name:
                 tns_result = f'({tns_name})'
 
-            xmatch_info = get_cross_match_info(res)
+            xmatch_info = get_cross_match_info(raw=res, logger=self.logger)
 
             print(f"Candidate {name} peaked at {brightest['magpsf']:.1f} {tns_result}on "
                   f"{brightest['jd']:.1f} with filter {self.parse_ztf_filter(brightest['fid'])} "
@@ -601,7 +608,10 @@ class BaseScanner:
                 text += self.candidate_text(name, first_detection["jd"], None, None)
 
             ned_z, ned_dist = query_ned_for_z(
-                latest["ra"], latest["dec"], searchradius_arcsec=20
+                ra_deg=latest["ra"],
+                dec_deg=latest["dec"],
+                searchradius_arcsec=20,
+                logger=self.logger
             )
 
             if ned_z:
@@ -621,7 +631,7 @@ class BaseScanner:
             if abs(g_lat) < 15.0:
                 text += f"It is located at a galactic latitude of {g_lat:.2f} degrees. "
 
-            xmatch_info = get_cross_match_info(res)
+            xmatch_info = get_cross_match_info(raw=res, logger=self.logger)
             text += xmatch_info
             text += "\n"
         return text

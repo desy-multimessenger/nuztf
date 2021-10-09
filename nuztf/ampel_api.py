@@ -21,7 +21,8 @@ API_CUTOUT_URL = API_BASEURL + "/api/ztf/archive/v2/cutouts"
 _, ampel_api_archive_token = load_credentials("ampel_api_archive_token")
 
 
-def merge_alerts(alert_list):
+def merge_alerts(alert_list: list) -> list:
+    """ """
     merged_list = []
     keys = list(set([x["objectId"] for x in alert_list]))
 
@@ -70,7 +71,7 @@ def ampel_api_cone(
     with_cutouts: bool=False,
     chunk_size: int=500,
     logger=None
-    ):
+    ) -> list:
     """Function to query ampel via a cone search"""
 
     if logger is None:
@@ -130,7 +131,7 @@ def ampel_api_timerange(
     with_history: bool=False,
     with_cutouts: bool=False,
     chunk_size: int=500,
-    logger=None):
+    logger=None) -> list:
     """Function to query ampel via a time-range search"""
 
     if logger is None:
@@ -208,7 +209,7 @@ def ampel_api_name(
     with_history: bool=True,
     with_cutouts: bool=False,
     logger=None
-    ):
+    ) -> list:
     """Function to query ampel via name"""
 
     if logger is None:
@@ -267,7 +268,7 @@ def ampel_api_healpix(
         with_cutouts: bool=False,
         chunk_size: int=500,
         logger=None,
-    ):
+    ) -> list:
     """Function to query ampel based on a healpix pixel-index (gird has nside=64)"""
   
     if logger is None:
@@ -392,8 +393,6 @@ def ampel_api_catalog(
 
     queryurl_catalogmatch = API_CATALOGMATCH_URL + "/cone_search/" + searchtype
 
-    logger.debug(queryurl_catalogmatch)
-
     # First, we create a json body to post
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     query = {
@@ -403,6 +402,9 @@ def ampel_api_catalog(
             {"name": catalog, "rs_arcsec": searchradius_arcsec, "use": catalog_type}
         ],
     }
+
+    logger.debug(queryurl_catalogmatch)
+    logger.debug(query)
 
     response = requests.post(
         url=queryurl_catalogmatch, json=query, headers=headers

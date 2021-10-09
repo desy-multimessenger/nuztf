@@ -1,22 +1,23 @@
+import re, logging
+
 import requests
 import numpy as np
-import re
 from astropy.time import Time
 
 base_gcn_url = "https://gcn.gsfc.nasa.gov/gcn3"
 
 
 def gcn_url(gcn_number):
+    """ """
     return f"{base_gcn_url}/{gcn_number}.gcn3"
 
 
 class ParsingError(Exception):
     """Base class for parsing error"""
-
     pass
 
-
 def parse_gcn_archive():
+    """ """
     page = requests.get(f"{base_gcn_url}_archive.html")
 
     nu_circulars = []
@@ -32,9 +33,11 @@ def parse_gcn_archive():
 
 
 def parse_gcn_for_no(
-        base_nu_name, url=f"{base_gcn_url}_archive.html"
+        base_nu_name: str, url: str=f"{base_gcn_url}_archive.html", logger=None
 ):
-    print(f"Checking for GCN on {url}")
+    """ """
+    if logger:
+        logger.info(f"Checking for GCN on {url}")
 
     nu_name = str(base_nu_name)
 
@@ -67,15 +70,15 @@ def parse_gcn_for_no(
     return gcn_no, name, latest_archive_no
 
 
-def find_gcn_no(base_nu_name):
-    gcn_no, name, latest_archive_no = parse_gcn_for_no(base_nu_name)
+def find_gcn_no(base_nu_name: str, logger=None):
+    """ """
+    gcn_no, name, latest_archive_no = parse_gcn_for_no(base_nu_name, logger=logger)
 
     if gcn_no is None:
-
-        print(
-            f"No GCN found for {base_nu_name} on GCN page, checking archive instead. "
-            f"The latest page is {latest_archive_no}"
-        )
+        logging.info(
+                f"No GCN found for {base_nu_name} on GCN page, checking archive instead. "
+                f"The latest page is {latest_archive_no}"
+            )
 
         while np.logical_and(latest_archive_no > 0, gcn_no is None):
             gcn_no, name, _ = parse_gcn_for_no(
@@ -89,18 +92,21 @@ def find_gcn_no(base_nu_name):
     if name is None:
         raise ParsingError("No GCN match found for {0}".format(base_nu_name))
 
-    print(f"Match is {name} (GCN #{gcn_no})")
+    logging.info(f"Match is {name} (GCN #{gcn_no})")
 
     return gcn_no
 
 
-def get_latest_gcn():
+def get_latest_gcn(logger=None):
+    """ """
     latest = parse_gcn_archive()[0]
-    print(f"Latest GCN is {latest[0]} (GCN #{latest[1]})")
+    if logger:
+        logger.info(f"Latest GCN is {latest[0]} (GCN #{latest[1]})")
     return latest[1]
 
 
-def parse_radec(str):
+def parse_radec(str: str):
+    """ """
     regex_findall = re.findall(r"[-+]?\d*\.\d+|\d+", str)
     if len(regex_findall) == 4:
         pos = float(regex_findall[0])
@@ -117,7 +123,8 @@ def parse_radec(str):
     return pos, pos_upper, pos_lower
 
 
-def parse_gcn_circular(gcn_number):
+def parse_gcn_circular(gcn_number: int):
+    """ """
     url = f"https://gcn.gsfc.nasa.gov/gcn3/{gcn_number}.gcn3"
     response = requests.get(url)
     returndict = {}
