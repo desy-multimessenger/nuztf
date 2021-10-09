@@ -16,7 +16,7 @@ class TestNeutrinoScanner(unittest.TestCase):
         neutrino_name = "IC200620A"
         expected_candidates = 2
 
-        logging.info(f'scanning with neutrino {name}')
+        logging.info(f'scanning with neutrino {neutrino_name}')
         nu = NeutrinoScanner(nu_name=neutrino_name, logger=logger)
 
         t_max = nu.default_t_max - 8
