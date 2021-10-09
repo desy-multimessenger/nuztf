@@ -49,11 +49,11 @@ NU_RUN_CONFIG = {
 class NeutrinoScanner(BaseScanner):
     def __init__(
         self,
-        nu_name: str=None,
+        nu_name: str = None,
         manual_args=None,
-        gcn_no: int=None,
-        cone_nside: int=128,
-        t_precursor: float=None,
+        gcn_no: int = None,
+        cone_nside: int = 128,
+        t_precursor: float = None,
         logger=None,
         min_forceddiffsig=5
     ):
@@ -104,7 +104,9 @@ class NeutrinoScanner(BaseScanner):
         self.dec_min = float(min(dec[1:]) + dec[0])
 
         self.logger.info(f"Coordinates: RA = {ra[0]} ({self.ra_min} - {self.ra_max})")
-        self.logger.info(f"Coordinates: Dec = {dec[0]} ({self.dec_min} - {self.dec_max})")
+        self.logger.info(
+            f"Coordinates: Dec = {dec[0]} ({self.dec_min} - {self.dec_max})"
+        )
 
         self.output_path = f"{nu_candidate_output_dir}/{nu_name}.pdf"
         BaseScanner.__init__(
@@ -145,7 +147,9 @@ class NeutrinoScanner(BaseScanner):
             "This estimate accounts for chip gaps. "
         )
 
-    def candidate_text(self, ztf_id: str, first_detection: float, lul_lim: float, lul_jd: float):
+    def candidate_text(
+        self, ztf_id: str, first_detection: float, lul_lim: float, lul_jd: float
+    ):
         """ """
         fd = Time(first_detection, format="mjd")
 
@@ -187,13 +191,15 @@ class NeutrinoScanner(BaseScanner):
 
         # Require 2 detections separated by 15 mins
         if (res["candidate"]["jdendhist"] - res["candidate"]["jdstarthist"]) < 0.01:
-            self.logger.debug(f"{ztf_id}: Does not have 2 detections separated  by >15 mins")
+            self.logger.debug(
+                f"{ztf_id}: Does not have 2 detections separated  by >15 mins"
+            )
             return False
 
         return True
 
     def filter_f_history(self, res: dict):
-        """ Filter based on 2 detection requirement and probability contour requirement """
+        """Filter based on 2 detection requirement and probability contour requirement"""
 
         ztf_id = res["objectId"]
 

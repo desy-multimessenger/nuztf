@@ -13,11 +13,21 @@ import logging
 
 ligo_candidate_cache = os.path.join(Path(__file__).resolve().parents[1], "LIGO_cache")
 
+
 class MultiGwProcessor(GravWaveScanner):
     queue = None
     results = dict()
 
-    def __init__(self, n_cpu:int=os.cpu_count()-1, mp_id:int=0, n_days=None, verbose:bool=False, logger=None, *args, **kwargs):
+    def __init__(
+        self,
+        n_cpu: int = os.cpu_count() - 1,
+        mp_id: int = 0,
+        n_days=None,
+        verbose: bool = False,
+        logger=None,
+        *args,
+        **kwargs,
+    ):
 
         self.mp_id = mp_id
         self.n_cpu = n_cpu
@@ -43,15 +53,15 @@ class MultiGwProcessor(GravWaveScanner):
         self.logger.info("Now the queue will be filled")
 
         self.fill_queue, self.n_sky, self.scan_method = self.optimize_scan_method()
-        
+
         self.cache_dir = os.path.join(
             ligo_candidate_cache,
-            os.path.splitext(os.path.basename(self.output_path))[0]
+            os.path.splitext(os.path.basename(self.output_path))[0],
         )
 
         if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir)
-        
+
         pass
 
     def run(self):
@@ -61,9 +71,11 @@ class MultiGwProcessor(GravWaveScanner):
 
         kwargs = {}
         for i in range(int(self.n_cpu)):
-            kwargs.update({"mp_id": i+1})
+            kwargs.update({"mp_id": i + 1})
 
-        self.processes = [Process(target=self.scan_wrapper, kwargs={"mp_id": i+1}) for i in [0] ]#range(int(self.n_cpu))]
+        self.processes = [
+            Process(target=self.scan_wrapper, kwargs={"mp_id": i + 1}) for i in [0]
+        ]  # range(int(self.n_cpu))]
 
         self.obj_names = []
 
@@ -125,13 +137,13 @@ class MultiGwProcessor(GravWaveScanner):
             return False
 
         # Positive detection
-        if res['candidate']['isdiffpos'] not in ["t", "1"]:
+        if res["candidate"]["isdiffpos"] not in ["t", "1"]:
             if self.verbose:
                 print(f"{res['objectId']}: Negative subtraction")
             return False
 
         try:
-            if res['candidate']['drb'] < 0.3:
+            if res["candidate"]["drb"] < 0.3:
                 if self.verbose:
                     print(f"{res['objectId']}: DRB too low")
                 return False
@@ -151,7 +163,9 @@ class MultiGwProcessor(GravWaveScanner):
         # Require 2 detections separated by 15 mins
         if (res["candidate"]["jdendhist"] - res["candidate"]["jdstarthist"]) < 0.01:
             if self.verbose:
-                print(f"{res['objectId']}: Does not have 2 detections separated  by >15 mins")
+                print(
+                    f"{res['objectId']}: Does not have 2 detections separated  by >15 mins"
+                )
             return False
 
         print(f"{res['objectId']}: Passed first filtering stage")
@@ -173,13 +187,13 @@ class MultiGwProcessor(GravWaveScanner):
 
         length_window = t_max.jd - self.t_min.jd
 
-        survey_start_jd = 2458000.
+        survey_start_jd = 2458000.0
 
         full_ztf = t_max.jd - survey_start_jd
 
-        n_skys_time = length_window * 1./4.
+        n_skys_time = length_window * 1.0 / 4.0
 
-        n_skys_space = full_ztf * self.pixel_area/1000.
+        n_skys_space = full_ztf * self.pixel_area / 1000.0
 
         n_skys_time = 2323123123123
 
@@ -188,7 +202,7 @@ class MultiGwProcessor(GravWaveScanner):
             method = "time"
         else:
             f = self.fill_queue_space
-            method  = "space"
+            method = "space"
 
         n_sky = min([n_skys_space, n_skys_time])
 
@@ -198,9 +212,9 @@ class MultiGwProcessor(GravWaveScanner):
         # return n_sky, method
 
     def fill_queue_time(self, t_max=None):
-        """ query the AMPEL API based on time-range search """
+        """query the AMPEL API based on time-range search"""
         if t_max is None:
-            t_max = Time(self.default_t_max.jd + 4., format="jd")
+            t_max = Time(self.default_t_max.jd + 4.0, format="jd")
 
         # time_steps = np.arange(self.t_min.jd, t_max.jd, step=0.005)
         time_steps = np.arange(self.t_min.jd, t_max.jd, step=1)
@@ -213,14 +227,14 @@ class MultiGwProcessor(GravWaveScanner):
         for j, t_start in enumerate(tqdm(list(time_steps[:-1]))):
 
             jd_min = Time(t_start, format="jd").jd
-            jd_max = Time(time_steps[j+1], format="jd").jd
+            jd_max = Time(time_steps[j + 1], format="jd").jd
 
             query_res = ampel_api_timerange(
                 t_min_jd=jd_min,
                 t_max_jd=jd_max,
                 with_history=False,
                 chunk_size=1000,
-                logger=self.logger
+                logger=self.logger,
             )
 
             n_tot += len(query_res)
@@ -230,7 +244,7 @@ class MultiGwProcessor(GravWaveScanner):
         self.logger.info(f"Added {n_tot} candidates since {time_steps[0]}")
 
     def fill_queue_space(self, t_max=None):
-        """ query the AMPEL API based on cone search """
+        """query the AMPEL API based on cone search"""
         if t_max is None:
             t_max = Time(self.default_t_max.jd, format="jd")
 
@@ -243,12 +257,12 @@ class MultiGwProcessor(GravWaveScanner):
             if cone_id not in self.scanned_pixels:
 
                 query_res = ampel_api_cone(
-                    ra=ra, 
+                    ra=ra,
                     dec=dec,
                     radius=self.scan_radius,
                     t_min_jd=self.t_min.jd,
                     t_max_jd=t_max.jd,
-                    logger=self.logger
+                    logger=self.logger,
                 )
                 print(f"{len(query_res)} alerts found.")
 
@@ -259,13 +273,13 @@ class MultiGwProcessor(GravWaveScanner):
         self.logger.info(f"Added {n_tot} candidates since {self.t_min.jd}")
 
     def terminate(self):
-        """ wait until queue is empty and terminate processes """
+        """wait until queue is empty and terminate processes"""
         self.queue.join()
         for p in self.processes:
             p.terminate()
 
     def combine_cache(self):
-        """ read the pickled result from first filtering stage and cut more """
+        """read the pickled result from first filtering stage and cut more"""
 
         for name in self.get_cache_file():
             print(name)
@@ -278,7 +292,9 @@ class MultiGwProcessor(GravWaveScanner):
         self.obj_names = list(set(self.obj_names))
 
         self.logger.info(f"Scanned {len(self.scanned_pixels)} pixels")
-        self.logger.info(f"Found {len(self.obj_names)} candidates passing the first filtering stage.")
+        self.logger.info(
+            f"Found {len(self.obj_names)} candidates passing the first filtering stage."
+        )
 
         self.logger.info(f"Now checking: {self.obj_names}")
 
@@ -298,12 +314,18 @@ class MultiGwProcessor(GravWaveScanner):
                 else:
                     self.logger.info(f"{res['objectId']}: Failed History")
 
-        self.logger.info(f"Found {len(self.cache)} candidates passing the final filtering stage.")
+        self.logger.info(
+            f"Found {len(self.cache)} candidates passing the final filtering stage."
+        )
 
         self.create_candidate_summary()
 
     def get_cache_file(self):
-        return [os.path.join(self.cache_dir, x) for x in os.listdir(self.cache_dir) if ".pkl" in x]
+        return [
+            os.path.join(self.cache_dir, x)
+            for x in os.listdir(self.cache_dir)
+            if ".pkl" in x
+        ]
 
     def clean_cache(self):
 
@@ -312,7 +334,8 @@ class MultiGwProcessor(GravWaveScanner):
 
         self.logger.info("Cache cleaned!")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
 
     import os
     import logging
@@ -324,7 +347,7 @@ if __name__ == '__main__':
     logger.setLevel(logging.INFO)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--n_cpu", default=min(24, max(1, os.cpu_count()-1)))
+    parser.add_argument("--n_cpu", default=min(24, max(1, os.cpu_count() - 1)))
     parser.add_argument("-p", "--prob_threshold", default=0.9, type=float)
     parser.add_argument("-n", "--name", default=None)
     cfg = parser.parse_args()

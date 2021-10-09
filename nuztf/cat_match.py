@@ -4,11 +4,8 @@ from nuztf.ampel_api import ampel_api_catalog, ampel_api_name
 
 
 def query_ned_for_z(
-    ra_deg: float,
-    dec_deg: float,
-    searchradius_arcsec: float = 20,
-    logger=None
-    ):
+    ra_deg: float, dec_deg: float, searchradius_arcsec: float = 20, logger=None
+):
 
     z = None
     dist_arcsec = None
@@ -30,11 +27,8 @@ def query_ned_for_z(
 
 
 def ampel_api_tns(
-    ra_deg: float,
-    dec_deg: float,
-    searchradius_arcsec: float = 3,
-    logger=None
-    ):
+    ra_deg: float, dec_deg: float, searchradius_arcsec: float = 3, logger=None
+):
     """Function to query TNS via ampel api"""
 
     full_name = None
@@ -48,7 +42,7 @@ def ampel_api_tns(
         dec_deg=dec_deg,
         searchradius_arcsec=searchradius_arcsec,
         searchtype="nearest",
-        logger=logger
+        logger=logger,
     )
 
     if res:
@@ -80,8 +74,8 @@ def get_cross_match_info(raw: dict, logger=None):
             catalog_type="extcats",
             ra_deg=alert["ra"],
             dec_deg=alert["dec"],
-            searchradius_arcsec=5.,
-            logger=logger
+            searchradius_arcsec=5.0,
+            logger=logger,
         )
         if res is not None:
             if logger:
@@ -96,12 +90,12 @@ def get_cross_match_info(raw: dict, logger=None):
         ra_deg=alert["ra"],
         dec_deg=alert["dec"],
         searchradius_arcsec=search_rad,
-        logger=logger
+        logger=logger,
     )
     if res is not None:
         if len(res) == 1:
 
-            if "q" in res[0]['body']['broad_type']:
+            if "q" in res[0]["body"]["broad_type"]:
                 label = f"[MILLIQUAS: {res[0]['body']['name']} - Likely QSO (prob = {res[0]['body']['qso_prob']}%) ({res[0]['dist_arcsec']:.2f} arsec)]"
             else:
                 label = f"[MILLIQUAS: {res[0]['body']['name']} - '{res[0]['body']['broad_type']}'-type source ({res[0]['dist_arcsec']:.2f} arsec)]"
@@ -116,12 +110,12 @@ def get_cross_match_info(raw: dict, logger=None):
             catalog_type="catsHTM",
             ra_deg=alert["ra"],
             dec_deg=alert["dec"],
-            searchradius_arcsec=5.,
-            logger=logger
+            searchradius_arcsec=5.0,
+            logger=logger,
         )
         if res is not None:
-            if res[0]['body']['Plx'] is not None:
-                plx_sig = res[0]['body']['Plx']/res[0]['body']['ErrPlx']
+            if res[0]["body"]["Plx"] is not None:
+                plx_sig = res[0]["body"]["Plx"] / res[0]["body"]["ErrPlx"]
                 if plx_sig > 3.0:
                     label = f"[GAIADR2: {plx_sig:.1f}-sigma parallax ({res[0]['dist_arcsec']:.2f} arsec)]"
 
@@ -138,7 +132,7 @@ def get_cross_match_info(raw: dict, logger=None):
         )
         if res is not None:
             if len(res) == 1:
-                if float(res[0]['body']['type']) == 6.0:
+                if float(res[0]["body"]["type"]) == 6.0:
                     label = f"[SDSS Morphology: 'Star'-type source ({res[0]['dist_arcsec']:.2f} arsec)]"
             else:
                 label = "[MULTIPLE SDSS MATCHES]"
@@ -152,17 +146,21 @@ def get_cross_match_info(raw: dict, logger=None):
             ra_deg=alert["ra"],
             dec_deg=alert["dec"],
             searchradius_arcsec=search_rad,
-            logger=logger
+            logger=logger,
         )
         if res is not None:
             if len(res) == 1:
-                w1mw2 = res[0]['body']['W1mW2']
+                w1mw2 = res[0]["body"]["W1mW2"]
                 if w1mw2 > 0.8:
-                    label = f"[Probable WISE-selected quasar:W1-W2={w1mw2:.1f}>0.8  " \
-                            f"({res[0]['dist_arcsec']:.2f} arsec)]"
+                    label = (
+                        f"[Probable WISE-selected quasar:W1-W2={w1mw2:.1f}>0.8  "
+                        f"({res[0]['dist_arcsec']:.2f} arsec)]"
+                    )
                 elif w1mw2 > 0.8:
-                    label = f"[Possible WISE-selected quasar:W1-W2={w1mw2:.1f}>0.5  " \
-                            f"({res[0]['dist_arcsec']:.2f} arsec)]"
+                    label = (
+                        f"[Possible WISE-selected quasar:W1-W2={w1mw2:.1f}>0.5  "
+                        f"({res[0]['dist_arcsec']:.2f} arsec)]"
+                    )
             else:
                 label = "[MULTIPLE WISE MATCHES]"
 
@@ -171,4 +169,6 @@ def get_cross_match_info(raw: dict, logger=None):
 
 def check_cross_match_info_by_name(name: str, logger=None):
     """ """
-    return get_cross_match_info(raw=ampel_api_name(name, with_history=False, logger=logger)[0], logger=logger)
+    return get_cross_match_info(
+        raw=ampel_api_name(name, with_history=False, logger=logger)[0], logger=logger
+    )

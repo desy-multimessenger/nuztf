@@ -58,20 +58,16 @@ def merge_alerts(alert_list: list) -> list:
     max_time=600,
 )
 def ampel_api_cone(
-    ra: float, 
+    ra: float,
     dec: float,
     radius: float,
-    t_min_jd=Time(
-        '2018-04-01T00:00:00.123456789',
-        format='isot',
-        scale='utc'
-    ).jd,
+    t_min_jd=Time("2018-04-01T00:00:00.123456789", format="isot", scale="utc").jd,
     t_max_jd=Time.now().jd,
-    with_history: bool=False,
-    with_cutouts: bool=False,
-    chunk_size: int=500,
-    logger=None
-    ) -> list:
+    with_history: bool = False,
+    with_cutouts: bool = False,
+    chunk_size: int = 500,
+    logger=None,
+) -> list:
     """Function to query ampel via a cone search"""
 
     if logger is None:
@@ -88,16 +84,15 @@ def ampel_api_cone(
         cutouts = "false"
 
     queryurl_conesearch = (
-            API_ZTF_ARCHIVE_URL
-            + f"/alerts/cone_search?ra={ra}&dec={dec}&"
-              f"radius={radius}&jd_start={t_min_jd}&"
-              f"jd_end={t_max_jd}&with_history={hist}&"
-              f"with_cutouts={cutouts}&chunk_size={chunk_size}"
+        API_ZTF_ARCHIVE_URL + f"/alerts/cone_search?ra={ra}&dec={dec}&"
+        f"radius={radius}&jd_start={t_min_jd}&"
+        f"jd_end={t_max_jd}&with_history={hist}&"
+        f"with_cutouts={cutouts}&chunk_size={chunk_size}"
     )
 
     logger.debug(queryurl_conesearch)
 
-    headers={"Authorization": f"Bearer {ampel_api_archive_token}"}
+    headers = {"Authorization": f"Bearer {ampel_api_archive_token}"}
 
     response = requests.get(
         queryurl_conesearch,
@@ -122,16 +117,13 @@ def ampel_api_cone(
     max_time=600,
 )
 def ampel_api_timerange(
-    t_min_jd=Time(
-        '2018-04-01T00:00:00.123456789',
-        format='isot',
-        scale='utc'
-    ).jd,
+    t_min_jd=Time("2018-04-01T00:00:00.123456789", format="isot", scale="utc").jd,
     t_max_jd=Time.now().jd,
-    with_history: bool=False,
-    with_cutouts: bool=False,
-    chunk_size: int=500,
-    logger=None) -> list:
+    with_history: bool = False,
+    with_cutouts: bool = False,
+    chunk_size: int = 500,
+    logger=None,
+) -> list:
     """Function to query ampel via a time-range search"""
 
     if logger is None:
@@ -148,15 +140,14 @@ def ampel_api_timerange(
         cutouts = "false"
 
     queryurl_timerange = (
-            API_ZTF_ARCHIVE_URL
-            + f"/alerts/time_range?jd_start={t_min_jd}&"
-              f"jd_end={t_max_jd}&with_history={hist}&"
-              f"with_cutouts={cutouts}&chunk_size={chunk_size}"
+        API_ZTF_ARCHIVE_URL + f"/alerts/time_range?jd_start={t_min_jd}&"
+        f"jd_end={t_max_jd}&with_history={hist}&"
+        f"with_cutouts={cutouts}&chunk_size={chunk_size}"
     )
 
     logger.debug(queryurl_timerange)
 
-    headers={"Authorization": f"Bearer {ampel_api_archive_token}"}
+    headers = {"Authorization": f"Bearer {ampel_api_archive_token}"}
 
     response = requests.get(
         queryurl_timerange,
@@ -176,20 +167,16 @@ def ampel_api_timerange(
     return query_res
 
 
-def add_cutouts(
-        alert: list
-):
+def add_cutouts(alert: list):
     candid = alert[0]["candid"]
     cutouts = ampel_api_cutout(candid)
 
     final_cutouts = {}
 
-    if 'detail' in cutouts.keys():
-        if cutouts['detail'] == "Not Found":
-            for k in ['science', 'difference', 'template']:
-                final_cutouts[f"cutout{k.title()}"] = {
-                    "data": create_empty_cutout()
-                }
+    if "detail" in cutouts.keys():
+        if cutouts["detail"] == "Not Found":
+            for k in ["science", "difference", "template"]:
+                final_cutouts[f"cutout{k.title()}"] = {"data": create_empty_cutout()}
     else:
         for k in cutouts:
             final_cutouts[f"cutout{k.title()}"] = {
@@ -205,11 +192,8 @@ def add_cutouts(
     max_time=600,
 )
 def ampel_api_name(
-    ztf_name: str, 
-    with_history: bool=True,
-    with_cutouts: bool=False,
-    logger=None
-    ) -> list:
+    ztf_name: str, with_history: bool = True, with_cutouts: bool = False, logger=None
+) -> list:
     """Function to query ampel via name"""
 
     if logger is None:
@@ -226,7 +210,7 @@ def ampel_api_name(
 
     logger.debug(queryurl_ztf_name)
 
-    headers={"Authorization": f"Bearer {ampel_api_archive_token}"}
+    headers = {"Authorization": f"Bearer {ampel_api_archive_token}"}
 
     response = requests.get(
         queryurl_ztf_name,
@@ -257,20 +241,16 @@ def ampel_api_name(
     max_time=600,
 )
 def ampel_api_healpix(
-        ipix:int,
-        t_min_jd=Time(
-            '2018-04-01T00:00:00.123456789',
-            format='isot',
-            scale='utc'
-        ).jd,
-        t_max_jd=Time.now().jd,
-        with_history: bool=False,
-        with_cutouts: bool=False,
-        chunk_size: int=500,
-        logger=None,
-    ) -> list:
+    ipix: int,
+    t_min_jd=Time("2018-04-01T00:00:00.123456789", format="isot", scale="utc").jd,
+    t_max_jd=Time.now().jd,
+    with_history: bool = False,
+    with_cutouts: bool = False,
+    chunk_size: int = 500,
+    logger=None,
+) -> list:
     """Function to query ampel based on a healpix pixel-index (gird has nside=64)"""
-  
+
     if logger is None:
         logger = logging.getLogger(__name__)
 
@@ -284,11 +264,14 @@ def ampel_api_healpix(
     else:
         cutouts = "false"
 
-    queryurl_healpix = API_ZTF_ARCHIVE_URL + f"/alerts/healpix?ipix={ipix}&jd_start={t_min_jd}&jd_end={t_max_jd}&with_history={hist}&with_cutouts={cutouts}&chunk_size={chunk_size}"
+    queryurl_healpix = (
+        API_ZTF_ARCHIVE_URL
+        + f"/alerts/healpix?ipix={ipix}&jd_start={t_min_jd}&jd_end={t_max_jd}&with_history={hist}&with_cutouts={cutouts}&chunk_size={chunk_size}"
+    )
 
     logger.debug(queryurl_healpix)
 
-    headers={"Authorization": f"Bearer {ampel_api_archive_token}"}
+    headers = {"Authorization": f"Bearer {ampel_api_archive_token}"}
 
     response = requests.get(
         queryurl_healpix,
@@ -321,7 +304,7 @@ def ampel_api_cutout(candid: int, logger=None):
 
     queryurl_cutouts = API_CUTOUT_URL + f"/{candid}"
 
-    headers={"Authorization": f"Bearer {ampel_api_archive_token}"}
+    headers = {"Authorization": f"Bearer {ampel_api_archive_token}"}
 
     response = requests.get(
         queryurl_cutouts,
@@ -344,15 +327,15 @@ def ampel_api_cutout(candid: int, logger=None):
 
 
 def create_empty_cutout():
-    """ Function to reate an empty image for missing cutouts"""
+    """Function to reate an empty image for missing cutouts"""
     npix = 63
 
     blank = np.ones((npix, npix))
 
     for i in range(npix):
-        c = abs(npix/2 - i)/(0.5*npix)
-        blank[i-1][i-1] = c
-        blank[i-1][npix-i-1] = c
+        c = abs(npix / 2 - i) / (0.5 * npix)
+        blank[i - 1][i - 1] = c
+        blank[i - 1][npix - i - 1] = c
 
     hdu = fits.PrimaryHDU(blank)
     hdul = fits.HDUList([hdu])
@@ -369,14 +352,14 @@ def create_empty_cutout():
     max_time=600,
 )
 def ampel_api_catalog(
-        catalog: str,
-        catalog_type: str,
-        ra_deg: float,
-        dec_deg: float,
-        searchradius_arcsec: float = 10,
-        searchtype: str = "all",
-        logger=None,
-    ):
+    catalog: str,
+    catalog_type: str,
+    ra_deg: float,
+    dec_deg: float,
+    searchradius_arcsec: float = 10,
+    searchtype: str = "all",
+    logger=None,
+):
     """
     Method for querying catalogs via the Ampel API
     'catalog' must be the name of a supported catalog, e.g.
@@ -406,9 +389,7 @@ def ampel_api_catalog(
     logger.debug(queryurl_catalogmatch)
     logger.debug(query)
 
-    response = requests.post(
-        url=queryurl_catalogmatch, json=query, headers=headers
-    )
+    response = requests.post(url=queryurl_catalogmatch, json=query, headers=headers)
 
     if response.status_code == 503:
         raise requests.exceptions.RequestException

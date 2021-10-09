@@ -30,13 +30,9 @@ def get_obs_summary(t_min, max_days=None):
             path = os.path.join(skyvision_log, filename)
             os.remove(path)
 
-    mns = skyvision.CompletedLog.from_daterange(
-        mns_time, end=end_date, verbose=False
-    )
+    mns = skyvision.CompletedLog.from_daterange(mns_time, end=end_date, verbose=False)
 
-    mns.data["obsjd"] = Time(
-        list(mns.data.datetime.values), format="isot"
-    ).jd
+    mns.data["obsjd"] = Time(list(mns.data.datetime.values), format="isot").jd
 
     mns.data.query(f"obsjd > {start_date_jd}", inplace=True)
 

@@ -13,28 +13,34 @@ from ampel.contrib.hu.t3.ampel_tns import sendTNSreports
 logger = logging.getLogger(__name__)
 
 # Run config for TNSTalker
-ztf_default_values = {
-    "flux_units":"1", 
-    "instrument_value":"196",
-    "Observer":"Robot"
-}
+ztf_default_values = {"flux_units": "1", "instrument_value": "196", "Observer": "Robot"}
 
-RUN_CONFIG = {'submit_tns': True, 'sandbox': True, 'resubmit_tns_nonztf': False, 'resubmit_tns_ztf': False, 'submit_unless_journal': True, "lc_filters": [], "ztf_tns_at": ztf_default_values}
+RUN_CONFIG = {
+    "submit_tns": True,
+    "sandbox": True,
+    "resubmit_tns_nonztf": False,
+    "resubmit_tns_ztf": False,
+    "submit_unless_journal": True,
+    "lc_filters": [],
+    "ztf_tns_at": ztf_default_values,
+}
 
 from nuztf.ampel_magic import username
 from nuztf.ampel_magic import password
 
-TNS_API_KEYFILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".TNS_api_key.cred")
+TNS_API_KEYFILE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), ".TNS_api_key.cred"
+)
 try:
     with open(TNS_API_KEYFILE, "r") as f:
         TNS_API_KEY = f.read()
 except FileNotFoundError:
-    TNS_API_KEY = getpass.getpass(prompt='TNS API Key: ', stream=None)
+    TNS_API_KEY = getpass.getpass(prompt="TNS API Key: ", stream=None)
     with open(TNS_API_KEYFILE, "wb") as f:
         f.write(TNS_API_KEY.encode())
 
-RUN_CONFIG['max_age'] = 5
-RUN_CONFIG['tns_api_key'] = TNS_API_KEY
+RUN_CONFIG["max_age"] = 5
+RUN_CONFIG["tns_api_key"] = TNS_API_KEY
 
 # Connect to TNSTalker instance
 TNS = TNSTalker.TNSTalker(logger=logger, run_config=RUN_CONFIG)
@@ -42,11 +48,15 @@ TNS.run_config = TNS.RunConfig(**RUN_CONFIG)
 PORT = 5432
 
 # Connect to AMPEL instance
-AMPEL_CLIENT = ArchiveDB('postgresql://{0}:{1}@localhost:{2}/ztfarchive'.format(username, password, PORT))
+AMPEL_CLIENT = ArchiveDB(
+    "postgresql://{0}:{1}@localhost:{2}/ztfarchive".format(username, password, PORT)
+)
+
 
 def is_ztf_name(name):
     """ """
     return re.match("^ZTF[1-2]\d[a-z]{7}$", name)
+
 
 def use_if_ztf(file_or_name):
     """ """
@@ -71,8 +81,9 @@ def use_if_ztf(file_or_name):
 
     return object_list
 
+
 def TNS_submit(ztf_names, reporter=None, sandbox=True):
-    """ 
+    """
     Note: IF YOU WANT TO SUBMIT, SET sandbox=False
     """
     atreports = {}
@@ -81,7 +92,9 @@ def TNS_submit(ztf_names, reporter=None, sandbox=True):
         ztf_object = AMPEL_CLIENT.get_alerts_for_object(ztf_name, with_history=True)
         query_res = [i for i in ztf_object]
         last_alert = query_res[-1]
-        tv = ZIAlertUtils.to_transientview(file_path=None, content=last_alert, science_records=None)
+        tv = ZIAlertUtils.to_transientview(
+            file_path=None, content=last_alert, science_records=None
+        )
         ztf_id = tv.tran_id
         ampel_id = ZTFUtils.to_ampel_id(ztf_id)
         lc_id = tv.lightcurves[0].id
@@ -91,7 +104,9 @@ def TNS_submit(ztf_names, reporter=None, sandbox=True):
         if reporter is None:
             atreport["reporter"] = "The Zwicky Transient Facility (ZTF) Collaboration"
         else:
-            atreport["reporter"] = f"{reporter} for the Zwicky Transient Facility (ZTF) Collaboration"
+            atreport[
+                "reporter"
+            ] = f"{reporter} for the Zwicky Transient Facility (ZTF) Collaboration"
         atreport["exptime"] = "300"
         atreports.update({ztf_name: atreport})
 
@@ -99,21 +114,22 @@ def TNS_submit(ztf_names, reporter=None, sandbox=True):
     atreportlist = []
     atreport = {}
     k = 0
-    for tranid in atreports.keys() :
-        if len(atreport)>90:
-            self.logger.info('adding another report to TNS submit')
-            atreportlist.append( {'at_report' : atreport} )
+    for tranid in atreports.keys():
+        if len(atreport) > 90:
+            self.logger.info("adding another report to TNS submit")
+            atreportlist.append({"at_report": atreport})
             atreport = {}
             k = 0
         atreport[int(k)] = atreports[tranid]
         k += 1
-    atreportlist.append( {'at_report' : atreport} )
-    tnsreplies = sendTNSreports(atreportlist, TNS.run_config.tns_api_key, logger, sandbox=sandbox)
+    atreportlist.append({"at_report": atreport})
+    tnsreplies = sendTNSreports(
+        atreportlist, TNS.run_config.tns_api_key, logger, sandbox=sandbox
+    )
+
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Submit ZTF object(s) to TNS"
-    )
+    parser = argparse.ArgumentParser(description="Submit ZTF object(s) to TNS")
     parser.add_argument(
         "name",
         type=str,
@@ -132,7 +148,7 @@ if __name__ == "__main__":
         default=None,
         help="Provide an author for the submission",
     )
-    
+
     commandline_args = parser.parse_args()
     name = commandline_args.name
     sandbox = commandline_args.commit
@@ -140,7 +156,9 @@ if __name__ == "__main__":
     object_list = use_if_ztf(name)
 
     if sandbox:
-        logger.info(f"Submitting {object_list} to the TNS - SANDBOX MODE ONLY (to change, use -commit)")
+        logger.info(
+            f"Submitting {object_list} to the TNS - SANDBOX MODE ONLY (to change, use -commit)"
+        )
     else:
         logger.info(f"Submitting {object_list} to the TNS")
 
