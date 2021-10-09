@@ -8,12 +8,16 @@ class TestNeutrinoScanner(unittest.TestCase):
     maxDiff = None
 
     def test_scan(self):
-        logging.info('\n\n Testing Neutrino Scanner \n\n')
-        name = "IC200620A"
+        logger = logging.getlogger(__name__)
+        logger.setLevel(logging.DEBUG)
+
+        logger.info('\n\n Testing Neutrino Scanner \n\n')
+        
+        neutrino_name = "IC200620A"
         expected_candidates = 2
 
         logging.info(f'scanning with neutrino {name}')
-        nu = NeutrinoScanner(name)
+        nu = NeutrinoScanner(nu_name=neutrino_name, logger=logger)
 
         t_max = nu.default_t_max - 8
 

@@ -3,7 +3,12 @@ from astropy import units as u
 from nuztf.ampel_api import ampel_api_catalog, ampel_api_name
 
 
-def query_ned_for_z(ra_deg: float, dec_deg: float, searchradius_arcsec: float = 20):
+def query_ned_for_z(
+    ra_deg: float,
+    dec_deg: float,
+    searchradius_arcsec: float = 20,
+    logger=None
+    ):
 
     z = None
     dist_arcsec = None
@@ -15,6 +20,7 @@ def query_ned_for_z(ra_deg: float, dec_deg: float, searchradius_arcsec: float = 
         dec_deg=dec_deg,
         searchradius_arcsec=searchradius_arcsec,
         searchtype="nearest",
+        logger=logger,
     )
 
     if query:
@@ -23,7 +29,12 @@ def query_ned_for_z(ra_deg: float, dec_deg: float, searchradius_arcsec: float = 
     return z, dist_arcsec
 
 
-def ampel_api_tns(ra_deg: float, dec_deg: float, searchradius_arcsec: float = 3):
+def ampel_api_tns(
+    ra_deg: float,
+    dec_deg: float,
+    searchradius_arcsec: float = 3,
+    logger=None
+    ):
     """Function to query TNS via ampel api"""
 
     full_name = None
@@ -37,6 +48,7 @@ def ampel_api_tns(ra_deg: float, dec_deg: float, searchradius_arcsec: float = 3)
         dec_deg=dec_deg,
         searchradius_arcsec=searchradius_arcsec,
         searchtype="nearest",
+        logger=logger
     )
 
     if res:
@@ -54,7 +66,8 @@ def ampel_api_tns(ra_deg: float, dec_deg: float, searchradius_arcsec: float = 3)
 search_rad = 1.5
 
 
-def get_cross_match_info(raw):
+def get_cross_match_info(raw: dict, logger=None):
+    """ """
     alert = raw["candidate"]
 
     label = ""
@@ -67,10 +80,12 @@ def get_cross_match_info(raw):
             catalog_type="extcats",
             ra_deg=alert["ra"],
             dec_deg=alert["dec"],
-            searchradius_arcsec=5.
+            searchradius_arcsec=5.,
+            logger=logger
         )
         if res is not None:
-            print(res)
+            if logger:
+                logger.info(res)
             label = f"[CRTS variable star: {res[0]['body']['name']} ({res[0]['dist_arcsec']:.2f} arsec)]"
 
     # Check if known QSO/AGN
@@ -80,7 +95,8 @@ def get_cross_match_info(raw):
         catalog_type="extcats",
         ra_deg=alert["ra"],
         dec_deg=alert["dec"],
-        searchradius_arcsec=search_rad
+        searchradius_arcsec=search_rad,
+        logger=logger
     )
     if res is not None:
         if len(res) == 1:
@@ -100,7 +116,8 @@ def get_cross_match_info(raw):
             catalog_type="catsHTM",
             ra_deg=alert["ra"],
             dec_deg=alert["dec"],
-            searchradius_arcsec=5.
+            searchradius_arcsec=5.,
+            logger=logger
         )
         if res is not None:
             if res[0]['body']['Plx'] is not None:
@@ -116,7 +133,8 @@ def get_cross_match_info(raw):
             catalog_type="catsHTM",
             ra_deg=alert["ra"],
             dec_deg=alert["dec"],
-            searchradius_arcsec=search_rad
+            searchradius_arcsec=search_rad,
+            logger=logger,
         )
         if res is not None:
             if len(res) == 1:
@@ -133,7 +151,8 @@ def get_cross_match_info(raw):
             catalog_type="extcats",
             ra_deg=alert["ra"],
             dec_deg=alert["dec"],
-            searchradius_arcsec=search_rad
+            searchradius_arcsec=search_rad,
+            logger=logger
         )
         if res is not None:
             if len(res) == 1:
@@ -150,5 +169,6 @@ def get_cross_match_info(raw):
     return label
 
 
-def check_cross_match_info_by_name(name):
-    return get_cross_match_info(ampel_api_name(name, with_history=False)[0])
+def check_cross_match_info_by_name(name: str, logger=None):
+    """ """
+    return get_cross_match_info(raw=ampel_api_name(name, with_history=False, logger=logger)[0], logger=logger)

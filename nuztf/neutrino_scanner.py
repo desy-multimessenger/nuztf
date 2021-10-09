@@ -1,25 +1,28 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-from nuztf.base_scanner import BaseScanner
+import os, logging
+
 from astropy.time import Time
 import healpy as hp
 import numpy as np
 from tqdm import tqdm
-import os
 from os import environ
 from pathlib import Path
 import requests
-import logging
-from nuztf.parse_nu_gcn import find_gcn_no, parse_gcn_circular, get_latest_gcn
+
 from ztfquery.io import LOCALSOURCE
+
+from nuztf.base_scanner import BaseScanner
+from nuztf.parse_nu_gcn import find_gcn_no, parse_gcn_circular, get_latest_gcn
+
 
 nu_candidate_output_dir = os.path.join(LOCALSOURCE, "neutrino_candidates")
 
 if not os.path.exists(nu_candidate_output_dir):
     os.makedirs(nu_candidate_output_dir)
 
-nu_run_config = {
+NU_RUN_CONFIG = {
     "min_ndet": 1,  # Default:2
     "min_tspan": -1,  # Default 0, but that rejects everything!
     "max_tspan": 365,
@@ -46,14 +49,19 @@ nu_run_config = {
 class NeutrinoScanner(BaseScanner):
     def __init__(
         self,
-        nu_name=None,
+        nu_name: str=None,
         manual_args=None,
-        gcn_no=None,
+        gcn_no: int=None,
+        cone_nside: int=128,
+        t_precursor: float=None,
         logger=None,
-        cone_nside=128,
-        t_precursor=None,
         min_forceddiffsig=5
     ):
+
+        if logger is None:
+            self.logger = logging.getLogger(__name__)
+        else:
+            self.logger = logger
 
         self.prob_threshold = 0.9
         self.min_forceddiffsig = min_forceddiffsig
@@ -61,13 +69,14 @@ class NeutrinoScanner(BaseScanner):
         if manual_args is None:
 
             if nu_name is not None:
-                gcn_no = find_gcn_no(nu_name)
+                gcn_no = find_gcn_no(nu_name, logger=self.logger)
 
             elif gcn_no is None:
-                gcn_no = get_latest_gcn()
+                gcn_no = get_latest_gcn(logger=self.logger)
 
             gcn_info = parse_gcn_circular(gcn_no)
-            print(gcn_info)
+
+            self.logger.info(gcn_info)
 
             nu_name = gcn_info["name"]
             author = gcn_info["author"]
@@ -87,21 +96,21 @@ class NeutrinoScanner(BaseScanner):
         self.gcn_no = gcn_no
         self.dist = None
 
-        print(f"Neutrino time: {nu_time}")
+        self.logger.info(f"Neutrino time: {nu_time}")
 
         self.ra_max = float(max(ra[1:]) + ra[0])
         self.ra_min = float(min(ra[1:]) + ra[0])
         self.dec_max = float(max(dec[1:]) + dec[0])
         self.dec_min = float(min(dec[1:]) + dec[0])
 
-        print(f"Coordinates: RA = {ra[0]} ({self.ra_min} - {self.ra_max})")
-        print(f"Coordinates: DEC = {dec[0]} ({self.dec_min} - {self.dec_max})")
+        self.logger.info(f"Coordinates: RA = {ra[0]} ({self.ra_min} - {self.ra_max})")
+        self.logger.info(f"Coordinates: Dec = {dec[0]} ({self.dec_min} - {self.dec_max})")
 
         self.output_path = f"{nu_candidate_output_dir}/{nu_name}.pdf"
         BaseScanner.__init__(
             self,
             t_min=nu_time,
-            run_config=nu_run_config,
+            run_config=NU_RUN_CONFIG,
             logger=logger,
             cone_nside=cone_nside,
         )
@@ -111,7 +120,7 @@ class NeutrinoScanner(BaseScanner):
             * (self.dec_max - self.dec_min)
             * abs(np.cos(np.radians(dec[0])))
         )
-        print(f"Projected Area: {self.area}")
+        self.logger.info(f"Projected Area: {self.area}")
         (
             self.map_coords,
             self.pixel_nos,
@@ -122,60 +131,71 @@ class NeutrinoScanner(BaseScanner):
         ) = self.unpack_map()
 
     def get_name(self):
+        """ """
         return self.nu_name
 
     def get_full_name(self):
+        """ """
         return f"neutrino event {self.get_name()} ({self.author} et. al, GCN {self.gcn_no})"
 
     def get_overlap_line(self):
+        """ """
         return (
             f"We covered {self.area:.1f} sq deg, corresponding to {self.overlap_prob:.1f}% of the reported localization region. "
             "This estimate accounts for chip gaps. "
         )
 
-    def candidate_text(self, name, first_detection, lul_lim, lul_jd):
+    def candidate_text(self, ztf_id: str, first_detection: float, lul_lim: float, lul_jd: float):
+        """ """
         fd = Time(first_detection, format="mjd")
 
-        text = f"{name} was first detected on {fd.utc}. "
+        text = f"{ztf_id} was first detected on {fd.utc}. "
 
         return text
 
     @staticmethod
     def get_obs_line():
+        """ """
         return "Each exposure was 300s with a typical depth of 21.0 mag."
 
     @staticmethod
     def remove_variability_line():
+        """ """
         return ""
 
-    def filter_f_no_prv(self, res):
+    def filter_f_no_prv(self, res: dict):
+        """ """
+
+        ztf_id = res["objectId"]
 
         # Positive detection
         if res["candidate"]["isdiffpos"] not in ["t", "1"]:
-            logging.debug("Negative subtraction")
+            self.logger.debug(f"{ztf_id}: Negative subtraction")
             return False
 
         try:
             if res["candidate"]["drb"] < 0.3:
-                logging.debug("DRB too low")
+                self.logger.debug(f"{ztf_id}: DRB too low")
                 return False
         except (KeyError, TypeError) as e:
             pass
 
         # Check contour
         if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
-            logging.debug("Not in contour")
+            self.logger.debug(f"{ztf_id}: Not in contour")
             return False
 
         # Require 2 detections separated by 15 mins
         if (res["candidate"]["jdendhist"] - res["candidate"]["jdstarthist"]) < 0.01:
-            logging.debug("Does not have 2 detections separated  by >15 mins")
+            self.logger.debug(f"{ztf_id}: Does not have 2 detections separated  by >15 mins")
             return False
 
         return True
 
-    def filter_f_history(self, res):
-        # Require 2 detections
+    def filter_f_history(self, res: dict):
+        """ Filter based on 2 detection requirement and probability contour requirement """
+
+        ztf_id = res["objectId"]
 
         # check whether alert has old or new (from 1st Dec 21) avro schema
         is_old_schema = 'isdiffpos' in res["prv_candidates"][0]
@@ -194,23 +214,23 @@ class NeutrinoScanner(BaseScanner):
             )
 
         if n_detections < 1:
-            logging.debug("{0} has insufficient detection".format(res["objectId"]))
+            self.logger.debug(f"{ztf_id}: Has insufficient detection")
             return False
 
         if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
-            logging.debug("{0} not in contour".format(res["objectId"]))
+            self.logger.debug(f"{ztf_id}: Not in contour")
             return False
 
         return True
 
     def find_cone_coords(self):
-
+        """ """
         cone_coords = []
         cone_ids = []
 
         scan_radius = np.degrees(hp.max_pixrad(self.cone_nside))
 
-        print("Finding search pixels:")
+        self.logger.info("Finding search pixels:")
 
         for i in tqdm(range(hp.nside2npix(self.cone_nside))):
             ra, dec = self.extract_ra_dec(self.cone_nside, i)
@@ -240,7 +260,7 @@ class NeutrinoScanner(BaseScanner):
         return np.logical_and(in_ra, in_dec)
 
     def unpack_map(self):
-
+        """ """
         # nside = self.cone_nside
         nside = 1024
         map_coords = []
