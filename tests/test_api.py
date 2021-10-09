@@ -22,7 +22,7 @@ class TestAPI(unittest.TestCase):
             format="isot",
             scale="utc"
         ).jd
-        t_max_jd = t_min_jd+0.127163
+        t_max_jd_timerange = t_min_jd+0.127163
 
         logging.info(f"Retrieving alerts for {ztf_id}")
         api_name = ampel_api_name(ztf_name=ztf_id, with_history=True, with_cutouts=False)
@@ -48,9 +48,9 @@ class TestAPI(unittest.TestCase):
 
         logging.info("Commencing API cone search")
 
-        t_max_jd = Time("2021-10-07", format="isot").jd
+        t_max_jd_cone = Time("2021-10-07", format="isot").jd
 
-        api_cone = ampel_api_cone(ra=30, dec=30, radius=0.1, t_max_jd=t_max_jd)
+        api_cone = ampel_api_cone(ra=30, dec=30, radius=0.1, t_max_jd=t_max_jd_cone)
 
         ztf_ids = []
         for entry in api_cone:
@@ -68,7 +68,7 @@ class TestAPI(unittest.TestCase):
         )
 
         logging.info("Commencing API time search")
-        api_time = ampel_api_timerange(t_min_jd=t_min_jd, t_max_jd=t_max_jd, chunk_size=2000)
+        api_time = ampel_api_timerange(t_min_jd=t_min_jd, t_max_jd=t_max_jd_timerange, chunk_size=2000)
 
         ztf_ids = []
         for entry in api_time:
