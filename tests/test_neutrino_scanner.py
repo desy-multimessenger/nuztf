@@ -8,7 +8,7 @@ class TestNeutrinoScanner(unittest.TestCase):
     maxDiff = None
 
     def test_scan(self):
-        logger = logging.getlogger(__name__)
+        logger = logging.getLogger(__name__)
         logger.setLevel(logging.DEBUG)
 
         logger.info('\n\n Testing Neutrino Scanner \n\n')
