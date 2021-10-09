@@ -44,28 +44,29 @@ gw_run_config = {
     "max_magdiff": 1.0,
     "max_nbad": 2,
     "min_sso_dist": 20,
-    "min_gal_lat": 0.,  # Default: 14
-    "gaia_rs": 10.,
+    "min_gal_lat": 0.0,  # Default: 14
+    "gaia_rs": 10.0,
     "gaia_pm_signif": 3,
     "gaia_plx_signif": 3,
     "gaia_veto_gmag_min": 9,
     "gaia_veto_gmag_max": 20,
     "gaia_excessnoise_sig_max": 999,
-    "ps1_sgveto_rad": 1.,
+    "ps1_sgveto_rad": 1.0,
     "ps1_sgveto_th": 0.8,
-    "ps1_confusion_rad": 3.,
-    "ps1_confusion_sg_tol": 0.1
+    "ps1_confusion_rad": 3.0,
+    "ps1_confusion_sg_tol": 0.1,
 }
 
+
 class RetractionError(Exception):
-   """Base class for retracted event"""
-   pass
+    """Base class for retracted event"""
+
+    pass
 
 
 class GravWaveScanner(BaseScanner):
-
     def __init__(
-        self, 
+        self,
         gw_name=None,
         gw_file=None,
         rev=None,
@@ -89,17 +90,24 @@ class GravWaveScanner(BaseScanner):
         self.prob_threshold = prob_threshold
 
         if gw_file is None:
-            self.gw_path, self.output_path, self.gw_name = self.get_superevent(gw_name, rev)
+            self.gw_path, self.output_path, self.gw_name = self.get_superevent(
+                gw_name, rev
+            )
 
         else:
             basename = os.path.basename(gw_file)
             self.gw_path = "{0}/{1}".format(base_ligo_dir, basename)
             if gw_file[:8] == "https://":
                 logger.info("Downloading from: {0}".format(gw_file))
-                self.gw_path = os.path.join(base_ligo_dir, os.path.basename(gw_file[7:]))
+                self.gw_path = os.path.join(
+                    base_ligo_dir, os.path.basename(gw_file[7:])
+                )
                 wget.download(gw_file, self.gw_path)
 
-            self.output_path = os.path.join(ligo_candidate_output_dir, f"{os.path.basename(gw_file)}_{self.prob_threshold}.pdf")
+            self.output_path = os.path.join(
+                ligo_candidate_output_dir,
+                f"{os.path.basename(gw_file)}_{self.prob_threshold}.pdf",
+            )
 
             self.gw_name = os.path.basename(gw_file[7:])
         self.data, t_obs, self.hpm, self.key, self.dist, self.dist_unc = self.read_map()
@@ -110,7 +118,13 @@ class GravWaveScanner(BaseScanner):
         self.logger.info("Reading map")
 
         self.pixel_threshold = self.find_pixel_threshold(self.data[self.key])
-        self.map_coords, self.pixel_nos, self.map_probs, self.ligo_nside, self.pixel_area = self.unpack_skymap()
+        (
+            self.map_coords,
+            self.pixel_nos,
+            self.map_probs,
+            self.ligo_nside,
+            self.pixel_area,
+        ) = self.unpack_skymap()
 
         BaseScanner.__init__(
             self,
@@ -123,7 +137,7 @@ class GravWaveScanner(BaseScanner):
 
         # By default, accept things detected within 72 hours of merger
         if n_days is None:
-            n_days = 3.
+            n_days = 3.0
 
         self.default_t_max = Time(self.t_min.jd + n_days, format="jd")
 
@@ -146,37 +160,51 @@ class GravWaveScanner(BaseScanner):
         return "Each exposure was 30s with a typical depth of 20.5 mag."
 
     def get_overlap_line(self):
-        return "We covered {0:.1f}% of the enclosed probability " \
-               "based on the map in {1:.1f} sq deg. " \
-               "This estimate accounts for chip gaps. ".format(
-            self.overlap_prob, self.area)
+        return (
+            "We covered {0:.1f}% of the enclosed probability "
+            "based on the map in {1:.1f} sq deg. "
+            "This estimate accounts for chip gaps. ".format(
+                self.overlap_prob, self.area
+            )
+        )
 
     @staticmethod
     def remove_variability_line():
-        return ", and removing candidates with history of " \
-               "variability prior to the merger time"
+        return (
+            ", and removing candidates with history of "
+            "variability prior to the merger time"
+        )
 
     def candidate_text(self, name, first_detection, lul_lim, lul_jd):
 
         try:
-            text = "{0}, first detected {1:.1f} hours after merger, " \
-            "was not detected {2:.1f} days prior to a depth of {3:.2f}. ".format(
-                name, 24. * (first_detection - self.t_min.jd), first_detection - lul_jd, lul_lim
+            text = (
+                "{0}, first detected {1:.1f} hours after merger, "
+                "was not detected {2:.1f} days prior to a depth of {3:.2f}. ".format(
+                    name,
+                    24.0 * (first_detection - self.t_min.jd),
+                    first_detection - lul_jd,
+                    lul_lim,
+                )
             )
         except TypeError:
-            text = "{0} had upper limit problems. PLEASE FILL IN NUMBERS BY HAND!!! ".format(name)
+            text = "{0} had upper limit problems. PLEASE FILL IN NUMBERS BY HAND!!! ".format(
+                name
+            )
         return text
 
     def filter_f_no_prv(self, res):
 
         # Positive detection
-        if res['candidate']['isdiffpos'] not in ["t", "1"]:
+        if res["candidate"]["isdiffpos"] not in ["t", "1"]:
             self.logger.debug(f"{res['objectId']}: Negative subtraction.")
             return False
 
         # Veto old transients
         if res["candidate"]["jdstarthist"] < self.t_min.jd:
-            self.logger.debug(f"{res['objectId']}: Transient is too old. (jdstarthist history predates event)")
+            self.logger.debug(
+                f"{res['objectId']}: Transient is too old. (jdstarthist history predates event)"
+            )
             return False
 
         # Check contour
@@ -207,12 +235,16 @@ class GravWaveScanner(BaseScanner):
     def filter_f_history(self, res):
         # Veto old transients
         if res["candidate"]["jdstarthist"] < self.t_min.jd:
-            self.logger.debug(f"{res['objectId']}: Transient is too old. (jdstarthist history predates event)")
+            self.logger.debug(
+                f"{res['objectId']}: Transient is too old. (jdstarthist history predates event)"
+            )
             return False
 
         # Veto new transients
         if res["candidate"]["jdstarthist"] > self.default_t_max.jd:
-            self.logger.debug(f"{res['objectId']}: Transient is too new. (jdstarthist too late after event)")
+            self.logger.debug(
+                f"{res['objectId']}: Transient is too new. (jdstarthist too late after event)"
+            )
             return False
 
         # Require 2 detections separated by 15 mins
@@ -221,12 +253,13 @@ class GravWaveScanner(BaseScanner):
             return False
 
         # Require 2 positive detections
-        old_detections = [x for x in res["prv_candidates"] if np.logical_and(
-            "isdiffpos" in x.keys(),
-            x["jd"] > self.t_min.jd
-        )]
+        old_detections = [
+            x
+            for x in res["prv_candidates"]
+            if np.logical_and("isdiffpos" in x.keys(), x["jd"] > self.t_min.jd)
+        ]
 
-        pos_detections = [x for x in old_detections if 'isdiffpos' in x.keys()]
+        pos_detections = [x for x in old_detections if "isdiffpos" in x.keys()]
 
         if len(pos_detections) < 1:
             self.logger.debug(f"{res['objectId']}: Does not have two detections")
@@ -236,8 +269,10 @@ class GravWaveScanner(BaseScanner):
 
     def get_superevent(self, name, rev):
         if name is None:
-            superevent_iterator = ligo_client.superevents('category: Production')
-            superevent_ids = [superevent['superevent_id'] for superevent in superevent_iterator]
+            superevent_iterator = ligo_client.superevents("category: Production")
+            superevent_ids = [
+                superevent["superevent_id"] for superevent in superevent_iterator
+            ]
             name = superevent_ids[0]
 
         voevents = ligo_client.voevents(name).json()["voevents"]
@@ -252,22 +287,29 @@ class GravWaveScanner(BaseScanner):
         print("Found voevent {0}".format(latest_voevent["filename"]))
 
         if "Retraction" in latest_voevent["filename"]:
-            raise RetractionError("The specified LIGO event, {0}, was retracted.".format(latest_voevent["filename"]))
+            raise RetractionError(
+                "The specified LIGO event, {0}, was retracted.".format(
+                    latest_voevent["filename"]
+                )
+            )
 
         response = requests.get(latest_voevent["links"]["file"])
 
         root = lxml.etree.fromstring(response.content)
-        params = {elem.attrib['name']:
-                      elem.attrib['value']
-                  for elem in root.iterfind('.//Param')}
+        params = {
+            elem.attrib["name"]: elem.attrib["value"]
+            for elem in root.iterfind(".//Param")
+        }
 
         latest_skymap = params["skymap_fits"]
 
         print("Latest skymap URL: {0}".format(latest_skymap))
 
         base_file_name = os.path.basename(latest_skymap)
-        savepath = os.path.join(base_ligo_dir, "{0}_{1}_{2}".format(
-            name, latest_voevent["N"], base_file_name))
+        savepath = os.path.join(
+            base_ligo_dir,
+            "{0}_{1}_{2}".format(name, latest_voevent["N"], base_file_name),
+        )
 
         print("Saving to: {0}".format(savepath))
         response = requests.get(latest_skymap)
@@ -275,14 +317,17 @@ class GravWaveScanner(BaseScanner):
         with open(savepath, "wb") as f:
             f.write(response.content)
 
-        output_file = "{0}/{1}_{2}_{3}.pdf".format(ligo_candidate_output_dir, name, latest_voevent["N"],
-                                                   self.prob_threshold)
+        output_file = "{0}/{1}_{2}_{3}.pdf".format(
+            ligo_candidate_output_dir, name, latest_voevent["N"], self.prob_threshold
+        )
 
         return savepath, output_file, name
 
-    def read_map(self, ):
+    def read_map(
+        self,
+    ):
         print("Reading file: {0}".format(self.gw_path))
-        data, h = fitsio.read(self.gw_path, header=True)#columns=["PROB"],
+        data, h = fitsio.read(self.gw_path, header=True)  # columns=["PROB"],
         if "DISTMEAN" not in h:
             dist = None
         else:
@@ -298,12 +343,14 @@ class GravWaveScanner(BaseScanner):
 
         if "PROB" in data.dtype.names:
             key = "PROB"
-        elif 'PROBABILITY' in data.dtype.names:
-            key = 'PROB'
+        elif "PROBABILITY" in data.dtype.names:
+            key = "PROB"
             prob = np.array(data["PROBABILITY"]).flatten()
             data = append_fields(data, "PROB", prob)
         else:
-            raise Exception("No recognised probability key in map. This is probably a weird one, right?")
+            raise Exception(
+                "No recognised probability key in map. This is probably a weird one, right?"
+            )
 
         if not isinstance(data[0], float):
             probs = np.array(data["PROB"]).flatten()
@@ -320,7 +367,7 @@ class GravWaveScanner(BaseScanner):
             data["PROB"] = hp.pixelfunc.reorder(data["PROB"], inp="RING", out="NESTED")
             h["ORDERING"] = "NESTED"
 
-        hpm = HEALPix(nside=h["NSIDE"], order=h["ORDERING"], frame='icrs')
+        hpm = HEALPix(nside=h["NSIDE"], order=h["ORDERING"], frame="icrs")
 
         # with fits.open(self.gw_path) as hdul:
         #     print("Opened file")
@@ -340,9 +387,12 @@ class GravWaveScanner(BaseScanner):
         for i, prob in enumerate(ranked_pixels):
             int_sum += prob
             if int_sum > self.prob_threshold:
-                print("Threshold found! \n To reach {0}% of probability, pixels with "
-                      "probability greater than {1} are included".format(
-                    int_sum * 100., prob))
+                print(
+                    "Threshold found! \n To reach {0}% of probability, pixels with "
+                    "probability greater than {1} are included".format(
+                        int_sum * 100.0, prob
+                    )
+                )
                 pixel_threshold = prob
                 break
 
@@ -371,8 +421,9 @@ class GravWaveScanner(BaseScanner):
 
         print(f"Total pixel area: {pixel_area} degrees")
 
-        map_coords = np.array(map_coords, dtype=np.dtype([("ra", np.float),
-                                                          ("dec", np.float)]))
+        map_coords = np.array(
+            map_coords, dtype=np.dtype([("ra", np.float), ("dec", np.float)])
+        )
 
         return map_coords, pixel_nos, self.data[self.key][mask], ligo_nside, pixel_area
 
@@ -403,27 +454,39 @@ class GravWaveScanner(BaseScanner):
 
         size = hp.max_pixrad(self.ligo_nside, degrees=True) ** 2
 
-        plt.scatter(self.wrap_around_180(self.map_coords["ra"]), self.map_coords["dec"],
-                         c=self.data[self.key][mask], vmin=0., vmax=max(self.data[self.key]), s=size)
+        plt.scatter(
+            self.wrap_around_180(self.map_coords["ra"]),
+            self.map_coords["dec"],
+            c=self.data[self.key][mask],
+            vmin=0.0,
+            vmax=max(self.data[self.key]),
+            s=size,
+        )
         plt.title("LIGO SKYMAP")
 
         plt.subplot(212, projection="aitoff")
 
-        plt.scatter(self.wrap_around_180(self.cone_coords["ra"]), self.cone_coords["dec"])
+        plt.scatter(
+            self.wrap_around_180(self.cone_coords["ra"]), self.cone_coords["dec"]
+        )
         plt.title("CONE REGION")
         return fig
 
     def interpolate_map(self, ra_deg, dec_deg):
-        interpol_map = self.hpm.interpolate_bilinear_skycoord(SkyCoord(ra_deg * u.deg, dec_deg * u.deg), self.data[self.key])
+        interpol_map = self.hpm.interpolate_bilinear_skycoord(
+            SkyCoord(ra_deg * u.deg, dec_deg * u.deg), self.data[self.key]
+        )
         print(interpol_map)
         return interpol_map
 
     def in_contour(self, ra_deg, dec_deg):
         return self.interpolate_map(ra_deg, dec_deg) > self.pixel_threshold
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
 
     import logging
+
     logger = logging.getLogger("quiet_logger")
     logger.setLevel(logging.INFO)
 

@@ -14,7 +14,9 @@ def gcn_url(gcn_number):
 
 class ParsingError(Exception):
     """Base class for parsing error"""
+
     pass
+
 
 def parse_gcn_archive():
     """ """
@@ -33,7 +35,7 @@ def parse_gcn_archive():
 
 
 def parse_gcn_for_no(
-        base_nu_name: str, url: str=f"{base_gcn_url}_archive.html", logger=None
+    base_nu_name: str, url: str = f"{base_gcn_url}_archive.html", logger=None
 ):
     """ """
     if logger:
@@ -53,7 +55,7 @@ def parse_gcn_for_no(
 
     for line in page.text.splitlines():
         if np.logical_and(
-                "IceCube observation of a high-energy neutrino" in line, nu_name in line
+            "IceCube observation of a high-energy neutrino" in line, nu_name in line
         ):
             res = line.split(">")
             if gcn_no is None:
@@ -76,9 +78,9 @@ def find_gcn_no(base_nu_name: str, logger=None):
 
     if gcn_no is None:
         logging.info(
-                f"No GCN found for {base_nu_name} on GCN page, checking archive instead. "
-                f"The latest page is {latest_archive_no}"
-            )
+            f"No GCN found for {base_nu_name} on GCN page, checking archive instead. "
+            f"The latest page is {latest_archive_no}"
+        )
 
         while np.logical_and(latest_archive_no > 0, gcn_no is None):
             gcn_no, name, _ = parse_gcn_for_no(
@@ -165,4 +167,3 @@ def parse_gcn_circular(gcn_number: int):
             returndict.update({"time": time})
 
     return returndict
-

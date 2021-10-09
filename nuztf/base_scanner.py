@@ -27,7 +27,12 @@ from ampel.ztf.t0.DecentFilter import DecentFilter
 from ampel.ztf.dev.DevAlertProcessor import DevAlertProcessor
 from ampel.alert.PhotoAlert import PhotoAlert
 
-from nuztf.ampel_api import ampel_api_cone, ampel_api_timerange, ampel_api_name, add_cutouts
+from nuztf.ampel_api import (
+    ampel_api_cone,
+    ampel_api_timerange,
+    ampel_api_name,
+    add_cutouts,
+)
 from nuztf.cat_match import get_cross_match_info, ampel_api_tns, query_ned_for_z
 from nuztf.observation_log import get_obs_summary
 from nuztf.plot import lightcurve_from_alert
@@ -35,6 +40,7 @@ from nuztf.plot import lightcurve_from_alert
 DEBUG = False
 RATELIMIT_CALLS = 10
 RATELIMIT_PERIOD = 1
+
 
 class BaseScanner:
     def __init__(
@@ -60,10 +66,10 @@ class BaseScanner:
 
         if logger is None:
             import logging
+
             self.logger = logging.getLogger(__name__)
         else:
             self.logger = logger
-
 
         self.logger.info("AMPEL run config:")
         self.logger.info(run_config)
@@ -85,7 +91,7 @@ class BaseScanner:
             self.cone_ids, self.cone_coords = cones_to_scan
 
         self.cache = dict()
-        self.default_t_max = t_min + 10.
+        self.default_t_max = t_min + 10.0
 
         self.overlap_prob = None
         self.overlap_fields = None
@@ -143,8 +149,8 @@ class BaseScanner:
             if res_alert["objectId"] not in self.cache.keys():
                 self.cache[res_alert["objectId"]] = res_alert
             elif (
-                    res_alert["candidate"]["jd"]
-                    > self.cache[res_alert["objectId"]]["candidate"]["jd"]
+                res_alert["candidate"]["jd"]
+                > self.cache[res_alert["objectId"]]["candidate"]["jd"]
             ):
                 self.cache[res_alert["objectId"]] = res_alert
 
@@ -182,7 +188,7 @@ class BaseScanner:
     def get_multi_night_summary(self, max_days=None):
         return get_obs_summary(self.t_min, max_days=max_days)
 
-    def scan_cones(self, t_max=None, max_cones: int=None):
+    def scan_cones(self, t_max=None, max_cones: int = None):
         """ """
         if max_cones is None:
             max_cones = len(self.cone_ids)
@@ -222,9 +228,7 @@ class BaseScanner:
         self.logger.info(f"Before filtering: Found {len(all_ztf_ids)} candidates")
         self.logger.info(f"Retrieving alert history from AMPEL")
 
-        results = self.ampel_object_search(
-            ztf_ids=all_ztf_ids
-        )
+        results = self.ampel_object_search(ztf_ids=all_ztf_ids)
 
         for res in results:
             self.add_res_to_cache(res)
@@ -267,7 +271,9 @@ class BaseScanner:
 
         t_min = self.t_min
 
-        query_res = ampel_api_cone(ra, dec, radius, t_min.jd, t_max.jd, logger=self.logger)
+        query_res = ampel_api_cone(
+            ra, dec, radius, t_min.jd, t_max.jd, logger=self.logger
+        )
 
         ztf_names = []
         for res in query_res:
@@ -288,8 +294,8 @@ class BaseScanner:
         self,
         t_min=None,
         t_max=None,
-        with_history: bool=False,
-        chunk_size: int=500,
+        with_history: bool = False,
+        chunk_size: int = 500,
     ) -> list:
         """ """
         if t_max is None:
@@ -302,7 +308,7 @@ class BaseScanner:
             t_max_jd=t_max.jd,
             with_history=with_history,
             chunk_size=chunk_size,
-            logger=self.logger
+            logger=self.logger,
         )
 
         ztf_names_unfiltered = []
@@ -321,16 +327,14 @@ class BaseScanner:
 
         return ztf_names_unfiltered
 
-    def ampel_object_search(self, ztf_ids: list, with_history: bool=True) -> list:
+    def ampel_object_search(self, ztf_ids: list, with_history: bool = True) -> list:
         """ """
         all_results = []
 
         for ztf_id in ztf_ids:
 
             query_res = ampel_api_name(
-                ztf_name=ztf_id,
-                with_history=with_history,
-                logger=self.logger
+                ztf_name=ztf_id, with_history=with_history, logger=self.logger
             )
 
             final_res = []
@@ -401,8 +405,8 @@ class BaseScanner:
     def draft_gcn(self):
 
         first_obs_dt = self.first_obs.datetime
-        pretty_date = first_obs_dt.strftime('%Y-%m-%d')
-        pretty_time = first_obs_dt.strftime('%H:%M')
+        pretty_date = first_obs_dt.strftime("%Y-%m-%d")
+        pretty_time = first_obs_dt.strftime("%H:%M")
 
         text = (
             f"Astronomer Name (Institute of Somewhere), ............. report,\n"
@@ -561,13 +565,15 @@ class BaseScanner:
                 brightest["ra"], brightest["dec"], searchradius_arcsec=3.0
             )
             if tns_name:
-                tns_result = f'({tns_name})'
+                tns_result = f"({tns_name})"
 
             xmatch_info = get_cross_match_info(raw=res, logger=self.logger)
 
-            print(f"Candidate {name} peaked at {brightest['magpsf']:.1f} {tns_result}on "
-                  f"{brightest['jd']:.1f} with filter {self.parse_ztf_filter(brightest['fid'])} "
-                  f"{xmatch_info}")
+            print(
+                f"Candidate {name} peaked at {brightest['magpsf']:.1f} {tns_result}on "
+                f"{brightest['jd']:.1f} with filter {self.parse_ztf_filter(brightest['fid'])} "
+                f"{xmatch_info}"
+            )
 
     def candidate_text(self, name, first_detection, lul_lim, lul_jd):
         raise NotImplementedError
@@ -611,7 +617,7 @@ class BaseScanner:
                 ra_deg=latest["ra"],
                 dec_deg=latest["dec"],
                 searchradius_arcsec=20,
-                logger=self.logger
+                logger=self.logger,
             )
 
             if ned_z:

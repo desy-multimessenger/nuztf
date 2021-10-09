@@ -12,11 +12,11 @@ class TestNeutrinoScanner(unittest.TestCase):
     maxDiff = None
 
     def test_latest(self):
-        logger.info('\n\n Testing parsing of GCNs \n\n')
+        logger.info("\n\n Testing parsing of GCNs \n\n")
         no = get_latest_gcn()
-        logger.info(f'Latest alert is {no}')
+        logger.info(f"Latest alert is {no}")
         url = gcn_url(gcn_number=no)
-        logger.info(f'URL is {url}')
+        logger.info(f"URL is {url}")
 
     def test_named(self):
 
@@ -26,8 +26,8 @@ class TestNeutrinoScanner(unittest.TestCase):
 
         ref = 27997
 
-        logger.info(f'GCN number for {name} was found to be {num}')
-        logger.info(f'Reference value was {ref}')
+        logger.info(f"GCN number for {name} was found to be {num}")
+        logger.info(f"Reference value was {ref}")
 
         self.assertEqual(num, ref)
 
@@ -37,8 +37,10 @@ class TestNeutrinoScanner(unittest.TestCase):
 
         try:
             no = find_gcn_no(fakename)
-            raise Exception(f"Somehow found a GCN ({no}) matching "
-                            f"fictional neutrino alert {fakename}")
+            raise Exception(
+                f"Somehow found a GCN ({no}) matching "
+                f"fictional neutrino alert {fakename}"
+            )
         except ParsingError:
             logger.info("No GCN found, as expected.")
             pass

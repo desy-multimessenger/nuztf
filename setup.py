@@ -21,7 +21,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.8",
     ],
-    python_requires='>=3.8.0,<3.9.0',
+    python_requires=">=3.8.0,<3.9.0",
     install_requires=[
         "ampel-alerts == 0.7.2",
         "ampel-core == 0.7.4",
@@ -65,7 +65,6 @@ setuptools.setup(
         "wget == 3.2",
         "zerorpc == 0.6.3",
         "ztf-plan-obs == 0.33",
-        "ztfquery == 1.16.0"
-    ]
+        "ztfquery == 1.16.0",
+    ],
 )
-
