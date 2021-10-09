@@ -1,14 +1,15 @@
+import io, logging, gzip
 import requests
 import backoff
 from base64 import b64decode
-from astropy.time import Time
-from nuztf.credentials import load_credentials
-from requests.auth import HTTPBasicAuth
 from json import JSONDecodeError
 import numpy as np
-import gzip
+
+from astropy.time import Time
 from astropy.io import fits
-import io
+from requests.auth import HTTPBasicAuth
+
+from nuztf.credentials import load_credentials
 
 # AMPEL API URLs
 
@@ -72,6 +73,9 @@ def ampel_api_cone(
     ):
     """Function to query ampel via a cone search"""
 
+    if logger is None:
+        logger = logging.getLogger(__name__)
+
     if with_history:
         hist = "true"
     else:
@@ -90,8 +94,7 @@ def ampel_api_cone(
               f"with_cutouts={cutouts}&chunk_size={chunk_size}"
     )
 
-    if logger is not None:
-        logger.debug(queryurl_conesearch)
+    logger.debug(queryurl_conesearch)
 
     headers={"Authorization": f"Bearer {ampel_api_archive_token}"}
 
@@ -105,6 +108,8 @@ def ampel_api_cone(
     try:
         query_res = [i for i in response.json()["alerts"]]
     except JSONDecodeError:
+        if response.headers:
+            logger.debug(response.headers)
         raise requests.exceptions.RequestException
 
     return query_res
@@ -128,6 +133,9 @@ def ampel_api_timerange(
     logger=None):
     """Function to query ampel via a time-range search"""
 
+    if logger is None:
+        logger = logging.getLogger(__name__)
+
     if with_history:
         hist = "true"
     else:
@@ -145,8 +153,7 @@ def ampel_api_timerange(
               f"with_cutouts={cutouts}&chunk_size={chunk_size}"
     )
 
-    if logger is not None:
-        logger.debug(queryurl_timerange)
+    logger.debug(queryurl_timerange)
 
     headers={"Authorization": f"Bearer {ampel_api_archive_token}"}
 
@@ -161,6 +168,8 @@ def ampel_api_timerange(
     try:
         query_res = [i for i in response.json()["alerts"]]
     except JSONDecodeError:
+        if response.headers:
+            logger.debug(response.headers)
         raise requests.exceptions.RequestException
 
     return query_res
@@ -202,6 +211,9 @@ def ampel_api_name(
     ):
     """Function to query ampel via name"""
 
+    if logger is None:
+        logger = logging.getLogger(__name__)
+
     if with_history:
         hist = "true"
     else:
@@ -211,8 +223,7 @@ def ampel_api_name(
         API_ZTF_ARCHIVE_URL + f"/object/{ztf_name}/alerts?with_history={hist}"
     )
 
-    if logger is not None:
-        logger.debug(queryurl_ztf_name)
+    logger.debug(queryurl_ztf_name)
 
     headers={"Authorization": f"Bearer {ampel_api_archive_token}"}
 
@@ -229,6 +240,8 @@ def ampel_api_name(
         query_res = merge_alerts(query_res)
 
     except JSONDecodeError:
+        if response.headers:
+            logger.debug(response.headers)
         raise requests.exceptions.RequestException
 
     if with_cutouts:
@@ -256,7 +269,10 @@ def ampel_api_healpix(
         logger=None,
     ):
     """Function to query ampel based on a healpix pixel-index (gird has nside=64)"""
-    
+  
+    if logger is None:
+        logger = logging.getLogger(__name__)
+
     if with_history:
         hist = "true"
     else:
@@ -269,8 +285,7 @@ def ampel_api_healpix(
 
     queryurl_healpix = API_ZTF_ARCHIVE_URL + f"/alerts/healpix?ipix={ipix}&jd_start={t_min_jd}&jd_end={t_max_jd}&with_history={hist}&with_cutouts={cutouts}&chunk_size={chunk_size}"
 
-    if logger is not None:
-        logger.debug(queryurl_healpix)
+    logger.debug(queryurl_healpix)
 
     headers={"Authorization": f"Bearer {ampel_api_archive_token}"}
 
@@ -285,6 +300,8 @@ def ampel_api_healpix(
     try:
         query_res = [i for i in response.json()["alerts"]]
     except JSONDecodeError:
+        if response.headers:
+            logger.debug(response.headers)
         raise requests.exceptions.RequestException
 
     return query_res
@@ -297,6 +314,10 @@ def ampel_api_healpix(
 )
 def ampel_api_cutout(candid: int, logger=None):
     """Function to query ampel for cutouts by candidate ID"""
+
+    if logger is None:
+        logger = logging.getLogger(__name__)
+
     queryurl_cutouts = API_CUTOUT_URL + f"/{candid}"
 
     headers={"Authorization": f"Bearer {ampel_api_archive_token}"}
@@ -306,8 +327,7 @@ def ampel_api_cutout(candid: int, logger=None):
         headers=headers,
     )
 
-    if logger is not None:
-        logger.debug(queryurl_cutouts)
+    logger.debug(queryurl_cutouts)
 
     if response.status_code == 503:
         raise requests.exceptions.RequestException
@@ -315,6 +335,8 @@ def ampel_api_cutout(candid: int, logger=None):
     try:
         cutouts = response.json()
     except JSONDecodeError:
+        if response.headers:
+            logger.debug(response.headers)
         raise requests.exceptions.RequestException
 
     return cutouts
@@ -352,6 +374,7 @@ def ampel_api_catalog(
         dec_deg: float,
         searchradius_arcsec: float = 10,
         searchtype: str = "all",
+        logger=None,
     ):
     """
     Method for querying catalogs via the Ampel API
@@ -364,7 +387,12 @@ def ampel_api_catalog(
     assert catalog_type in ["extcats", "catsHTM"]
     assert searchtype in ["all", "nearest"]
 
+    if logger is None:
+        logger = logging.getLogger(__name__)
+
     queryurl_catalogmatch = API_CATALOGMATCH_URL + "/cone_search/" + searchtype
+
+    logger.debug(queryurl_catalogmatch)
 
     # First, we create a json body to post
     headers = {"accept": "application/json", "Content-Type": "application/json"}
@@ -383,4 +411,11 @@ def ampel_api_catalog(
     if response.status_code == 503:
         raise requests.exceptions.RequestException
 
-    return response.json()[0]
+    try:
+        res = response.json()[0]
+    except JSONDecodeError:
+        if response.headers:
+            logger.debug(response.headers)
+        raise requests.exceptions.RequestException
+
+    return res
