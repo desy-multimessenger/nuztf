@@ -1,7 +1,7 @@
 import pickle
 import argparse
 from multiprocessing import JoinableQueue, Process, freeze_support
-from nuztf.gw_scanner import GravWaveScanner
+from nuztf.skymap_scanner import SkymapScanner
 import numpy as np
 import healpy as hp
 import os
@@ -14,7 +14,7 @@ import logging
 ligo_candidate_cache = os.path.join(Path(__file__).resolve().parents[1], "LIGO_cache")
 
 
-class MultiGwProcessor(GravWaveScanner):
+class MultiGwProcessor(SkymapScanner):
     queue = None
     results = dict()
 
@@ -97,11 +97,8 @@ class MultiGwProcessor(GravWaveScanner):
 
             (j, mts, query_res) = item
 
-            # print("{0} of {1} queries: Staring {2} alerts".format(j, mts, len(query_res)))
             print("now checking")
             res = self.filter(query_res)
-
-            # print("{0} of {1} queries: {2} accepted out of {3} alerts".format(j, mts, len(res), len(query_res)))
 
             self.obj_names += [x["objectId"] for x in res]
 

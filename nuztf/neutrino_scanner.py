@@ -108,7 +108,7 @@ class NeutrinoScanner(BaseScanner):
             f"Coordinates: Dec = {dec[0]} ({self.dec_min} - {self.dec_max})"
         )
 
-        self.output_path = f"{nu_candidate_output_dir}/{nu_name}.pdf"
+        self.summary_path = f"{nu_candidate_output_dir}/{nu_name}.pdf"
         BaseScanner.__init__(
             self,
             t_min=nu_time,

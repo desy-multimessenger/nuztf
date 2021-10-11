@@ -80,8 +80,8 @@ class BaseScanner:
 
         self.dap = DevAlertProcessor(self.ampel_filter_class)
 
-        if not hasattr(self, "output_path"):
-            self.output_path = None
+        # if not hasattr(self, "summary_path"):
+        #     self.summary_path = None
 
         self.scanned_pixels = []
 
@@ -144,6 +144,7 @@ class BaseScanner:
         return ampel_api_name(ztf_name, logger=self.logger)
 
     def add_res_to_cache(self, res):
+
         for res_alert in res:
 
             if res_alert["objectId"] not in self.cache.keys():
@@ -253,9 +254,13 @@ class BaseScanner:
         raise NotImplementedError
 
     @staticmethod
-    def wrap_around_180(ra):
-        ra[ra > np.pi] -= 2 * np.pi
-        return ra
+    def wrap_around_180(ra_deg: float):
+        """ """
+        ra_rad = np.deg2rad(ra_deg)
+        ra_rad[ra_rad > np.pi] -= 2 * np.pi
+        ra_deg = np.rad2deg(ra_rad)
+
+        return ra_deg
 
     @backoff.on_exception(
         backoff.expo,
@@ -447,33 +452,26 @@ class BaseScanner:
 
     @staticmethod
     def extract_ra_dec(nside, index):
-        # (colat, ra) = hp.pix2ang(nside, index, nest=True)
-        # dec = np.pi / 2.0 - colat
-        # print("old")
-        # print(ra)
-        # print(dec)
+        """ """
         theta, phi = hp.pix2ang(nside, index, nest=True)
-        ra = np.rad2deg(phi)
-        dec = np.rad2deg(0.5 * np.pi - theta)
-        # print("new")
-        # print(ra)
-        # print(dec)
-        # quit()
-        return (ra, dec)
+        ra_deg = np.rad2deg(phi)
+        dec_deg = np.rad2deg(0.5 * np.pi - theta)
+
+        return (ra_deg, dec_deg)
 
     @staticmethod
     def extract_npix(nside, ra, dec):
-        # colat = np.pi / 2.0 - dec
+        """ " """
         theta = 0.5 * np.pi - np.deg2rad(dec)
         phi = np.deg2rad(ra)
+
         return hp.ang2pix(nside, theta, phi, nest=True)
-        # return hp.ang2pix(nside, colat, ra, nest=True)
 
     def create_candidate_summary(self):
+        """ """
+        self.logger.info(f"Saving to: {self.summary_path}")
 
-        self.logger.info(f"Saving to: {self.output_path}")
-
-        with PdfPages(self.output_path) as pdf:
+        with PdfPages(self.summary_path) as pdf:
             for (name, alert) in tqdm(sorted(self.cache.items())):
 
                 add_cutouts([alert])
@@ -483,10 +481,12 @@ class BaseScanner:
                 plt.close()
 
     @staticmethod
-    def parse_ztf_filter(fid):
+    def parse_ztf_filter(fid: int):
+        """ """
         return ["g", "r", "i"][fid - 1]
 
     def tns_summary(self):
+        """ """
         for name, res in sorted(self.cache.items()):
             detections = [
                 x
@@ -579,6 +579,7 @@ class BaseScanner:
         raise NotImplementedError
 
     def text_summary(self):
+        """ """
         text = ""
         for name, res in sorted(self.cache.items()):
             detections = [
@@ -645,11 +646,9 @@ class BaseScanner:
     def plot_overlap_with_observations(
         self, fields=None, pid=None, first_det_window_days=None, min_sep=0.01
     ):
+        """ """
 
-        try:
-            nside = self.ligo_nside
-        except AttributeError:
-            nside = self.nside
+        nside = self.nside
 
         fig = plt.figure()
         plt.subplot(projection="aitoff")
@@ -831,11 +830,6 @@ class BaseScanner:
             else:
                 veto_pixels.append(p)
 
-        # print(f"double no plane prob = {double_no_plane_prob}")
-        # print(f"probs = {probs}")
-        # print(f"single no plane prob = {single_no_plane_prob}")
-        # print(f"single probs = {single_probs}")
-
         overlapping_fields = sorted(list(set(overlapping_fields)))
         self.overlap_fields = list(set(overlapping_fields))
 
@@ -918,7 +912,7 @@ class BaseScanner:
             "In total, {2:.2f} % of the contour was observed at least twice. \n"
             "In total, {3:.2f} % of the contour was observed at least twice, "
             "and excluding low galactic latitudes. \n"
-            "These estimates accounts for chip gaps.".format(
+            "These estimates account for chip gaps.".format(
                 100
                 * (
                     np.sum(double_in_plane_probs)
@@ -968,13 +962,13 @@ class BaseScanner:
         #     area = (2. * base_ztf_rad)**2 * float(len(overlapping_fields))
         #     n_fields = len(overlapping_fields)
 
-        print(
+        self.logger.info(
             f"{n_pixels} pixels were covered, covering approximately {self.area:.2g} sq deg."
         )
-        print(
+        self.logger.info(
             f"{n_double} pixels were covered at least twice (b>10), covering approximately {self.double_extragalactic_area:.2g} sq deg."
         )
-        print(
+        self.logger.info(
             f"{n_plane} pixels were covered at low galactic latitude, covering approximately {plane_area:.2g} sq deg."
         )
         return fig, message
@@ -1030,13 +1024,3 @@ class BaseScanner:
         self.logger.info(
             f"Intergrating all fields overlapping 90% contour gives {100*field_prob:.2g}%"
         )
-
-    # def export_fields(self):
-    #     mask = np.array([x in self.overlap_fields for x in self.mns.data["field"]])
-    #     lim_mag = [20.5 for _ in range(np.sum(mask))]
-    #     coincident_obs = self.mns.data[mask].assign(lim_mag=lim_mag)
-    #     print(
-    #         coincident_obs[["field", "pid", "datetime", "lim_mag", "exp"]].to_csv(
-    #             index=False, sep=" "
-    #         )
-    #     )
