@@ -176,7 +176,7 @@ class SkymapScanner(BaseScanner):
         n_tot = 0
         self.queue = []
 
-        for i, cone_id in enumerate(tqdm(list(self.cone_ids[150:180]))):
+        for i, cone_id in enumerate(tqdm(list(self.cone_ids))):
 
             ra, dec = self.cone_coords[i]
 
