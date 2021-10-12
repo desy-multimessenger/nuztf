@@ -110,7 +110,7 @@ def ampel_api_cone(
 
     nr_results = len(query_res)
 
-    logger.info(f"Found {nr_results} alerts.")
+    logger.debug(f"Found {nr_results} alerts.")
 
     if nr_results == chunk_size:
         logger.warning(
@@ -175,7 +175,7 @@ def ampel_api_timerange(
 
     nr_results = len(query_res)
 
-    logger.info(f"Found {nr_results} alerts.")
+    logger.debug(f"Found {nr_results} alerts.")
 
     if nr_results == chunk_size:
         logger.warning(
@@ -309,7 +309,7 @@ def ampel_api_healpix(
 
     nr_results = len(query_res)
 
-    logger.info(f"Found {nr_results} alerts.")
+    logger.debug(f"Found {nr_results} alerts.")
 
     if nr_results == chunk_size:
         logger.warning(
