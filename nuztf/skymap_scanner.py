@@ -182,7 +182,6 @@ class SkymapScanner(BaseScanner):
 
         pixels_to_scan = []
         for nside in decomposed.keys():
-            print(nside)
             for ipix in decomposed[nside]:
                 pixels_to_scan.append((nside, ipix))
 
@@ -204,7 +203,7 @@ class SkymapScanner(BaseScanner):
                 t_min_jd=self.t_min.jd,
                 t_max_jd=self.default_t_max.jd,
                 logger=self.logger,
-                chunk_size=4000,
+                chunk_size=8000,
             )
 
             n_tot += len(query_res)
@@ -226,9 +225,11 @@ class SkymapScanner(BaseScanner):
         json.dump(self.queue, open(cache_file, "w"))
 
         self.logger.info(
-            f"Added {n_tot} candidates detected between {self.t_min} and {self.default_t_max.isot}"
+            f"Added {n_tot} alerts found between {self.t_min} and {self.default_t_max.isot}"
         )
         self.logger.info(f"This took {time_healpix:.1f} s in total")
+
+        self.n_alerts = n_tot
 
     def filter_alerts(self, load_cachefile=False):
         """ """
@@ -562,8 +563,6 @@ class SkymapScanner(BaseScanner):
 
         url = f"https://heasarc.gsfc.nasa.gov/FTP/fermi/data/gbm/triggers/{event_date.year}"
 
-        # response = requests.get(url)
-        # print(response.html)
         from lxml import html
 
         page_overview = requests.get(url)
