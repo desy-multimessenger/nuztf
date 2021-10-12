@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import os, datetime, wget, logging, time, json
+import os, datetime, wget, logging, time, json, math
 
+from collections import Counter, defaultdict
 from tqdm import tqdm
 import requests
 from numpy.lib.recfunctions import append_fields
@@ -91,11 +92,6 @@ class SkymapScanner(BaseScanner):
         if not scan_mode in ["gw", "grb"]:
             raise ValueError(f"Scan mode must be either 'gw' or 'grb'.")
 
-        if cone_nside != 64:
-            raise ValueError(
-                "At the moment, nside for healpix must be 64 (the only value supported by AMPEL API)."
-            )
-
         self.prob_threshold = prob_threshold
         self.n_days = n_days
         self.scan_mode = scan_mode
@@ -176,26 +172,43 @@ class SkymapScanner(BaseScanner):
         n_tot = 0
         self.queue = []
 
-        for i, cone_id in enumerate(tqdm(list(self.cone_ids))):
+        # To make less queries, we now reduce the number of healpix pixels
 
-            ra, dec = self.cone_coords[i]
+        decomposed, remaining_pixels = self.reduce_pixels(
+            ipix=self.cone_ids, min_nside=16, logger=self.logger
+        )
 
-            ipix = hp.ang2pix(64, ra, dec, nest=True, lonlat=True)
+        assert len(remaining_pixels) == 0
+
+        pixels_to_scan = []
+        for nside in decomposed.keys():
+            print(nside)
+            for ipix in decomposed[nside]:
+                pixels_to_scan.append((nside, ipix))
+
+        self.logger.info(
+            f"Reduced pixels to scan from {len(self.cone_ids)} to {len(pixels_to_scan)}"
+        )
+
+        for i, item in enumerate(tqdm(list(pixels_to_scan))):
+
+            nside, ipix = item
 
             self.logger.debug(
-                f"API healpix search. Healpix = {cone_id}. Timespan = {self.default_t_max.jd-self.t_min.jd:.1f} days."
+                f"API healpix search: nside = {nside} / healpix = {ipix} / timespan = {self.default_t_max.jd-self.t_min.jd:.1f} days."
             )
 
             query_res = ampel_api_healpix(
-                ipix=cone_id,
+                nside=nside,
+                ipix=ipix,
                 t_min_jd=self.t_min.jd,
                 t_max_jd=self.default_t_max.jd,
                 logger=self.logger,
+                chunk_size=4000,
             )
 
             n_tot += len(query_res)
             self.queue.append((i, query_res))
-            self.scanned_pixels.append(i)
 
         time_healpix_end = time.time()
         time_healpix = time_healpix_end - time_healpix_start
@@ -297,6 +310,46 @@ class SkymapScanner(BaseScanner):
         self.logger.info(
             f"Final stage of filtering took {filter_time:.1f} s in total. {len(final_objects)} transients make the cut."
         )
+
+    def reduce_pixels(self, ipix: list, min_nside: int = 1, logger=None):
+        """
+        Decompose a set of (nested) HEALpix indices into sets of complete superpixels at lower resolutions.
+
+        :param nside: nside of given indices
+        :param ipix: pixel indices
+        :min_nside: minimum nside of complete pixels
+        """
+        remaining_pixels = set(ipix)
+        decomposed = defaultdict(list)
+
+        for log2_nside in range(
+            int(math.log2(min_nside)), int(math.log2(self.cone_nside)) + 1
+        ):
+
+            super_nside = 2 ** log2_nside
+
+            logger.debug(f"Trying nside = {super_nside}")
+
+            # number of base_nside pixels per nside superpixel
+            scale = (self.cone_nside // super_nside) ** 2
+            # sort remaining base_nside pixels by superpixel
+            by_superpixel = defaultdict(list)
+
+            for pix in remaining_pixels:
+                by_superpixel[pix // scale].append(pix)
+
+            # represent sets of pixels that fill a superpixel
+            # as a single superpixel, and remove from the working set
+            for superpix, members in by_superpixel.items():
+                if len(members) == scale:
+                    decomposed[super_nside].append(superpix)
+                    remaining_pixels.difference_update(members)
+
+            logger.debug(
+                f"Found {len(decomposed[super_nside])} pixels for nside = {super_nside}"
+            )
+
+        return decomposed, remaining_pixels
 
     def remove_duplicates(self, ztf_ids: list):
         """ """

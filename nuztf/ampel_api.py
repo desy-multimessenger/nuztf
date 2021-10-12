@@ -108,6 +108,15 @@ def ampel_api_cone(
             logger.debug(response.headers)
         raise requests.exceptions.RequestException
 
+    nr_results = len(query_res)
+
+    logger.info(f"Found {nr_results} alerts.")
+
+    if nr_results == chunk_size:
+        logger.warning(
+            f"Query result limited by chunk size! You will most likely be missing alerts!"
+        )
+
     return query_res
 
 
@@ -163,6 +172,15 @@ def ampel_api_timerange(
         if response.headers:
             logger.debug(response.headers)
         raise requests.exceptions.RequestException
+
+    nr_results = len(query_res)
+
+    logger.info(f"Found {nr_results} alerts.")
+
+    if nr_results == chunk_size:
+        logger.warning(
+            f"Query result limited by chunk size! You will most likely be missing alerts!"
+        )
 
     return query_res
 
@@ -242,6 +260,7 @@ def ampel_api_name(
 )
 def ampel_api_healpix(
     ipix: int,
+    nside: int = 64,
     t_min_jd=Time("2018-04-01T00:00:00.123456789", format="isot", scale="utc").jd,
     t_max_jd=Time.now().jd,
     with_history: bool = False,
@@ -249,7 +268,7 @@ def ampel_api_healpix(
     chunk_size: int = 500,
     logger=None,
 ) -> list:
-    """Function to query ampel based on a healpix pixel-index (gird has nside=64)"""
+    """Function to query ampel based on a healpix pixel-index (nside is the pixelization degree)"""
 
     if logger is None:
         logger = logging.getLogger(__name__)
@@ -266,7 +285,7 @@ def ampel_api_healpix(
 
     queryurl_healpix = (
         API_ZTF_ARCHIVE_URL
-        + f"/alerts/healpix?ipix={ipix}&jd_start={t_min_jd}&jd_end={t_max_jd}&with_history={hist}&with_cutouts={cutouts}&chunk_size={chunk_size}"
+        + f"/alerts/healpix?nside={nside}&ipix={ipix}&jd_start={t_min_jd}&jd_end={t_max_jd}&with_history={hist}&with_cutouts={cutouts}&chunk_size={chunk_size}"
     )
 
     logger.debug(queryurl_healpix)
@@ -287,6 +306,15 @@ def ampel_api_healpix(
         if response.headers:
             logger.debug(response.headers)
         raise requests.exceptions.RequestException
+
+    nr_results = len(query_res)
+
+    logger.info(f"Found {nr_results} alerts.")
+
+    if nr_results == chunk_size:
+        logger.warning(
+            f"Query result limited by chunk size! You will most likely be missing alerts!"
+        )
 
     return query_res
 
