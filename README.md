@@ -1,5 +1,5 @@
 # NuZTF
-Python package for correlating ZTF data with external mutli-messenger triggers, created by [@robertdstein](https://github.com/robertdstein).
+Python package for correlating ZTF data with external multi-messenger triggers, created by [@robertdstein](https://github.com/robertdstein).
 This package enables ZTF follow-up analysis of neutrinos/gravitational waves/gamma-ray bursts, built using the [AMPEL platform](https://arxiv.org/abs/1904.05922).
 
 [![DOI](https://zenodo.org/badge/193068064.svg)](https://zenodo.org/badge/latestdoi/193068064)
