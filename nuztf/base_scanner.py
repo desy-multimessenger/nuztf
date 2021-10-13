@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-import os, time, json, logging, datetime
+import os, time, json, logging, datetime, logging
 
 import backoff
 import requests
@@ -65,8 +65,6 @@ class BaseScanner:
             }
 
         if logger is None:
-            import logging
-
             self.logger = logging.getLogger(__name__)
         else:
             self.logger = logger
@@ -74,14 +72,21 @@ class BaseScanner:
         self.logger.info("AMPEL run config:")
         self.logger.info(run_config)
 
+        lvl = self.logger.level
+
+        if lvl > 10:
+            logger_ampel = logging.getLogger("AMPEL_filter")
+            logger_ampel.setLevel(logging.WARNING)
+        else:
+            from ampel.log.AmpelLogger import AmpelLogger
+
+            logger_ampel = AmpelLogger()
+
         self.ampel_filter_class = filter_class(
-            logger=self.logger, resource=resource, **run_config
+            logger=logger_ampel, resource=resource, **run_config
         )
 
         self.dap = DevAlertProcessor(self.ampel_filter_class)
-
-        # if not hasattr(self, "summary_path"):
-        #     self.summary_path = None
 
         self.scanned_pixels = []
 
