@@ -9,7 +9,7 @@ class TestNeutrinoScanner(unittest.TestCase):
 
     def test_scan(self):
         logger = logging.getLogger(__name__)
-        logger.setLevel(logging.DEBUG)
+        logger.setLevel(logging.INFO)
 
         logger.info("\n\n Testing GRB Scanner \n\n")
 
