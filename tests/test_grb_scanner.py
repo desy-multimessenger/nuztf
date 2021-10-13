@@ -35,7 +35,7 @@ class TestNeutrinoScanner(unittest.TestCase):
             f"Retrieved {n_retrieved_alerts} alerts. {n_expected_alerts} alerts expected."
         )
 
-        self.assertEqual(retrieved_alerts, expected_alerts)
+        self.assertEqual(n_retrieved_alerts, n_expected_alerts)
 
         scanner.filter_alerts()
 
