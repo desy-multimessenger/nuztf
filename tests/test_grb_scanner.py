@@ -46,4 +46,4 @@ class TestNeutrinoScanner(unittest.TestCase):
             f"Retrieved {n_retrieved_candidates} candidates. {n_expected_candidates} candidates expected."
         )
 
-        self.assertEqual(retrieved_candidates, expected_candidates)
+        self.assertEqual(n_retrieved_candidates, n_expected_candidates)
