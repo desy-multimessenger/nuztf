@@ -292,9 +292,12 @@ class SkymapScanner(BaseScanner):
 
         for ztf_id in tqdm(first_stage_objects):
 
-            query_res = ampel_api_name(ztf_name=ztf_id, with_history=True)
+            query_res = ampel_api_name(
+                ztf_name=ztf_id, with_history=True, with_cutouts=True
+            )
 
             for res in query_res:
+
                 _ztf_id = res["objectId"]
 
                 if self.filter_f_history(
