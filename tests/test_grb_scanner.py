@@ -28,22 +28,22 @@ class TestNeutrinoScanner(unittest.TestCase):
 
         scanner.get_alerts()
 
-        retrieved_alerts = scanner.n_alerts
-        expected_alerts = 35130
+        n_retrieved_alerts = scanner.n_alerts
+        n_expected_alerts = 35130
 
         logging.info(
-            f"Retrieved {retrieved_alerts} alerts. {expected_alerts} alerts expected."
+            f"Retrieved {n_retrieved_alerts} alerts. {n_expected_alerts} alerts expected."
         )
 
         self.assertEqual(retrieved_alerts, expected_alerts)
 
         scanner.filter_alerts()
 
-        retrieved_candidates = scanner.final_candidates
-        expected_candidates = 98
+        n_retrieved_candidates = len(scanner.final_candidates)
+        n_expected_candidates = 98
 
         logging.info(
-            f"Retrieved {retrieved_candidates} candidates. {expected_candidates} candidates expected."
+            f"Retrieved {n_retrieved_candidates} candidates. {n_expected_candidates} candidates expected."
         )
 
         self.assertEqual(retrieved_candidates, expected_candidates)
