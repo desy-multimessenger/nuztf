@@ -162,6 +162,14 @@ class SkymapScanner(BaseScanner):
 
         self.logger.info(f"Time-range is {self.t_min} -- {self.default_t_max.isot}")
 
+        if self.scan_mode == "gw":
+            self.cache_dir = os.path.join(LIGO_CANDIDATE_CACHE, self.event_name)
+        else:
+            self.cache_dir = os.path.join(GRB_CANDIDATE_CACHE, self.event_name)
+
+        if not os.path.exists(self.cache_dir):
+            os.makedirs(self.cache_dir)
+
     def get_alerts(self):
         """Scan the skymap area and get ZTF transients"""
         self.logger.info("Commencing skymap scan")
@@ -212,14 +220,6 @@ class SkymapScanner(BaseScanner):
         time_healpix_end = time.time()
         time_healpix = time_healpix_end - time_healpix_start
 
-        if self.scan_mode == "gw":
-            self.cache_dir = os.path.join(LIGO_CANDIDATE_CACHE, self.event_name)
-        else:
-            self.cache_dir = os.path.join(GRB_CANDIDATE_CACHE, self.event_name)
-
-        if not os.path.exists(self.cache_dir):
-            os.makedirs(self.cache_dir)
-
         cache_file = os.path.join(self.cache_dir, f"{self.event_name}_all_alerts.json")
 
         json.dump(self.queue, open(cache_file, "w"))
@@ -240,7 +240,7 @@ class SkymapScanner(BaseScanner):
             self.queue = json.load(open(cache_file, "r"))
 
         first_stage_objects = []
-        filter_time = 0.0
+        filter_time_start = time.time()
 
         for i, item in enumerate(tqdm(self.queue)):
 
@@ -249,13 +249,21 @@ class SkymapScanner(BaseScanner):
             indices = []
 
             for i, res in enumerate(query_res):
+                ztf_id = res["objectId"]
 
                 if self.filter_f_no_prv(
                     res=res,
                     t_min_jd=self.t_min.jd,
                     t_max_jd=self.default_t_max.jd,
                 ):
-                    indices.append(i)
+                    self.logger.debug(f"{ztf_id}: Passed first cut (no prv).")
+                    if self.filter_ampel(res):
+                        self.logger.debug(f"{ztf_id}: Passed AMPEL cut.")
+                        indices.append(i)
+                    else:
+                        self.logger.debug(f"{ztf_id}: Failed AMPEL cut.")
+                else:
+                    self.logger.debug(f"{ztf_id}: Failed first cut (no prv).")
 
             res = [query_res[i] for i in indices]
 
@@ -263,8 +271,11 @@ class SkymapScanner(BaseScanner):
 
         first_stage_objects = self.remove_duplicates(first_stage_objects)
 
+        filter_time_end = time.time()
+        filter_time = filter_time_end - filter_time_start
+
         self.logger.info(
-            f"First stage of filtering (based on predetections) took {filter_time:.1f} s in total. {len(first_stage_objects)} transients make the cut."
+            f"First stage of filtering (based on predetections plus AMPEL cuts) took {filter_time:.1f} s in total. {len(first_stage_objects)} transients make the cut."
         )
 
         cache_file_first_stage = cache_file[:-15] + "_first_stage.json"
@@ -272,7 +283,7 @@ class SkymapScanner(BaseScanner):
 
         # Second and final stage
         self.logger.info(
-            f"Second stage commencing: Now we do proper filtering based on PS1 etc."
+            f"Second stage commencing: Now we do additional filtering based on history."
         )
 
         start_secondfilter = time.time()
@@ -289,15 +300,11 @@ class SkymapScanner(BaseScanner):
                 if self.filter_f_history(
                     res=res, t_min_jd=self.t_min.jd, t_max_jd=self.default_t_max.jd
                 ):
-
-                    if self.filter_ampel(res):
-                        self.logger.debug(f"{_ztf_id}: Passed all cuts")
-                        final_objects.append(_ztf_id)
-                        self.cache[_ztf_id] = res
-                    else:
-                        self.logger.debug(f"{_ztf_id}: Rejected")
+                    final_objects.append(_ztf_id)
+                    self.cache[_ztf_id] = res
+                    self.logger.debug(f"{_ztf_id}: Passed all filters.")
                 else:
-                    self.logger.debug(f"{_ztf_id}: Failed History")
+                    self.logger.debug(f"{_ztf_id}: Failed History.")
 
         end_secondfilter = time.time()
         filter_time = end_secondfilter - start_secondfilter
@@ -312,27 +319,33 @@ class SkymapScanner(BaseScanner):
             f"Final stage of filtering took {filter_time:.1f} s in total. {len(final_objects)} transients make the cut."
         )
 
-    def reduce_pixels(self, ipix: list, min_nside: int = 1, logger=None):
+        self.final_candidates = final_objects
+
+    def reduce_pixels(
+        self, ipix: list, nside: int = None, min_nside: int = 1, logger=None
+    ):
         """
         Decompose a set of (nested) HEALpix indices into sets of complete superpixels at lower resolutions.
 
-        :param nside: nside of given indices
         :param ipix: pixel indices
+        :param nside: nside of given indices
         :min_nside: minimum nside of complete pixels
         """
+
+        if nside is None:
+            nside = self.cone_nside
+
         remaining_pixels = set(ipix)
         decomposed = defaultdict(list)
 
-        for log2_nside in range(
-            int(math.log2(min_nside)), int(math.log2(self.cone_nside)) + 1
-        ):
+        for log2_nside in range(int(math.log2(min_nside)), int(math.log2(nside)) + 1):
 
             super_nside = 2 ** log2_nside
 
             logger.debug(f"Trying nside = {super_nside}")
 
             # number of base_nside pixels per nside superpixel
-            scale = (self.cone_nside // super_nside) ** 2
+            scale = (nside // super_nside) ** 2
             # sort remaining base_nside pixels by superpixel
             by_superpixel = defaultdict(list)
 
@@ -478,7 +491,7 @@ class SkymapScanner(BaseScanner):
             self.logger.debug(f"{ztf_id}: Does not have two detections")
             return False
 
-        self.logger.debug(f"{ztf_id}: Passed the filtering stage")
+        self.logger.debug(f"{ztf_id}: Passed the history filtering stage")
 
         return True
 

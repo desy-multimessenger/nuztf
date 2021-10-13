@@ -16,7 +16,7 @@ class TestNeutrinoScanner(unittest.TestCase):
         grb_name = "GRB210927A"
         prob_threshold = 0.9
 
-        logging.info(f"scanning with GRB {grb_name}")
+        logging.info(f"Scanning with GRB {grb_name}")
 
         scanner = SkymapScanner(
             event_name=grb_name,
@@ -29,6 +29,21 @@ class TestNeutrinoScanner(unittest.TestCase):
         scanner.get_alerts()
 
         retrieved_alerts = scanner.n_alerts
-        expected_alerts = 69738
+        expected_alerts = 35130
+
+        logging.info(
+            f"Retrieved {retrieved_alerts} alerts. {expected_alerts} alerts expected."
+        )
 
         self.assertEqual(retrieved_alerts, expected_alerts)
+
+        scanner.filter_alerts()
+
+        retrieved_candidates = scanner.final_candidates
+        expected_candidates = 98
+
+        logging.info(
+            f"Retrieved {retrieved_candidates} candidates. {expected_candidates} candidates expected."
+        )
+
+        self.assertEqual(retrieved_candidates, expected_candidates)
