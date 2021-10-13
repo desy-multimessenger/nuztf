@@ -31,7 +31,7 @@ from nuztf.ampel_api import (
     ampel_api_cone,
     ampel_api_timerange,
     ampel_api_name,
-    add_cutouts,
+    ensure_cutouts,
 )
 from nuztf.cat_match import get_cross_match_info, ampel_api_tns, query_ned_for_z
 from nuztf.observation_log import get_obs_summary
@@ -479,9 +479,9 @@ class BaseScanner:
         with PdfPages(self.summary_path) as pdf:
             for (name, alert) in tqdm(sorted(self.cache.items())):
 
-                add_cutouts([alert])
-                fig, _ = lightcurve_from_alert([alert], include_cutouts=True)
-
+                fig, _ = lightcurve_from_alert(
+                    [alert], include_cutouts=True, logger=self.logger
+                )
                 pdf.savefig()
                 plt.close()
 
