@@ -122,13 +122,13 @@ class SkymapScanner(BaseScanner):
             if self.scan_mode == "gw":
                 self.summary_path = os.path.join(
                     LIGO_CANDIDATE_OUTPUT_DIR,
-                    f"{os.path.basename(skymap_file)}_{self.prob_threshold}.pdf",
+                    f"{os.path.basename(skymap_file)}_{self.prob_threshold}",
                 )
 
             else:
                 self.summary_path = os.path.join(
                     GRB_CANDIDATE_OUTPUT_DIR,
-                    f"{os.path.basename(skymap_file)}_{self.prob_threshold}.pdf",
+                    f"{os.path.basename(skymap_file)}_{self.prob_threshold}",
                 )
 
             self.event_name = os.path.basename(skymap_file[7:])
@@ -553,7 +553,7 @@ class SkymapScanner(BaseScanner):
         with open(savepath, "wb") as f:
             f.write(response.content)
 
-        summary_path = f"{LIGO_CANDIDATE_OUTPUT_DIR}/{event_name}_{latest_voevent['N']}_{self.prob_threshold}.pdf"
+        summary_path = f"{LIGO_CANDIDATE_OUTPUT_DIR}/{event_name}_{latest_voevent['N']}_{self.prob_threshold}"
 
         return savepath, summary_path, event_name
 
@@ -619,7 +619,7 @@ class SkymapScanner(BaseScanner):
             wget.download(final_link, self.skymap_path)
 
         self.summary_path = (
-            f"{GRB_CANDIDATE_OUTPUT_DIR}/{event_name}_{self.prob_threshold}.pdf"
+            f"{GRB_CANDIDATE_OUTPUT_DIR}/{event_name}_{self.prob_threshold}"
         )
 
         self.event_name = event_name
