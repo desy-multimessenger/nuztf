@@ -473,10 +473,12 @@ class BaseScanner:
         return hp.ang2pix(nside, theta, phi, nest=True)
 
     def create_candidate_summary(self):
-        """ """
-        self.logger.info(f"Saving to: {self.summary_path}")
+        """Create pdf with lightcurve plots of all candidates"""
 
-        with PdfPages(self.summary_path) as pdf:
+        pdf_path = self.summary_path + ".pdf"
+        self.logger.info(f"Saving to: {pdf_path}")
+
+        with PdfPages(pdf_path) as pdf:
             for (name, alert) in tqdm(sorted(self.cache.items())):
 
                 fig, _ = lightcurve_from_alert(
@@ -484,6 +486,30 @@ class BaseScanner:
                 )
                 pdf.savefig()
                 plt.close()
+
+    def create_overview_table(self):
+        """Create csv table of all candidates"""
+        csv_path = self.summary_path + ".csv"
+        self.logger.info(f"Saving to {csv_path}")
+
+        ztf_ids = []
+        ras = []
+        decs = []
+        mags = []
+        crossmatches = []
+
+        data = {"ztf_id": [], "RA": [], "Dec": [], "mag": [], "xmatch": []}
+
+        for (ztf_id, alert) in tqdm(sorted(self.cache.items())):
+            data["ztf_id"].append(ztf_id)
+            data["RA"].append(alert["candidate"]["ra"])
+            data["Dec"].append(alert["candidate"]["dec"])
+            data["mag"].append(alert["candidate"]["magpsf"])
+            data["xmatch"].append(get_cross_match_info(raw=alert, logger=self.logger))
+
+        df = pandas.DataFrame.from_dict(data)
+
+        df.to_csv(csv_path)
 
     @staticmethod
     def parse_ztf_filter(fid: int):
