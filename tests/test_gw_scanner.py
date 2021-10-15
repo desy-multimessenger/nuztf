@@ -16,7 +16,7 @@ class TestGWScanner(unittest.TestCase):
         gw_name = "S190426c"
         prob_threshold = 0.9
 
-        logging.info(f"Scanning with GW {grb_name}")
+        logging.info(f"Scanning with GW {gw_name}")
 
         scanner = SkymapScanner(
             event_name=gw_name,
