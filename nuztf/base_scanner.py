@@ -472,10 +472,14 @@ class BaseScanner:
 
         return hp.ang2pix(nside, theta, phi, nest=True)
 
-    def create_candidate_summary(self):
+    def create_candidate_summary(self, outfile=None):
         """Create pdf with lightcurve plots of all candidates"""
 
-        pdf_path = self.summary_path + ".pdf"
+        if outfile is None:
+            pdf_path = self.summary_path + ".pdf"
+        else:
+            pdf_path = outfile
+
         self.logger.info(f"Saving to: {pdf_path}")
 
         with PdfPages(pdf_path) as pdf:
@@ -487,9 +491,13 @@ class BaseScanner:
                 pdf.savefig()
                 plt.close()
 
-    def create_overview_table(self):
+    def create_overview_table(self, outfile=None):
         """Create csv table of all candidates"""
-        csv_path = self.summary_path + ".csv"
+        if outfile is None:
+            csv_path = self.summary_path + ".csv"
+        else:
+            csv_path = outfile
+
         self.logger.info(f"Saving to {csv_path}")
 
         ztf_ids = []
