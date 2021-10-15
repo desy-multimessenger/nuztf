@@ -24,19 +24,19 @@ from ztfquery.io import LOCALSOURCE
 from nuztf.base_scanner import BaseScanner
 from nuztf.ampel_api import ampel_api_healpix, ampel_api_name
 
-BASE_LIGO_DIR = os.path.join(LOCALSOURCE, "LIGO_skymaps")
+BASE_GW_DIR = os.path.join(LOCALSOURCE, "GW_skymaps")
 BASE_GRB_DIR = os.path.join(LOCALSOURCE, "GRB_skymaps")
-LIGO_CANDIDATE_OUTPUT_DIR = os.path.join(LOCALSOURCE, "LIGO_candidates")
+GW_CANDIDATE_OUTPUT_DIR = os.path.join(LOCALSOURCE, "GW_candidates")
 GRB_CANDIDATE_OUTPUT_DIR = os.path.join(LOCALSOURCE, "GRB_candidates")
-LIGO_CANDIDATE_CACHE = os.path.join(LOCALSOURCE, "LIGO_cache")
+GW_CANDIDATE_CACHE = os.path.join(LOCALSOURCE, "GW_cache")
 GRB_CANDIDATE_CACHE = os.path.join(LOCALSOURCE, "GRB_cache")
 
 for entry in [
-    BASE_LIGO_DIR,
+    BASE_GW_DIR,
     BASE_GRB_DIR,
-    LIGO_CANDIDATE_OUTPUT_DIR,
+    GW_CANDIDATE_OUTPUT_DIR,
     GRB_CANDIDATE_OUTPUT_DIR,
-    LIGO_CANDIDATE_CACHE,
+    GW_CANDIDATE_CACHE,
     GRB_CANDIDATE_CACHE,
 ]:
     if not os.path.exists(entry):
@@ -108,20 +108,20 @@ class SkymapScanner(BaseScanner):
             basename = os.path.basename(skymap_file)
 
             if self.scan_mode == "gw":
-                self.skymap_path = os.path.join(BASE_LIGO_DIR, basename)
+                self.skymap_path = os.path.join(BASE_GW_DIR, basename)
             else:
                 self.skymap_path = os.path.join(BASE_GRB_DIR, basename)
 
             if skymap_file[:8] == "https://" and scan_mode == "gw":
                 self.logger.info(f"Downloading from: {skymap_file}")
                 self.skymap_path = os.path.join(
-                    BASE_LIGO_DIR, os.path.basename(skymap_file[7:])
+                    BASE_GW_DIR, os.path.basename(skymap_file[7:])
                 )
                 wget.download(skymap_file, self.skymap_path)
 
             if self.scan_mode == "gw":
                 self.summary_path = os.path.join(
-                    LIGO_CANDIDATE_OUTPUT_DIR,
+                    GW_CANDIDATE_OUTPUT_DIR,
                     f"{os.path.basename(skymap_file)}_{self.prob_threshold}",
                 )
 
@@ -163,7 +163,7 @@ class SkymapScanner(BaseScanner):
         self.logger.info(f"Time-range is {self.t_min} -- {self.default_t_max.isot}")
 
         if self.scan_mode == "gw":
-            self.cache_dir = os.path.join(LIGO_CANDIDATE_CACHE, self.event_name)
+            self.cache_dir = os.path.join(GW_CANDIDATE_CACHE, self.event_name)
         else:
             self.cache_dir = os.path.join(GRB_CANDIDATE_CACHE, self.event_name)
 
@@ -504,7 +504,7 @@ class SkymapScanner(BaseScanner):
 
         ligo_client = GraceDb()
 
-        self.logger.info("Superevent!")
+        self.logger.info("Obtaining skymap from GraceDB!")
 
         if event_name is None:
             superevent_iterator = ligo_client.superevents("category: Production")
@@ -543,7 +543,7 @@ class SkymapScanner(BaseScanner):
 
         base_file_name = os.path.basename(latest_skymap)
         savepath = os.path.join(
-            BASE_LIGO_DIR,
+            BASE_GW_DIR,
             f"{event_name}_{latest_voevent['N']}_{base_file_name}",
         )
 
@@ -553,7 +553,7 @@ class SkymapScanner(BaseScanner):
         with open(savepath, "wb") as f:
             f.write(response.content)
 
-        summary_path = f"{LIGO_CANDIDATE_OUTPUT_DIR}/{event_name}_{latest_voevent['N']}_{self.prob_threshold}"
+        summary_path = f"{GW_CANDIDATE_OUTPUT_DIR}/{event_name}_{latest_voevent['N']}_{self.prob_threshold}"
 
         return savepath, summary_path, event_name
 

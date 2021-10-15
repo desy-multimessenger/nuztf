@@ -3,7 +3,7 @@ import logging
 from nuztf.skymap_scanner import SkymapScanner
 
 
-class TestGRBScanner(unittest.TestCase):
+class TestGWScanner(unittest.TestCase):
 
     maxDiff = None
 
@@ -11,16 +11,16 @@ class TestGRBScanner(unittest.TestCase):
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.INFO)
 
-        logger.info("\n\n Testing GRB Scanner \n\n")
+        logger.info("\n\n Testing GW Scanner \n\n")
 
-        grb_name = "GRB210927A"
+        gw_name = "S190426c"
         prob_threshold = 0.9
 
-        logging.info(f"Scanning with GRB {grb_name}")
+        logging.info(f"Scanning with GW {grb_name}")
 
         scanner = SkymapScanner(
-            event_name=grb_name,
-            scan_mode="grb",
+            event_name=gw_name,
+            scan_mode="gw",
             prob_threshold=prob_threshold,
             n_days=3,
             logger=logger,
@@ -29,7 +29,7 @@ class TestGRBScanner(unittest.TestCase):
         scanner.get_alerts()
 
         n_retrieved_alerts = scanner.n_alerts
-        n_expected_alerts = 35130
+        n_expected_alerts = 110332
 
         logging.info(
             f"Retrieved {n_retrieved_alerts} alerts. {n_expected_alerts} alerts expected."
@@ -40,7 +40,7 @@ class TestGRBScanner(unittest.TestCase):
         scanner.filter_alerts()
 
         n_retrieved_candidates = len(scanner.final_candidates)
-        n_expected_candidates = 98
+        n_expected_candidates = 41
 
         logging.info(
             f"Retrieved {n_retrieved_candidates} candidates. {n_expected_candidates} candidates expected."
