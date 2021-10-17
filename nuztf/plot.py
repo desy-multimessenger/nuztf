@@ -36,6 +36,7 @@ def lightcurve_from_alert(
     mag_range: list = None,
     z: float = None,
     legend: bool = False,
+    grid_interval: int = None,
     logger=None,
 ):
     """plot AMPEL alerts as lightcurve"""
@@ -167,8 +168,8 @@ def lightcurve_from_alert(
         else:
             fig.suptitle(title, fontweight="bold")
 
-    # grid line every 100 days
-    # lc_ax1.xaxis.set_major_locator(MultipleLocator(100))
+    if grid_interval is not None:
+        lc_ax1.xaxis.set_major_locator(MultipleLocator(grid_interval))
 
     lc_ax1.grid(b=True, axis="both", alpha=0.5)
     lc_ax1.set_ylabel("Magnitude [AB]")
