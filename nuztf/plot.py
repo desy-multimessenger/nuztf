@@ -238,12 +238,16 @@ def lightcurve_from_alert(
         info.append("------------------------")
         info.append(f"RA: {candidate['ra']:.8f}")
         info.append(f"Dec: {candidate['dec']:.8f}")
-        info.append(f"rb: {candidate['rb']:.3f}")
+        if "drb" in candidate.keys():
+            info.append(f"drb: {candidate['drb']:.3f}")
+        else:
+            info.append(f"rb: {candidate['rb']:.3f}")
         info.append("------------------------")
 
-        for kk in ["sgscore", "distpsnr", "srmag"]:
-            for k in [k for k in candidate.keys() if kk in k]:
-                info.append(f"{k}: {candidate.get(k):.3f}")
+        for entry in ["sgscore1", "distpsnr1", "srmag1"]:
+            info.append(f"{entry[:-1]}: {candidate[entry]:.3f}")
+            # for k in [k for k in candidate.keys() if kk in k]:
+            #     info.append(f"{k}: {candidate.get(k):.3f}")
 
         fig.text(0.77, 0.55, "\n".join(info), va="top", fontsize="medium", alpha=0.5)
 
