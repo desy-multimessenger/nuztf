@@ -11,7 +11,6 @@ import lxml.etree
 import fitsio
 import numpy as np
 import matplotlib.pyplot as plt
-from pathlib import Path
 
 from astropy_healpix import HEALPix
 from astropy.coordinates import SkyCoord
