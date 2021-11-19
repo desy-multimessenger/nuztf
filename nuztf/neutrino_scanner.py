@@ -106,7 +106,7 @@ class NeutrinoScanner(BaseScanner):
             f"Coordinates: Dec = {dec[0]} ({self.dec_min} - {self.dec_max})"
         )
 
-        self.summary_path = f"{nu_candidate_output_dir}/{nu_name}.pdf"
+        self.summary_path = f"{nu_candidate_output_dir}/{nu_name}"
         BaseScanner.__init__(
             self,
             t_min=nu_time,
@@ -239,7 +239,7 @@ class NeutrinoScanner(BaseScanner):
                     cone_ids.append(i)
 
         cone_coords = np.array(
-            cone_coords, dtype=np.dtype([("ra", np.float), ("dec", np.float)])
+            cone_coords, dtype=np.dtype([("ra", float), ("dec", float)])
         )
 
         return cone_ids, cone_coords
@@ -280,12 +280,12 @@ class NeutrinoScanner(BaseScanner):
                 map_coords.append((ra, dec))
                 pixel_nos.append(i)
 
-        map_probs = np.ones_like(pixel_nos, dtype=np.float)
+        map_probs = np.ones_like(pixel_nos, dtype=float)
         map_probs /= np.sum(map_probs)
 
         key = "PROB"
 
-        data = np.zeros(hp.nside2npix(nside), dtype=np.dtype([(key, np.float)]))
+        data = np.zeros(hp.nside2npix(nside), dtype=np.dtype([(key, float)]))
         data[np.array(pixel_nos)] = map_probs
 
         return map_coords, pixel_nos, nside, map_probs, data, key

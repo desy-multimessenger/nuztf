@@ -1,7 +1,7 @@
 import io, logging, gzip
 import requests
 import backoff
-from base64 import b64decode
+from base64 import b64decode, b64encode
 from json import JSONDecodeError
 import numpy as np
 
@@ -108,6 +108,15 @@ def ampel_api_cone(
             logger.debug(response.headers)
         raise requests.exceptions.RequestException
 
+    nr_results = len(query_res)
+
+    logger.debug(f"Found {nr_results} alerts.")
+
+    if nr_results == chunk_size:
+        logger.warning(
+            f"Query result limited by chunk size! You will most likely be missing alerts!"
+        )
+
     return query_res
 
 
@@ -164,26 +173,61 @@ def ampel_api_timerange(
             logger.debug(response.headers)
         raise requests.exceptions.RequestException
 
+    nr_results = len(query_res)
+
+    logger.debug(f"Found {nr_results} alerts.")
+
+    if nr_results == chunk_size:
+        logger.warning(
+            f"Query result limited by chunk size! You will most likely be missing alerts!"
+        )
+
     return query_res
 
 
-def add_cutouts(alert: list):
+def ensure_cutouts(alert: list, logger=None):
+    """Make sure alert contains cutouts (if not, query them from AMPEL API"""
+
+    if logger is None:
+        logger = logging.getLogger(__name__)
+
     candid = alert[0]["candid"]
-    cutouts = ampel_api_cutout(candid)
+    ztf_id = alert[0]["objectId"]
+
+    if "cutoutScience" in alert[0].keys():
+        if "stampData" in alert[0]["cutoutScience"].keys():
+            # print(len(alert[0]["cutoutScience"]))
+            logger.debug("Alert already contains cutouts.")
+            # print(alert[0].keys())
+            # print(alert[0]["cutoutScience"].keys())
+            return alert
+
+    logger.info(f"{ztf_id}: Querying API for cutouts.")
 
     final_cutouts = {}
+
+    cutouts = ampel_api_cutout(candid)
 
     if "detail" in cutouts.keys():
         if cutouts["detail"] == "Not Found":
             for k in ["science", "difference", "template"]:
-                final_cutouts[f"cutout{k.title()}"] = {"data": create_empty_cutout()}
+                final_cutouts[f"cutout{k.title()}"] = {
+                    "stampData": create_empty_cutout()
+                }
     else:
         for k in cutouts:
             final_cutouts[f"cutout{k.title()}"] = {
-                "data": b64decode(cutouts[k]),
+                "stampData": cutouts[k]  # b64decode(cutouts[k]),
             }
 
-    alert[0].update({"cutouts": final_cutouts})
+    # alert[0].update({"cutouts": final_cutouts})
+
+    alert[0] = {**alert[0], **final_cutouts}
+    print(alert[0].keys())
+
+    logger.debug(f"{ztf_id}: Added cutouts.")
+
+    return alert
 
 
 @backoff.on_exception(
@@ -204,8 +248,14 @@ def ampel_api_name(
     else:
         hist = "false"
 
+    if with_cutouts:
+        cutouts = "true"
+    else:
+        cutouts = "false"
+
     queryurl_ztf_name = (
-        API_ZTF_ARCHIVE_URL + f"/object/{ztf_name}/alerts?with_history={hist}"
+        API_ZTF_ARCHIVE_URL
+        + f"/object/{ztf_name}/alerts?with_history={hist}&with_cutouts={cutouts}"
     )
 
     logger.debug(queryurl_ztf_name)
@@ -229,9 +279,6 @@ def ampel_api_name(
             logger.debug(response.headers)
         raise requests.exceptions.RequestException
 
-    if with_cutouts:
-        add_cutouts(query_res)
-
     return query_res
 
 
@@ -242,6 +289,7 @@ def ampel_api_name(
 )
 def ampel_api_healpix(
     ipix: int,
+    nside: int = 64,
     t_min_jd=Time("2018-04-01T00:00:00.123456789", format="isot", scale="utc").jd,
     t_max_jd=Time.now().jd,
     with_history: bool = False,
@@ -249,7 +297,7 @@ def ampel_api_healpix(
     chunk_size: int = 500,
     logger=None,
 ) -> list:
-    """Function to query ampel based on a healpix pixel-index (gird has nside=64)"""
+    """Function to query ampel based on a healpix pixel-index (nside is the pixelization degree)"""
 
     if logger is None:
         logger = logging.getLogger(__name__)
@@ -266,7 +314,7 @@ def ampel_api_healpix(
 
     queryurl_healpix = (
         API_ZTF_ARCHIVE_URL
-        + f"/alerts/healpix?ipix={ipix}&jd_start={t_min_jd}&jd_end={t_max_jd}&with_history={hist}&with_cutouts={cutouts}&chunk_size={chunk_size}"
+        + f"/alerts/healpix?nside={nside}&ipix={ipix}&jd_start={t_min_jd}&jd_end={t_max_jd}&with_history={hist}&with_cutouts={cutouts}&chunk_size={chunk_size}"
     )
 
     logger.debug(queryurl_healpix)
@@ -287,6 +335,15 @@ def ampel_api_healpix(
         if response.headers:
             logger.debug(response.headers)
         raise requests.exceptions.RequestException
+
+    nr_results = len(query_res)
+
+    logger.debug(f"Found {nr_results} alerts.")
+
+    if nr_results == chunk_size:
+        logger.warning(
+            f"Query result limited by chunk size! You will most likely be missing alerts!"
+        )
 
     return query_res
 
@@ -342,6 +399,7 @@ def create_empty_cutout():
     comp = io.BytesIO()
     hdul.writeto(comp)
     blank_compressed = gzip.compress(comp.getvalue())
+    blank_compressed = b64encode(blank_compressed)
 
     return blank_compressed
 

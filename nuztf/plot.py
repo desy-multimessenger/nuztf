@@ -5,6 +5,7 @@ import os, time, gzip, io
 from datetime import datetime
 import numpy as np
 import pandas as pd
+
 import matplotlib.pyplot as plt
 from matplotlib.ticker import AutoMinorLocator, MultipleLocator
 from matplotlib.colors import Normalize
@@ -16,8 +17,9 @@ from astropy import units as u
 from astropy.io import fits
 from astropy import visualization
 from ztfquery.utils.stamps import get_ps_stamp
-from nuztf.cat_match import get_cross_match_info
 
+from nuztf.cat_match import get_cross_match_info
+from nuztf.ampel_api import ensure_cutouts
 
 # For absolute magnitude calculation
 GENERIC_COSMOLOGY = FlatLambdaCDM(H0=70, Om0=0.3)
@@ -34,6 +36,7 @@ def lightcurve_from_alert(
     mag_range: list = None,
     z: float = None,
     legend: bool = False,
+    grid_interval: int = None,
     logger=None,
 ):
     """plot AMPEL alerts as lightcurve"""
@@ -59,16 +62,19 @@ def lightcurve_from_alert(
     prv_candid = alert[0]["prv_candidates"]
 
     if include_cutouts:
-        try:
-            cutouts = alert[0]["cutouts"]
-        except:
-            logger.warning(
-                "The alert dictionary does not contain cutouts. Will proceed without them."
+        if "cutoutScience" in alert[0].keys():
+            if "stampData" in alert[0]["cutoutScience"].keys():
+                logger.debug(f"{name}: Cutouts are present.")
+            else:
+                logger.debug(f"{name}: Cutouts are missing data. Will obtain them")
+                alert = ensure_cutouts(alert, logger=logger)
+        else:
+            logger.debug(
+                "The alert dictionary does not contain cutouts. Will obtain them."
             )
-            include_cutouts = False
+            alert = ensure_cutouts(alert, logger=logger)
 
     logger.debug(f"Plotting {name}")
-    logger.debug(f"Found {len(prv_candid)+1} alerts")
 
     df = pd.DataFrame(candidate, index=[0])
     df_ulims = pd.DataFrame()
@@ -118,15 +124,13 @@ def lightcurve_from_alert(
 
     plt.subplots_adjust(wspace=0.4, hspace=1.8)
 
-    #
-
     if include_cutouts:
         for cutout_, ax_, type_ in zip(
-            [cutouts, cutouts, cutouts],
+            [alert[0], alert[0], alert[0]],
             [cutoutsci, cutouttemp, cutoutdiff],
             ["Science", "Template", "Difference"],
         ):
-            create_stamp_plot(cutouts=cutout_, ax=ax_, type=type_)
+            create_stamp_plot(alert=cutout_, ax=ax_, type=type_)
 
         img = get_ps_stamp(
             candidate["ra"], candidate["dec"], size=240, color=["y", "g", "i"]
@@ -164,8 +168,8 @@ def lightcurve_from_alert(
         else:
             fig.suptitle(title, fontweight="bold")
 
-    # grid line every 100 days
-    # lc_ax1.xaxis.set_major_locator(MultipleLocator(100))
+    if grid_interval is not None:
+        lc_ax1.xaxis.set_major_locator(MultipleLocator(grid_interval))
 
     lc_ax1.grid(b=True, axis="both", alpha=0.5)
     lc_ax1.set_ylabel("Magnitude [AB]")
@@ -234,29 +238,37 @@ def lightcurve_from_alert(
         info.append("------------------------")
         info.append(f"RA: {candidate['ra']:.8f}")
         info.append(f"Dec: {candidate['dec']:.8f}")
-        info.append(f"rb: {candidate['rb']:.3f}")
+        if "drb" in candidate.keys():
+            info.append(f"drb: {candidate['drb']:.3f}")
+        else:
+            info.append(f"rb: {candidate['rb']:.3f}")
         info.append("------------------------")
 
-        for kk in ["sgscore", "distpsnr", "srmag"]:
-            for k in [k for k in candidate.keys() if kk in k]:
-                info.append(f"{k}: {candidate.get(k):.3f}")
+        for entry in ["sgscore1", "distpsnr1", "srmag1"]:
+            info.append(f"{entry[:-1]}: {candidate[entry]:.3f}")
+            # for k in [k for k in candidate.keys() if kk in k]:
+            #     info.append(f"{k}: {candidate.get(k):.3f}")
 
-        fig.text(0.77, 0.55, "\n".join(info), va="top", fontsize="medium", color="0.4")
+        fig.text(0.77, 0.55, "\n".join(info), va="top", fontsize="medium", alpha=0.5)
 
     if include_crossmatch:
         xmatch_info = get_cross_match_info(alert[0])
+        if include_cutouts:
+            ypos = 0.975
+        else:
+            ypos = 0.035
+
         fig.text(
             0.5,
-            0.975,
+            ypos,
             xmatch_info,
             va="top",
             ha="center",
             fontsize="medium",
-            color="0.4",
+            alpha=0.5,
         )
 
     # Ugly hack because secondary_axis does not work with astropy.time.Time datetime conversion
-
     mjd_min = np.min(df.mjd.values)
     mjd_max = np.max(df.mjd.values)
     length = mjd_max - mjd_min
@@ -271,7 +283,8 @@ def lightcurve_from_alert(
         [Time(x, format="mjd").datetime for x in [mjd_min, mjd_max]], [20, 20], alpha=0
     )
     lc_ax2.tick_params(axis="both", which="major", labelsize=6, rotation=45)
-    lc_ax1.tick_params(axis="x", which="major", labelsize=9, rotation=45)
+    lc_ax1.tick_params(axis="x", which="major", labelsize=6, rotation=45)
+    lc_ax1.ticklabel_format(axis="x", style="plain")
     lc_ax1.tick_params(axis="y", which="major", labelsize=9)
 
     if z is not None:
@@ -285,9 +298,12 @@ def lightcurve_from_alert(
     return fig, axes
 
 
-def create_stamp_plot(cutouts: dict, ax, type: str):
+def create_stamp_plot(alert: dict, ax, type: str):
     """Helper function to create cutout subplot"""
-    with gzip.open(io.BytesIO(cutouts[f"cutout{type}"]["data"]), "rb") as f:
+
+    with gzip.open(
+        io.BytesIO(b64decode(alert[f"cutout{type}"]["stampData"])), "rb"
+    ) as f:
         data = fits.open(io.BytesIO(f.read()), ignore_missing_simple=True)[0].data
     vmin, vmax = np.percentile(data[data == data], [0, 100])
     data_ = visualization.AsinhStretch()((data - vmin) / (vmax - vmin))

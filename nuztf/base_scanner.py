@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-import os, time, json, logging, datetime
+import os, time, json, logging, datetime, logging
 
 import backoff
 import requests
@@ -31,7 +31,7 @@ from nuztf.ampel_api import (
     ampel_api_cone,
     ampel_api_timerange,
     ampel_api_name,
-    add_cutouts,
+    ensure_cutouts,
 )
 from nuztf.cat_match import get_cross_match_info, ampel_api_tns, query_ned_for_z
 from nuztf.observation_log import get_obs_summary
@@ -65,8 +65,6 @@ class BaseScanner:
             }
 
         if logger is None:
-            import logging
-
             self.logger = logging.getLogger(__name__)
         else:
             self.logger = logger
@@ -74,14 +72,21 @@ class BaseScanner:
         self.logger.info("AMPEL run config:")
         self.logger.info(run_config)
 
+        lvl = self.logger.level
+
+        if lvl > 10:
+            logger_ampel = logging.getLogger("AMPEL_filter")
+            logger_ampel.setLevel(logging.WARNING)
+        else:
+            from ampel.log.AmpelLogger import AmpelLogger
+
+            logger_ampel = AmpelLogger()
+
         self.ampel_filter_class = filter_class(
-            logger=self.logger, resource=resource, **run_config
+            logger=logger_ampel, resource=resource, **run_config
         )
 
         self.dap = DevAlertProcessor(self.ampel_filter_class)
-
-        # if not hasattr(self, "summary_path"):
-        #     self.summary_path = None
 
         self.scanned_pixels = []
 
@@ -467,18 +472,52 @@ class BaseScanner:
 
         return hp.ang2pix(nside, theta, phi, nest=True)
 
-    def create_candidate_summary(self):
-        """ """
-        self.logger.info(f"Saving to: {self.summary_path}")
+    def create_candidate_summary(self, outfile=None):
+        """Create pdf with lightcurve plots of all candidates"""
 
-        with PdfPages(self.summary_path) as pdf:
+        if outfile is None:
+            pdf_path = self.summary_path + ".pdf"
+        else:
+            pdf_path = outfile
+
+        self.logger.info(f"Saving to: {pdf_path}")
+
+        with PdfPages(pdf_path) as pdf:
             for (name, alert) in tqdm(sorted(self.cache.items())):
 
-                add_cutouts([alert])
-                fig, _ = lightcurve_from_alert([alert], include_cutouts=True)
-
+                fig, _ = lightcurve_from_alert(
+                    [alert], include_cutouts=True, logger=self.logger
+                )
                 pdf.savefig()
                 plt.close()
+
+    def create_overview_table(self, outfile=None):
+        """Create csv table of all candidates"""
+        if outfile is None:
+            csv_path = self.summary_path + ".csv"
+        else:
+            csv_path = outfile
+
+        self.logger.info(f"Saving to {csv_path}")
+
+        ztf_ids = []
+        ras = []
+        decs = []
+        mags = []
+        crossmatches = []
+
+        data = {"ztf_id": [], "RA": [], "Dec": [], "mag": [], "xmatch": []}
+
+        for (ztf_id, alert) in tqdm(sorted(self.cache.items())):
+            data["ztf_id"].append(ztf_id)
+            data["RA"].append(alert["candidate"]["ra"])
+            data["Dec"].append(alert["candidate"]["dec"])
+            data["mag"].append(alert["candidate"]["magpsf"])
+            data["xmatch"].append(get_cross_match_info(raw=alert, logger=self.logger))
+
+        df = pandas.DataFrame.from_dict(data)
+
+        df.to_csv(csv_path)
 
     @staticmethod
     def parse_ztf_filter(fid: int):

@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import os, datetime, wget, logging, time, json
+import os, datetime, wget, logging, time, json, math
 
+from collections import Counter, defaultdict
 from tqdm import tqdm
 import requests
 from numpy.lib.recfunctions import append_fields
@@ -22,19 +23,19 @@ from ztfquery.io import LOCALSOURCE
 from nuztf.base_scanner import BaseScanner
 from nuztf.ampel_api import ampel_api_healpix, ampel_api_name
 
-BASE_LIGO_DIR = os.path.join(LOCALSOURCE, "LIGO_skymaps")
+BASE_GW_DIR = os.path.join(LOCALSOURCE, "GW_skymaps")
 BASE_GRB_DIR = os.path.join(LOCALSOURCE, "GRB_skymaps")
-LIGO_CANDIDATE_OUTPUT_DIR = os.path.join(LOCALSOURCE, "LIGO_candidates")
+GW_CANDIDATE_OUTPUT_DIR = os.path.join(LOCALSOURCE, "GW_candidates")
 GRB_CANDIDATE_OUTPUT_DIR = os.path.join(LOCALSOURCE, "GRB_candidates")
-LIGO_CANDIDATE_CACHE = os.path.join(LOCALSOURCE, "LIGO_cache")
+GW_CANDIDATE_CACHE = os.path.join(LOCALSOURCE, "GW_cache")
 GRB_CANDIDATE_CACHE = os.path.join(LOCALSOURCE, "GRB_cache")
 
 for entry in [
-    BASE_LIGO_DIR,
+    BASE_GW_DIR,
     BASE_GRB_DIR,
-    LIGO_CANDIDATE_OUTPUT_DIR,
+    GW_CANDIDATE_OUTPUT_DIR,
     GRB_CANDIDATE_OUTPUT_DIR,
-    LIGO_CANDIDATE_CACHE,
+    GW_CANDIDATE_CACHE,
     GRB_CANDIDATE_CACHE,
 ]:
     if not os.path.exists(entry):
@@ -90,11 +91,6 @@ class SkymapScanner(BaseScanner):
         if not scan_mode in ["gw", "grb"]:
             raise ValueError(f"Scan mode must be either 'gw' or 'grb'.")
 
-        if cone_nside != 64:
-            raise ValueError(
-                "At the moment, nside for healpix must be 64 (the only value supported by AMPEL API)."
-            )
-
         self.prob_threshold = prob_threshold
         self.n_days = n_days
         self.scan_mode = scan_mode
@@ -111,27 +107,27 @@ class SkymapScanner(BaseScanner):
             basename = os.path.basename(skymap_file)
 
             if self.scan_mode == "gw":
-                self.skymap_path = os.path.join(BASE_LIGO_DIR, basename)
+                self.skymap_path = os.path.join(BASE_GW_DIR, basename)
             else:
                 self.skymap_path = os.path.join(BASE_GRB_DIR, basename)
 
             if skymap_file[:8] == "https://" and scan_mode == "gw":
                 self.logger.info(f"Downloading from: {skymap_file}")
                 self.skymap_path = os.path.join(
-                    BASE_LIGO_DIR, os.path.basename(skymap_file[7:])
+                    BASE_GW_DIR, os.path.basename(skymap_file[7:])
                 )
                 wget.download(skymap_file, self.skymap_path)
 
             if self.scan_mode == "gw":
                 self.summary_path = os.path.join(
-                    LIGO_CANDIDATE_OUTPUT_DIR,
-                    f"{os.path.basename(skymap_file)}_{self.prob_threshold}.pdf",
+                    GW_CANDIDATE_OUTPUT_DIR,
+                    f"{os.path.basename(skymap_file)}_{self.prob_threshold}",
                 )
 
             else:
                 self.summary_path = os.path.join(
                     GRB_CANDIDATE_OUTPUT_DIR,
-                    f"{os.path.basename(skymap_file)}_{self.prob_threshold}.pdf",
+                    f"{os.path.basename(skymap_file)}_{self.prob_threshold}",
                 )
 
             self.event_name = os.path.basename(skymap_file[7:])
@@ -165,6 +161,14 @@ class SkymapScanner(BaseScanner):
 
         self.logger.info(f"Time-range is {self.t_min} -- {self.default_t_max.isot}")
 
+        if self.scan_mode == "gw":
+            self.cache_dir = os.path.join(GW_CANDIDATE_CACHE, self.event_name)
+        else:
+            self.cache_dir = os.path.join(GRB_CANDIDATE_CACHE, self.event_name)
+
+        if not os.path.exists(self.cache_dir):
+            os.makedirs(self.cache_dir)
+
     def get_alerts(self):
         """Scan the skymap area and get ZTF transients"""
         self.logger.info("Commencing skymap scan")
@@ -175,46 +179,56 @@ class SkymapScanner(BaseScanner):
         n_tot = 0
         self.queue = []
 
-        for i, cone_id in enumerate(tqdm(list(self.cone_ids))):
+        # To make less queries, we now reduce the number of healpix pixels
 
-            ra, dec = self.cone_coords[i]
+        decomposed, remaining_pixels = self.reduce_pixels(
+            ipix=self.cone_ids, min_nside=16, logger=self.logger
+        )
 
-            ipix = hp.ang2pix(64, ra, dec, nest=True, lonlat=True)
+        assert len(remaining_pixels) == 0
+
+        pixels_to_scan = []
+        for nside in decomposed.keys():
+            for ipix in decomposed[nside]:
+                pixels_to_scan.append((nside, ipix))
+
+        self.logger.info(
+            f"Reduced pixels to scan from {len(self.cone_ids)} to {len(pixels_to_scan)}"
+        )
+
+        for i, item in enumerate(tqdm(list(pixels_to_scan))):
+
+            nside, ipix = item
 
             self.logger.debug(
-                f"API healpix search. Healpix = {cone_id}. Timespan = {self.default_t_max.jd-self.t_min.jd:.1f} days."
+                f"API healpix search: nside = {nside} / healpix = {ipix} / timespan = {self.default_t_max.jd-self.t_min.jd:.1f} days."
             )
 
             query_res = ampel_api_healpix(
-                ipix=cone_id,
+                nside=nside,
+                ipix=ipix,
                 t_min_jd=self.t_min.jd,
                 t_max_jd=self.default_t_max.jd,
                 logger=self.logger,
+                chunk_size=8000,
             )
 
             n_tot += len(query_res)
             self.queue.append((i, query_res))
-            self.scanned_pixels.append(i)
 
         time_healpix_end = time.time()
         time_healpix = time_healpix_end - time_healpix_start
-
-        if self.scan_mode == "gw":
-            self.cache_dir = os.path.join(LIGO_CANDIDATE_CACHE, self.event_name)
-        else:
-            self.cache_dir = os.path.join(GRB_CANDIDATE_CACHE, self.event_name)
-
-        if not os.path.exists(self.cache_dir):
-            os.makedirs(self.cache_dir)
 
         cache_file = os.path.join(self.cache_dir, f"{self.event_name}_all_alerts.json")
 
         json.dump(self.queue, open(cache_file, "w"))
 
         self.logger.info(
-            f"Added {n_tot} candidates detected between {self.t_min} and {self.default_t_max.isot}"
+            f"Added {n_tot} alerts found between {self.t_min} and {self.default_t_max.isot}"
         )
         self.logger.info(f"This took {time_healpix:.1f} s in total")
+
+        self.n_alerts = n_tot
 
     def filter_alerts(self, load_cachefile=False):
         """ """
@@ -225,7 +239,7 @@ class SkymapScanner(BaseScanner):
             self.queue = json.load(open(cache_file, "r"))
 
         first_stage_objects = []
-        filter_time = 0.0
+        filter_time_start = time.time()
 
         for i, item in enumerate(tqdm(self.queue)):
 
@@ -234,13 +248,21 @@ class SkymapScanner(BaseScanner):
             indices = []
 
             for i, res in enumerate(query_res):
+                ztf_id = res["objectId"]
 
                 if self.filter_f_no_prv(
                     res=res,
                     t_min_jd=self.t_min.jd,
                     t_max_jd=self.default_t_max.jd,
                 ):
-                    indices.append(i)
+                    self.logger.debug(f"{ztf_id}: Passed first cut (no prv).")
+                    if self.filter_ampel(res):
+                        self.logger.debug(f"{ztf_id}: Passed AMPEL cut.")
+                        indices.append(i)
+                    else:
+                        self.logger.debug(f"{ztf_id}: Failed AMPEL cut.")
+                else:
+                    self.logger.debug(f"{ztf_id}: Failed first cut (no prv).")
 
             res = [query_res[i] for i in indices]
 
@@ -248,8 +270,11 @@ class SkymapScanner(BaseScanner):
 
         first_stage_objects = self.remove_duplicates(first_stage_objects)
 
+        filter_time_end = time.time()
+        filter_time = filter_time_end - filter_time_start
+
         self.logger.info(
-            f"First stage of filtering (based on predetections) took {filter_time:.1f} s in total. {len(first_stage_objects)} transients make the cut."
+            f"First stage of filtering (based on predetections plus AMPEL cuts) took {filter_time:.1f} s in total. {len(first_stage_objects)} transients make the cut."
         )
 
         cache_file_first_stage = cache_file[:-15] + "_first_stage.json"
@@ -257,7 +282,7 @@ class SkymapScanner(BaseScanner):
 
         # Second and final stage
         self.logger.info(
-            f"Second stage commencing: Now we do proper filtering based on PS1 etc."
+            f"Second stage commencing: Now we do additional filtering based on history."
         )
 
         start_secondfilter = time.time()
@@ -266,23 +291,22 @@ class SkymapScanner(BaseScanner):
 
         for ztf_id in tqdm(first_stage_objects):
 
-            query_res = ampel_api_name(ztf_name=ztf_id, with_history=True)
+            query_res = ampel_api_name(
+                ztf_name=ztf_id, with_history=True, with_cutouts=True
+            )
 
             for res in query_res:
+
                 _ztf_id = res["objectId"]
 
                 if self.filter_f_history(
                     res=res, t_min_jd=self.t_min.jd, t_max_jd=self.default_t_max.jd
                 ):
-
-                    if self.filter_ampel(res):
-                        self.logger.debug(f"{_ztf_id}: Passed all cuts")
-                        final_objects.append(_ztf_id)
-                        self.cache[_ztf_id] = res
-                    else:
-                        self.logger.debug(f"{_ztf_id}: Rejected")
+                    final_objects.append(_ztf_id)
+                    self.cache[_ztf_id] = res
+                    self.logger.debug(f"{_ztf_id}: Passed all filters.")
                 else:
-                    self.logger.debug(f"{_ztf_id}: Failed History")
+                    self.logger.debug(f"{_ztf_id}: Failed History.")
 
         end_secondfilter = time.time()
         filter_time = end_secondfilter - start_secondfilter
@@ -296,6 +320,52 @@ class SkymapScanner(BaseScanner):
         self.logger.info(
             f"Final stage of filtering took {filter_time:.1f} s in total. {len(final_objects)} transients make the cut."
         )
+
+        self.final_candidates = final_objects
+
+    def reduce_pixels(
+        self, ipix: list, nside: int = None, min_nside: int = 1, logger=None
+    ):
+        """
+        Decompose a set of (nested) HEALpix indices into sets of complete superpixels at lower resolutions.
+
+        :param ipix: pixel indices
+        :param nside: nside of given indices
+        :min_nside: minimum nside of complete pixels
+        """
+
+        if nside is None:
+            nside = self.cone_nside
+
+        remaining_pixels = set(ipix)
+        decomposed = defaultdict(list)
+
+        for log2_nside in range(int(math.log2(min_nside)), int(math.log2(nside)) + 1):
+
+            super_nside = 2 ** log2_nside
+
+            logger.debug(f"Trying nside = {super_nside}")
+
+            # number of base_nside pixels per nside superpixel
+            scale = (nside // super_nside) ** 2
+            # sort remaining base_nside pixels by superpixel
+            by_superpixel = defaultdict(list)
+
+            for pix in remaining_pixels:
+                by_superpixel[pix // scale].append(pix)
+
+            # represent sets of pixels that fill a superpixel
+            # as a single superpixel, and remove from the working set
+            for superpix, members in by_superpixel.items():
+                if len(members) == scale:
+                    decomposed[super_nside].append(superpix)
+                    remaining_pixels.difference_update(members)
+
+            logger.debug(
+                f"Found {len(decomposed[super_nside])} pixels for nside = {super_nside}"
+            )
+
+        return decomposed, remaining_pixels
 
     def remove_duplicates(self, ztf_ids: list):
         """ """
@@ -423,7 +493,7 @@ class SkymapScanner(BaseScanner):
             self.logger.debug(f"{ztf_id}: Does not have two detections")
             return False
 
-        self.logger.debug(f"{ztf_id}: Passed the filtering stage")
+        self.logger.debug(f"{ztf_id}: Passed the history filtering stage")
 
         return True
 
@@ -433,7 +503,7 @@ class SkymapScanner(BaseScanner):
 
         ligo_client = GraceDb()
 
-        self.logger.info("Superevent!")
+        self.logger.info("Obtaining skymap from GraceDB!")
 
         if event_name is None:
             superevent_iterator = ligo_client.superevents("category: Production")
@@ -472,7 +542,7 @@ class SkymapScanner(BaseScanner):
 
         base_file_name = os.path.basename(latest_skymap)
         savepath = os.path.join(
-            BASE_LIGO_DIR,
+            BASE_GW_DIR,
             f"{event_name}_{latest_voevent['N']}_{base_file_name}",
         )
 
@@ -482,7 +552,7 @@ class SkymapScanner(BaseScanner):
         with open(savepath, "wb") as f:
             f.write(response.content)
 
-        summary_path = f"{LIGO_CANDIDATE_OUTPUT_DIR}/{event_name}_{latest_voevent['N']}_{self.prob_threshold}.pdf"
+        summary_path = f"{GW_CANDIDATE_OUTPUT_DIR}/{event_name}_{latest_voevent['N']}_{self.prob_threshold}"
 
         return savepath, summary_path, event_name
 
@@ -508,8 +578,6 @@ class SkymapScanner(BaseScanner):
 
         url = f"https://heasarc.gsfc.nasa.gov/FTP/fermi/data/gbm/triggers/{event_date.year}"
 
-        # response = requests.get(url)
-        # print(response.html)
         from lxml import html
 
         page_overview = requests.get(url)
@@ -550,7 +618,7 @@ class SkymapScanner(BaseScanner):
             wget.download(final_link, self.skymap_path)
 
         self.summary_path = (
-            f"{GRB_CANDIDATE_OUTPUT_DIR}/{event_name}_{self.prob_threshold}.pdf"
+            f"{GRB_CANDIDATE_OUTPUT_DIR}/{event_name}_{self.prob_threshold}"
         )
 
         self.event_name = event_name
