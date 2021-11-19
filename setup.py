@@ -56,6 +56,7 @@ setuptools.setup(
         "ratelimit == 2.2.1",
         "requests == 2.26.0",
         "scipy == 1.7.1",
+        "seaborn == 0.11.2",
         "setuptools == 58.2.0",
         "shapely == 1.7.1",
         "sklearn == 0.0",
