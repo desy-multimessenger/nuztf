@@ -1,9 +1,14 @@
 import datetime
 import os
+import logging
+import numpy as np
 from astropy.time import Time
+from astropy import units as u
 from ztfquery import skyvision
 from ztfquery.io import LOCALSOURCE
 from ztfquery.fields import get_fields_containing_target
+
+logger = logging.getLogger(__name__)
 
 
 def get_obs_summary(t_min, max_days=None):
@@ -58,6 +63,6 @@ def get_most_recent_obs(ra, dec):
         day_range += 5.
 
     index = list(mns.data["datetime"]).index(max(mns.data["datetime"][mask]))
-    mrd = mns.data.iloc[index]
+    mro = mns.data.iloc[index]
 
-    return mrd
+    return mro
