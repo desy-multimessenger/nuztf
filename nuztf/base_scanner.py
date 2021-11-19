@@ -560,6 +560,18 @@ class BaseScanner:
             detection_mags = [x["magpsf"] for x in detections]
             brightest = detections[detection_mags.index(min(detection_mags))]
 
+            diff = 0.0
+            df = None
+
+            for fid in [1, 2, 3]:
+                dets = [x["magpsf"] for x in detections if int(x["fid"]) == fid]
+                if len(dets) > 1:
+                    nd = max(dets) - min(dets)
+
+                    if nd > diff:
+                        diff = nd
+                        df = self.parse_ztf_filter(fid)
+
             tns_result = ""
             tns_name, tns_date, tns_group = ampel_api_tns(
                 brightest["ra"], brightest["dec"], searchradius_arcsec=3.0
@@ -571,8 +583,8 @@ class BaseScanner:
 
             print(
                 f"Candidate {name} peaked at {brightest['magpsf']:.1f} {tns_result}on "
-                f"{brightest['jd']:.1f} with filter {self.parse_ztf_filter(brightest['fid'])} "
-                f"{xmatch_info}"
+                f"{brightest['jd']:.1f} with filter {self.parse_ztf_filter(brightest['fid'])}. "
+                f"Max range of {diff:.1f} mag with filter {df}. {xmatch_info}"
             )
 
     def candidate_text(self, name, first_detection, lul_lim, lul_jd):
