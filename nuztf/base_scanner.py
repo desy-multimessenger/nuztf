@@ -692,6 +692,7 @@ class BaseScanner:
             xmatch_info = get_cross_match_info(raw=res, logger=self.logger)
             text += xmatch_info
             text += "\n"
+
         return text
 
     def plot_overlap_with_observations(
