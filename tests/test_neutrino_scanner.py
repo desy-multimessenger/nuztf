@@ -1,11 +1,14 @@
 import unittest
 import logging
+import numpy as np
 from nuztf import NeutrinoScanner
+from nuztf.cat_match import query_ned_for_z
+from nuztf.ampel_api import ampel_api_catalog
 
 
 class TestNeutrinoScanner(unittest.TestCase):
 
-    maxDiff = None
+    max_distance_diff_arcsec = 2
 
     def test_scan(self):
         logger = logging.getLogger(__name__)
@@ -27,13 +30,53 @@ class TestNeutrinoScanner(unittest.TestCase):
         logging.info(f"found {retrieved_candidates}, expected {expected_candidates}")
         self.assertEqual(expected_candidates, retrieved_candidates)
 
+        distance_values = {
+            "ZTF18acvhwtf": {"ned_dist_hist": 0.52, "milliquas_dist_hist": 0.55}
+        }
+
+        for name, res in sorted(nu.cache.items()):
+            latest = [
+                x
+                for x in res["prv_candidates"] + [res["candidate"]]
+                if "isdiffpos" in x.keys()
+            ][-1]
+            ned_z, ned_dist = query_ned_for_z(
+                ra_deg=latest["ra"],
+                dec_deg=latest["dec"],
+                searchradius_arcsec=20,
+                logger=logger,
+            )
+            if ned_z:
+                delta_to_historic_value = np.abs(
+                    distance_values[name]["ned_dist_hist"] - ned_dist
+                )
+
+                self.assertTrue(delta_to_historic_value < max_distance_diff_arcsec)
+
+            milliquas_res = ampel_api_catalog(
+                catalog="milliquas",
+                catalog_type="extcats",
+                ra_deg=res["candidate"]["ra"],
+                dec_deg=res["candidate"]["dec"],
+                searchradius_arcsec=1.5,
+                logger=logger,
+            )
+
+            if milliquas_res:
+                milliquas_dist = milliquas_res[0]["dist_arcsec"]
+                delta_to_historic_value = np.abs(
+                    distance_values[name]["milliquas_dist_hist"] - milliquas_dist
+                )
+
+                self.assertTrue(delta_to_historic_value < max_distance_diff_arcsec)
+
         nu.plot_overlap_with_observations(
             first_det_window_days=(t_max - nu.t_min).to("d").value
         )
         res = nu.draft_gcn()
 
         # Update the true using repr(res)
-        true_gcn = "Astronomer Name (Institute of Somewhere), ............. report,\nOn behalf of the Zwicky Transient Facility (ZTF) and Global Relay of Observatories Watching Transients Happen (GROWTH) collaborations: \nWe observed the localization region of the neutrino event IceCube-200620A (Santander et. al, GCN 27997) with the Palomar 48-inch telescope, equipped with the 47 square degree ZTF camera (Bellm et al. 2019, Graham et al. 2019). We started observations in the g-band and r-band beginning at 2020-06-21 04:53 UTC, approximately 25.8 hours after event time. We covered 1.2 sq deg, corresponding to 77.7% of the reported localization region. This estimate accounts for chip gaps. Each exposure was 300s with a typical depth of 21.0 mag. \n \nThe images were processed in real-time through the ZTF reduction and image subtraction pipelines at IPAC to search for potential counterparts (Masci et al. 2019). AMPEL (Nordin et al. 2019, Stein et al. 2021) was used to search the alerts database for candidates. We reject stellar sources (Tachibana and Miller 2018) and moving objects, and apply machine learning algorithms (Mahabal et al. 2019) . We are left with the following high-significance transient candidates by our pipeline, all lying within the 90.0% localization of the skymap.\n\n+--------------------------------------------------------------------------------+\n| ZTF Name     | IAU Name  | RA (deg)    | DEC (deg)   | Filter | Mag   | MagErr |\n+--------------------------------------------------------------------------------+\n| ZTF18acvhwtf | AT2020ncs | 162.0678527 | +12.1263986 | r      | 20.11 | 0.16   | (MORE THAN ONE DAY SINCE SECOND DETECTION) \n| ZTF20abgvabi | AT2020ncr | 162.5306341 | +12.1461187 | g      | 20.58 | 0.19   | (MORE THAN ONE DAY SINCE SECOND DETECTION) \n+--------------------------------------------------------------------------------+\n\n \n\nAmongst our candidates, \nZTF18acvhwtf was first detected on 2458461.9815278. It has a spec-z of 0.291 [1548 Mpc] and an abs. mag of -20.8. Distance to SDSS galaxy is 0.52 arcsec. [MILLIQUAS: SDSS J104816.25+120734.7 - 'Q'-type source (0.55 arsec)]\nZTF20abgvabi was first detected on 2458995.6705903. \n\n\nZTF and GROWTH are worldwide collaborations comprising Caltech, USA; IPAC, USA; WIS, Israel; OKC, Sweden; JSI/UMd, USA; DESY, Germany; TANGO, Taiwan; UW Milwaukee, USA; LANL, USA; TCD, Ireland; IN2P3, France.\n\nGROWTH acknowledges generous support of the NSF under PIRE Grant No 1545949.\nAlert distribution service provided by DIRAC@UW (Patterson et al. 2019).\nAlert database searches are done by AMPEL (Nordin et al. 2019).\nAlert filtering is performed with the AMPEL Follow-up Pipeline (Stein et al. 2021).\n"
+        true_gcn = f"Astronomer Name (Institute of Somewhere), ............. report,\nOn behalf of the Zwicky Transient Facility (ZTF) and Global Relay of Observatories Watching Transients Happen (GROWTH) collaborations: \nWe observed the localization region of the neutrino event IceCube-200620A (Santander et. al, GCN 27997) with the Palomar 48-inch telescope, equipped with the 47 square degree ZTF camera (Bellm et al. 2019, Graham et al. 2019). We started observations in the g-band and r-band beginning at 2020-06-21 04:53 UTC, approximately 25.8 hours after event time. We covered 1.2 sq deg, corresponding to 77.7% of the reported localization region. This estimate accounts for chip gaps. Each exposure was 300s with a typical depth of 21.0 mag. \n \nThe images were processed in real-time through the ZTF reduction and image subtraction pipelines at IPAC to search for potential counterparts (Masci et al. 2019). AMPEL (Nordin et al. 2019, Stein et al. 2021) was used to search the alerts database for candidates. We reject stellar sources (Tachibana and Miller 2018) and moving objects, and apply machine learning algorithms (Mahabal et al. 2019) . We are left with the following high-significance transient candidates by our pipeline, all lying within the 90.0% localization of the skymap.\n\n+--------------------------------------------------------------------------------+\n| ZTF Name     | IAU Name  | RA (deg)    | DEC (deg)   | Filter | Mag   | MagErr |\n+--------------------------------------------------------------------------------+\n| ZTF18acvhwtf | AT2020ncs | 162.0678527 | +12.1263986 | r      | 20.11 | 0.16   | (MORE THAN ONE DAY SINCE SECOND DETECTION) \n| ZTF20abgvabi | AT2020ncr | 162.5306341 | +12.1461187 | g      | 20.58 | 0.19   | (MORE THAN ONE DAY SINCE SECOND DETECTION) \n+--------------------------------------------------------------------------------+\n\n \n\nAmongst our candidates, \nZTF18acvhwtf was first detected on 2458461.9815278. It has a spec-z of 0.291 [1548 Mpc] and an abs. mag of -20.8. Distance to SDSS galaxy is {distance_values['ZTF18acvhwtf']['ned_dist_new']:.2f} arcsec. [MILLIQUAS: SDSS J104816.25+120734.7 - 'Q'-type source ({distance_values['ZTF18acvhwtf']['milliquas_dist_new']:.2f} arsec)]\nZTF20abgvabi was first detected on 2458995.6705903. \n\n\nZTF and GROWTH are worldwide collaborations comprising Caltech, USA; IPAC, USA; WIS, Israel; OKC, Sweden; JSI/UMd, USA; DESY, Germany; TANGO, Taiwan; UW Milwaukee, USA; LANL, USA; TCD, Ireland; IN2P3, France.\n\nGROWTH acknowledges generous support of the NSF under PIRE Grant No 1545949.\nAlert distribution service provided by DIRAC@UW (Patterson et al. 2019).\nAlert database searches are done by AMPEL (Nordin et al. 2019).\nAlert filtering is performed with the AMPEL Follow-up Pipeline (Stein et al. 2021).\n"
 
         self.assertEqual(res, true_gcn)
 

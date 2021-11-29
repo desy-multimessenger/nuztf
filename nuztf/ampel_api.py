@@ -225,7 +225,6 @@ def ensure_cutouts(alert: list, logger=None):
     # alert[0].update({"cutouts": final_cutouts})
 
     alert[0] = {**alert[0], **final_cutouts}
-    print(alert[0].keys())
 
     logger.debug(f"{ztf_id}: Added cutouts.")
 
