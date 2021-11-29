@@ -52,6 +52,8 @@ class TestNeutrinoScanner(unittest.TestCase):
 
                 self.assertTrue(delta_to_historic_value < max_distance_diff_arcsec)
 
+                distance_values[name]["ned_dist_new"] = ned_dist
+
             milliquas_res = ampel_api_catalog(
                 catalog="milliquas",
                 catalog_type="extcats",
@@ -68,6 +70,8 @@ class TestNeutrinoScanner(unittest.TestCase):
                 )
 
                 self.assertTrue(delta_to_historic_value < max_distance_diff_arcsec)
+
+                distance_values[name]["milliquas_dist_new"] = milliquas_dist
 
         nu.plot_overlap_with_observations(
             first_det_window_days=(t_max - nu.t_min).to("d").value
