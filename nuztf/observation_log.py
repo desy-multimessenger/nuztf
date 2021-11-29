@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 
 import datetime, logging, os
-
+import numpy as np
 from astropy.time import Time
+from astropy import units as u
 from ztfquery import skyvision
 from ztfquery.io import LOCALSOURCE
+from ztfquery.fields import get_fields_containing_target
+
+logger = logging.getLogger(__name__)
 
 
 def get_obs_summary(t_min, max_days: int = None, logger=None):
@@ -49,3 +53,24 @@ def get_obs_summary(t_min, max_days: int = None, logger=None):
     mns.data.drop(columns=["index"], inplace=True)
 
     return mns
+
+
+def get_most_recent_obs(ra, dec):
+    fields = get_fields_containing_target(ra, dec)._data
+
+    logger.info(f"Target in fields {fields}")
+
+    mask = 0.0
+    day_range = 5.0
+
+    while np.sum(mask) < 1:
+        mns = get_obs_summary(Time.now() - 30.0 * u.day)
+
+        mask = np.array([x in fields for x in mns.data["field"]])
+
+        day_range += 5.0
+
+    index = list(mns.data["datetime"]).index(max(mns.data["datetime"][mask]))
+    mro = mns.data.iloc[index]
+
+    return mro
