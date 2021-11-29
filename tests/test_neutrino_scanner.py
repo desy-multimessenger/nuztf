@@ -7,10 +7,9 @@ from nuztf.ampel_api import ampel_api_catalog
 
 
 class TestNeutrinoScanner(unittest.TestCase):
-
-    max_distance_diff_arcsec = 2
-
     def test_scan(self):
+        max_distance_diff_arcsec = 2
+
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.DEBUG)
 
