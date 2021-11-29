@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import io, logging, gzip
 import requests
 import backoff

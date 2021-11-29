@@ -1,11 +1,18 @@
-import datetime
-import os
+#!/usr/bin/env python3
+
+import datetime, logging, os
+
 from astropy.time import Time
 from ztfquery import skyvision
 from ztfquery.io import LOCALSOURCE
 
 
-def get_obs_summary(t_min, max_days=None):
+def get_obs_summary(t_min, max_days: int = None, logger=None):
+    """ """
+
+    if logger is None:
+        logger = logging.getLogger(__name__)
+
     mns_time = str(t_min).split("T")[0].replace("-", "")
     now = datetime.datetime.now()
 
@@ -22,6 +29,8 @@ def get_obs_summary(t_min, max_days=None):
     # ztfquery saves nightly observations in a cache, and does not redownload them.
     # If the nightly log was not complete, it will never be updated.
     # Here we simply clear the cache and cleanly re-download everything.
+
+    logger.debug(f"Obtaining nightly observation logs from {mns_time} to {end_date}")
 
     skyvision_log = os.path.join(LOCALSOURCE, "skyvision")
 

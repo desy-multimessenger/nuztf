@@ -659,7 +659,7 @@ class SkymapScanner(BaseScanner):
 
         if not isinstance(data[0], float):
             probs = np.array(data["PROB"]).flatten()
-            data = np.array(probs, dtype=np.dtype([("PROB", np.float)]))
+            data = np.array(probs, dtype=np.dtype([("PROB", float)]))
 
         self.logger.info(f"Summed probability is {100. * np.sum(data['PROB']):.1f}%")
 
@@ -714,7 +714,7 @@ class SkymapScanner(BaseScanner):
         self.logger.info(f"Total pixel area: {pixel_area} degrees")
 
         map_coords = np.array(
-            map_coords, dtype=np.dtype([("ra", np.float), ("dec", np.float)])
+            map_coords, dtype=np.dtype([("ra", float), ("dec", float)])
         )
 
         return map_coords, pixel_nos, self.data[self.key][mask], nside, pixel_area
@@ -735,7 +735,7 @@ class SkymapScanner(BaseScanner):
             cone_coords.append(self.extract_ra_dec(self.cone_nside, i))
 
         cone_coords = np.array(
-            cone_coords, dtype=np.dtype([("ra", np.float), ("dec", np.float)])
+            cone_coords, dtype=np.dtype([("ra", float), ("dec", float)])
         )
 
         return cone_ids, cone_coords
