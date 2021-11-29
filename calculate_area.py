@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import logging
 from nuztf.neutrino_scanner import NeutrinoScanner
 from nuztf.parse_nu_gcn import find_gcn_no, parse_gcn_circular, get_latest_gcn
 from ampel.log.AmpelLogger import AmpelLogger
@@ -12,7 +13,8 @@ RECALC = True
 
 if RECALC:
 
-    logger = AmpelLogger()
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
 
     rectangular_areas = []
     corrected_areas = []
@@ -89,4 +91,3 @@ if RECALC:
 else:
     df = pd.read_csv("areas.csv").drop(columns=["Unnamed: 0"])
     print(df)
-    

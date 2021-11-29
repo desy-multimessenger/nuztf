@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 from nuztf.ampel_api import ampel_api_catalog, ampel_api_name
@@ -6,6 +8,7 @@ from nuztf.ampel_api import ampel_api_catalog, ampel_api_name
 def query_ned_for_z(
     ra_deg: float, dec_deg: float, searchradius_arcsec: float = 20, logger=None
 ):
+    """Function to obtain redshifts from NED (via the AMPEL API)"""
 
     z = None
     dist_arcsec = None
@@ -23,13 +26,14 @@ def query_ned_for_z(
     if query:
         z = query["body"]["z"]
         dist_arcsec = query["dist_arcsec"]
+
     return z, dist_arcsec
 
 
 def ampel_api_tns(
     ra_deg: float, dec_deg: float, searchradius_arcsec: float = 3, logger=None
 ):
-    """Function to query TNS via ampel api"""
+    """Function to query TNS via the AMPEL API"""
 
     full_name = None
     discovery_date = None
@@ -57,9 +61,6 @@ def ampel_api_tns(
     return full_name, discovery_date, source_group
 
 
-search_rad = 1.5
-
-
 def get_cross_match_info(raw: dict, logger=None):
     """ """
     alert = raw["candidate"]
@@ -68,19 +69,18 @@ def get_cross_match_info(raw: dict, logger=None):
 
     # Check if known variable star (https://arxiv.org/pdf/1405.4290.pdf)
 
-    if label == "":
-        res = ampel_api_catalog(
-            catalog="CRTS_DR1",
-            catalog_type="extcats",
-            ra_deg=alert["ra"],
-            dec_deg=alert["dec"],
-            searchradius_arcsec=5.0,
-            logger=logger,
-        )
-        if res is not None:
-            if logger:
-                logger.info(res)
-            label = f"[CRTS variable star: {res[0]['body']['name']} ({res[0]['dist_arcsec']:.2f} arsec)]"
+    res = ampel_api_catalog(
+        catalog="CRTS_DR1",
+        catalog_type="extcats",
+        ra_deg=alert["ra"],
+        dec_deg=alert["dec"],
+        searchradius_arcsec=5.0,
+        logger=logger,
+    )
+    if res is not None:
+        if logger:
+            logger.info(res)
+        label = f"[CRTS variable star: {res[0]['body']['name']} ({res[0]['dist_arcsec']:.2f} arsec)]"
 
     # Check if known QSO/AGN
 
@@ -89,7 +89,7 @@ def get_cross_match_info(raw: dict, logger=None):
         catalog_type="extcats",
         ra_deg=alert["ra"],
         dec_deg=alert["dec"],
-        searchradius_arcsec=search_rad,
+        searchradius_arcsec=1.5,
         logger=logger,
     )
     if res is not None:
@@ -127,7 +127,7 @@ def get_cross_match_info(raw: dict, logger=None):
             catalog_type="catsHTM",
             ra_deg=alert["ra"],
             dec_deg=alert["dec"],
-            searchradius_arcsec=search_rad,
+            searchradius_arcsec=1.5,
             logger=logger,
         )
         if res is not None:
@@ -145,7 +145,7 @@ def get_cross_match_info(raw: dict, logger=None):
             catalog_type="extcats",
             ra_deg=alert["ra"],
             dec_deg=alert["dec"],
-            searchradius_arcsec=search_rad,
+            searchradius_arcsec=1.5,
             logger=logger,
         )
         if res is not None:
