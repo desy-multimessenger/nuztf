@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-import os
+import os, logging
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -43,7 +43,15 @@ def plot_irsa_lightcurve(
     plot_mag: bool = False,
     atel: bool = True,
     public_folder: str = None,
+    logger=None,
 ):
+
+    if logger is None:
+        import logging
+
+        logger = logging.getLogger(__name__)
+    else:
+        logger = logger
 
     if source_coords is None:
         sc = SkyCoord.from_name(source_name)
@@ -100,8 +108,8 @@ def plot_irsa_lightcurve(
 
     dt = format_date(Time(latest["mjd"], format="mjd"), atel=atel)
 
-    print(f"There are a total of {len(data)} detections")
-    print(
+    logger.info(f"There are a total of {len(data)} detections for {source_name}")
+    logger.info(
         f"Most recent detection on {dt} UT at a magnitude of "
         f"{latest['filtercode'][1]}={latest['mag']:.2f}+/-{latest['magerr']:.2f}"
     )
@@ -110,7 +118,7 @@ def plot_irsa_lightcurve(
 
     ot = format_date(Time(mro["obsjd"], format="jd"), atel=atel)
 
-    print(f"Most recent observation at {ot}")
+    logger.info(f"Most recent observation at {ot}")
 
     for fc in ["zg", "zr", "zi"]:
         mask = data["filtercode"] == fc
