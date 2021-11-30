@@ -51,6 +51,7 @@ def merge_alerts(alert_list: list) -> list:
                         latest["prv_candidates"] = [prv] + latest["prv_candidates"]
 
             merged_list.append(latest)
+
     return merged_list
 
 
@@ -274,6 +275,62 @@ def ampel_api_name(
     try:
         query_res = [i for i in response.json()]
         query_res = merge_alerts(query_res)
+
+    except JSONDecodeError:
+        if response.headers:
+            logger.debug(response.headers)
+        raise requests.exceptions.RequestException
+
+    return query_res
+
+
+@backoff.on_exception(
+    backoff.expo,
+    requests.exceptions.RequestException,
+    max_time=600,
+)
+def ampel_api_lightcurve(
+    ztf_name: str,
+    t_min_jd=Time("2017-01-01T00:00:00.0", format="isot", scale="utc").jd,
+    t_max_jd=Time.now().jd,
+    programid: int = None,
+    logger=None,
+) -> list:
+    """
+    Function to query ampel via name, returns a virtual alert
+    constructed by AMPEL containing ALL photopoints and upper limits
+
+    """
+
+    if logger is None:
+        logger = logging.getLogger(__name__)
+
+    if programid is None:
+        queryurl_lightcurve = (
+            API_ZTF_ARCHIVE_URL + f"/object/{ztf_name}/photopoints?jd_start={t_min_jd}&"
+            f"jd_end={t_max_jd}"
+        )
+    else:
+        queryurl_lightcurve = (
+            API_ZTF_ARCHIVE_URL + f"/object/{ztf_name}/photopoints?jd_start={t_min_jd}&"
+            f"jd_end={t_max_jd}&programid={programid}"
+        )
+
+    logger.debug(queryurl_lightcurve)
+
+    headers = {"Authorization": f"Bearer {ampel_api_archive_token}"}
+
+    response = requests.get(
+        queryurl_lightcurve,
+        headers=headers,
+    )
+
+    if response.status_code == 503:
+        raise requests.exceptions.RequestException
+
+    try:
+        query_res = [response.json()]
+        # query_res = [i for i in response.json()]
 
     except JSONDecodeError:
         if response.headers:
