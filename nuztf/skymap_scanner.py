@@ -221,7 +221,7 @@ class SkymapScanner(BaseScanner):
 
         cache_file = os.path.join(self.cache_dir, f"{self.event_name}_all_alerts.json")
 
-        oufile = open(cache_file, "w")
+        outfile = open(cache_file, "w")
         json.dump(self.queue, outfile)
         outfile.close()
 
