@@ -221,7 +221,9 @@ class SkymapScanner(BaseScanner):
 
         cache_file = os.path.join(self.cache_dir, f"{self.event_name}_all_alerts.json")
 
-        json.dump(self.queue, open(cache_file, "w"))
+        oufile = open(cache_file, "w")
+        json.dump(self.queue, outfile)
+        outfile.close()
 
         self.logger.info(
             f"Added {n_tot} alerts found between {self.t_min} and {self.default_t_max.isot}"
@@ -278,7 +280,10 @@ class SkymapScanner(BaseScanner):
         )
 
         cache_file_first_stage = cache_file[:-15] + "_first_stage.json"
-        json.dump(first_stage_objects, open(cache_file_first_stage, "w"))
+
+        outfile = open(cache_file_first_stage, "w")
+        json.dump(first_stage_objects, outfile)
+        outfile.close()
 
         # Second and final stage
         self.logger.info(
@@ -315,7 +320,9 @@ class SkymapScanner(BaseScanner):
 
         cache_file_final_stage = cache_file[:-15] + "_final_stage.json"
 
-        json.dump(final_objects, open(cache_file_final_stage, "w"))
+        outfile = open(cache_file_final_stage, "w")
+        json.dump(final_objects, outfile)
+        outfile.close()
 
         self.logger.info(
             f"Final stage of filtering took {filter_time:.1f} s in total. {len(final_objects)} transients make the cut."
