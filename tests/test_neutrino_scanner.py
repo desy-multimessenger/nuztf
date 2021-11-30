@@ -7,6 +7,7 @@ from astropy.coordinates import Distance
 from nuztf import NeutrinoScanner
 from nuztf.cat_match import query_ned_for_z
 from nuztf.ampel_api import ampel_api_catalog
+from nuztf.base_scanner import cosmo
 
 
 class TestNeutrinoScanner(unittest.TestCase):
