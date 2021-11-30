@@ -16,7 +16,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from astropy.time import Time
 from astropy import units as u
 from astropy.coordinates import SkyCoord, Distance
-from astropy.cosmology import Planck18 as cosmo
+from astropy.cosmology import FlatLambdaCDM
 
 from ztfquery import alert
 from ztfquery import fields as ztfquery_fields
@@ -40,6 +40,8 @@ from nuztf.plot import lightcurve_from_alert
 DEBUG = False
 RATELIMIT_CALLS = 10
 RATELIMIT_PERIOD = 1
+
+cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 
 
 class BaseScanner:
@@ -357,7 +359,7 @@ class BaseScanner:
 
         return all_results
 
-    @staticmethod
+    # @staticmethod
     def calculate_abs_mag(mag: float, redshift: float) -> float:
         """ """
         luminosity_distance = cosmo.luminosity_distance(redshift).value * 10 ** 6
