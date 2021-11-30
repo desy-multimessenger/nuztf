@@ -18,7 +18,7 @@ from nuztf.style import output_folder, big_fontsize, base_width, base_height, dp
 from nuztf.observation_log import get_most_recent_obs
 from nuztf.parse_nu_gcn import find_gcn_no, parse_gcn_circular
 
-cosmo_generic = FlatLambdaCDM(H0=70, Om0=0.3)
+cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 
 
 def format_date(t, atel=True):
@@ -37,7 +37,7 @@ def format_date(t, atel=True):
 
 def plot_irsa_lightcurve(
     source_name: str,
-    nu_name: str = None,
+    nu_name: [],
     source_coords: list = None,
     source_redshift: float = None,
     plot_mag: bool = False,
@@ -55,7 +55,7 @@ def plot_irsa_lightcurve(
 
     if source_coords is None:
         sc = SkyCoord.from_name(source_name)
-        print(
+        logger.info(
             f"Using Astropy CDS query for name {source_name} (RA={sc.ra}, Dec={sc.dec})"
         )
         source_coords = (sc.ra.value, sc.dec.value)
@@ -92,8 +92,6 @@ def plot_irsa_lightcurve(
             )
 
     cmap = {"zg": "g", "zr": "r", "zi": "orange"}
-
-    cmap2 = {1: "g", 2: "r", 3: "orange"}
 
     wl = {
         "zg": 472.27,
@@ -221,11 +219,15 @@ def plot_irsa_lightcurve(
 
     # Add neutrino
 
-    if nu_name is not None:
-        gcn_no = find_gcn_no(nu_name)
+    if not isinstance(nu_name, list):
+        nu_name = [nu_name]
+
+    for j, nu in enumerate(nu_name):
+        gcn_no = find_gcn_no(nu)
         gcn_info = parse_gcn_circular(gcn_no)
 
-        ax.axvline(gcn_info["time"].mjd, linestyle=":", label=nu_name)
+        ax.axvline(gcn_info["time"].mjd, linestyle=":", label=nu, color=f"C{j}")
+
 
     # Set up ISO dates
 
@@ -267,12 +269,12 @@ def plot_irsa_lightcurve(
     ax.legend(
         loc="upper center",
         bbox_to_anchor=(0.5, 1.42),
-        ncol=4,
+        ncol=3 + len(nu_name),
         fancybox=True,
         fontsize=big_fontsize,
     )
 
-    filename = f"{source_name}_lightcurve{['_flux', ''][plot_mag]}.png"
+    filename = f"{source_name.replace(' ', '')}_lightcurve{['_flux', ''][plot_mag]}.png"
 
     output_path = os.path.join(output_folder, f"{filename}")
 
