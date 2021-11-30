@@ -30,7 +30,8 @@ class TestNeutrinoScanner(unittest.TestCase):
         self.assertEqual(expected_candidates, retrieved_candidates)
 
         hist_and_new_values = {
-            "ZTF18acvhwtf": {"ned_dist_hist": 0.52, "milliquas_dist_hist": 0.55}
+            "ZTF18acvhwtf": {"ned_dist_hist": 0.52, "milliquas_dist_hist": 0.55},
+            "ZTF20abgvabi": {},
         }
 
         for name, res in sorted(nu.cache.items()):
