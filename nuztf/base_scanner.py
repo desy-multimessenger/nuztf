@@ -360,7 +360,7 @@ class BaseScanner:
         return all_results
 
     # @staticmethod
-    def calculate_abs_mag(mag: float, redshift: float) -> float:
+    def calculate_abs_mag(self, mag: float, redshift: float) -> float:
         """ """
         luminosity_distance = cosmo.luminosity_distance(redshift).value * 10 ** 6
         abs_mag = mag - 5 * (np.log10(luminosity_distance) - 1)
