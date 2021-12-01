@@ -21,7 +21,12 @@ import healpy as hp
 from ztfquery.io import LOCALSOURCE
 
 from nuztf.base_scanner import BaseScanner
-from nuztf.ampel_api import ampel_api_healpix, ampel_api_name, ampel_api_lightcurve
+from nuztf.ampel_api import (
+    ampel_api_healpix,
+    ampel_api_name,
+    ampel_api_lightcurve,
+    ampel_api_skymap,
+)
 
 BASE_GW_DIR = os.path.join(LOCALSOURCE, "GW_skymaps")
 BASE_GRB_DIR = os.path.join(LOCALSOURCE, "GRB_skymaps")
@@ -173,48 +178,38 @@ class SkymapScanner(BaseScanner):
         """Scan the skymap area and get ZTF transients"""
         self.logger.info("Commencing skymap scan")
 
-        alerts = []
+        self.logger.debug(
+            f"API skymap search: nside = {self.cone_nside} / # pixels = {len(self.cone_ids)} / timespan = {self.default_t_max.jd-self.t_min.jd:.1f} days."
+        )
 
         time_healpix_start = time.time()
-        n_tot = 0
+
         self.queue = []
 
-        # To make less queries, we now reduce the number of healpix pixels
+        resume = True
+        chunk_size = 8000
+        resume_token = None
 
-        decomposed, remaining_pixels = self.reduce_pixels(
-            ipix=self.cone_ids, min_nside=16, logger=self.logger
-        )
-
-        assert len(remaining_pixels) == 0
-
-        pixels_to_scan = []
-        for nside in decomposed.keys():
-            for ipix in decomposed[nside]:
-                pixels_to_scan.append((nside, ipix))
-
-        self.logger.info(
-            f"Reduced pixels to scan from {len(self.cone_ids)} to {len(pixels_to_scan)}"
-        )
-
-        for i, item in enumerate(tqdm(list(pixels_to_scan))):
-
-            nside, ipix = item
-
-            self.logger.debug(
-                f"API healpix search: nside = {nside} / healpix = {ipix} / timespan = {self.default_t_max.jd-self.t_min.jd:.1f} days."
-            )
-
-            query_res = ampel_api_healpix(
-                nside=nside,
-                ipix=ipix,
+        while resume:
+            query_res, resume_token = ampel_api_skymap(
+                pixels=self.cone_ids,
+                nside=self.cone_nside,
                 t_min_jd=self.t_min.jd,
                 t_max_jd=self.default_t_max.jd,
                 logger=self.logger,
-                chunk_size=8000,
+                chunk_size=chunk_size,
+                resume_token=resume_token,
+                warn_exceeding_chunk=False,
             )
+            self.queue.extend(query_res)
 
-            n_tot += len(query_res)
-            self.queue.append((i, query_res))
+            if len(query_res) < chunk_size:
+                resume = False
+                self.logger.info("Done.")
+            else:
+                self.logger.info(
+                    f"Chunk size reached ({chunk_size}), commencing next query."
+                )
 
         time_healpix_end = time.time()
         time_healpix = time_healpix_end - time_healpix_start
@@ -225,12 +220,12 @@ class SkymapScanner(BaseScanner):
         json.dump(self.queue, outfile)
         outfile.close()
 
+        self.n_alerts = len(self.queue)
+
         self.logger.info(
-            f"Added {n_tot} alerts found between {self.t_min} and {self.default_t_max.isot}"
+            f"Added {self.n_alerts} alerts found between {self.t_min} and {self.default_t_max.isot}"
         )
         self.logger.info(f"This took {time_healpix:.1f} s in total")
-
-        self.n_alerts = n_tot
 
     def filter_alerts(self, load_cachefile=False):
         """ """
@@ -243,37 +238,31 @@ class SkymapScanner(BaseScanner):
         first_stage_objects = []
         filter_time_start = time.time()
 
-        for i, item in enumerate(tqdm(self.queue)):
+        i_survived = []
 
-            (j, query_res) = item
+        for i, res in enumerate(tqdm(self.queue)):
 
-            indices = []
+            ztf_id = res["objectId"]
 
-            for i, res in enumerate(query_res):
-                ztf_id = res["objectId"]
-
-                if self.filter_f_no_prv(
-                    res=res,
-                    t_min_jd=self.t_min.jd,
-                    t_max_jd=self.default_t_max.jd,
-                ):
-                    self.logger.debug(
-                        f"{ztf_id}: Passed first cut (does not have previous detections)."
-                    )
-                    if self.filter_ampel(res):
-                        self.logger.debug(f"{ztf_id}: Passed AMPEL cut.")
-                        indices.append(i)
-                    else:
-                        self.logger.debug(f"{ztf_id}: Failed AMPEL cut.")
+            if self.filter_f_no_prv(
+                res=res,
+                t_min_jd=self.t_min.jd,
+                t_max_jd=self.default_t_max.jd,
+            ):
+                self.logger.debug(
+                    f"{ztf_id}: Passed first cut (does not have previous detections)."
+                )
+                if self.filter_ampel(res):
+                    self.logger.debug(f"{ztf_id}: Passed AMPEL cut.")
+                    i_survived.append(i)
                 else:
-                    self.logger.debug(
-                        f"{ztf_id}: Failed first cut (has previous detections)."
-                    )
+                    self.logger.debug(f"{ztf_id}: Failed AMPEL cut.")
+            else:
+                self.logger.debug(
+                    f"{ztf_id}: Failed first cut (has previous detections)."
+                )
 
-            res = [query_res[i] for i in indices]
-
-            first_stage_objects += [x["objectId"] for x in res]
-
+        first_stage_objects = [self.queue[i]["objectId"] for i in i_survived]
         first_stage_objects = self.remove_duplicates(first_stage_objects)
 
         filter_time_end = time.time()
@@ -299,10 +288,6 @@ class SkymapScanner(BaseScanner):
         final_objects = []
 
         for ztf_id in tqdm(first_stage_objects):
-
-            # query_res = ampel_api_name(
-            #     ztf_name=ztf_id, with_history=True, with_cutouts=True
-            # )
 
             # Get the full lightcurve from the API
             query_res = ampel_api_lightcurve(ztf_name=ztf_id, logger=self.logger)
@@ -517,7 +502,7 @@ class SkymapScanner(BaseScanner):
 
         ligo_client = GraceDb()
 
-        self.logger.info("Obtaining skymap from GraceDB!")
+        self.logger.info("Obtaining skymap from GraceDB")
 
         if event_name is None:
             superevent_iterator = ligo_client.superevents("category: Production")

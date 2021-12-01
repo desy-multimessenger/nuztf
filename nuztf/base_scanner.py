@@ -344,10 +344,6 @@ class BaseScanner:
 
         for ztf_id in ztf_ids:
 
-            # query_res = ampel_api_name(
-            #     ztf_name=ztf_id, with_history=with_history, logger=self.logger
-            # )
-
             # get the full lightcurve from the API
             query_res = ampel_api_lightcurve(ztf_name=ztf_id, logger=self.logger)
 
@@ -474,7 +470,7 @@ class BaseScanner:
         theta = 0.5 * np.pi - np.deg2rad(dec)
         phi = np.deg2rad(ra)
 
-        return hp.ang2pix(nside, theta, phi, nest=True)
+        return int(hp.ang2pix(nside, theta, phi, nest=True))
 
     def create_candidate_summary(self, outfile=None):
         """Create pdf with lightcurve plots of all candidates"""
