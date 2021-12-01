@@ -13,7 +13,7 @@ class TestGWScanner(unittest.TestCase):
 
         logger.info("\n\n Testing GW Scanner \n\n")
 
-        gw_name = "S190426c"
+        gw_name = "S190814bv"
         prob_threshold = 0.9
 
         logging.info(f"Scanning with GW {gw_name}")
@@ -29,7 +29,7 @@ class TestGWScanner(unittest.TestCase):
         scanner.get_alerts()
 
         n_retrieved_alerts = scanner.n_alerts
-        n_expected_alerts = 110332
+        n_expected_alerts = 3474
 
         logging.info(
             f"Retrieved {n_retrieved_alerts} alerts. {n_expected_alerts} alerts expected."
@@ -40,7 +40,7 @@ class TestGWScanner(unittest.TestCase):
         scanner.filter_alerts()
 
         n_retrieved_candidates = len(scanner.final_candidates)
-        n_expected_candidates = 41
+        n_expected_candidates = 1
 
         logging.info(
             f"Retrieved {n_retrieved_candidates} candidates. {n_expected_candidates} candidates expected."
