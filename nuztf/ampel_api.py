@@ -199,13 +199,11 @@ def ensure_cutouts(alert: list, logger=None):
 
     if "cutoutScience" in alert[0].keys():
         if "stampData" in alert[0]["cutoutScience"].keys():
-            # print(len(alert[0]["cutoutScience"]))
             logger.debug("Alert already contains cutouts.")
-            # print(alert[0].keys())
-            # print(alert[0]["cutoutScience"].keys())
+
             return alert
 
-    logger.info(f"{ztf_id}: Querying API for cutouts.")
+    logger.debug(f"{ztf_id}: Querying API for cutouts.")
 
     final_cutouts = {}
 
@@ -326,11 +324,12 @@ def ampel_api_lightcurve(
     )
 
     if response.status_code == 503:
+        if response.headers:
+            logger.debug(response.headers)
         raise requests.exceptions.RequestException
 
     try:
         query_res = [response.json()]
-        # query_res = [i for i in response.json()]
 
     except JSONDecodeError:
         if response.headers:
@@ -404,6 +403,93 @@ def ampel_api_healpix(
         )
 
     return query_res
+
+
+@backoff.on_exception(
+    backoff.expo,
+    requests.exceptions.RequestException,
+    max_time=600,
+)
+def ampel_api_skymap(
+    pixels: list,
+    nside: int = 64,
+    t_min_jd=Time("2018-04-01T00:00:00.123456789", format="isot", scale="utc").jd,
+    t_max_jd=Time.now().jd,
+    with_history: bool = False,
+    with_cutouts: bool = False,
+    chunk_size: int = 500,
+    resume_token: str = None,
+    warn_exceeding_chunk: bool = True,
+    logger=None,
+) -> list:
+    """
+    Function to query ampel based on a healpix pixel-index (nside is the pixelization degree)
+    """
+
+    if logger is None:
+        logger = logging.getLogger(__name__)
+
+    if with_history:
+        hist = "true"
+    else:
+        hist = "false"
+
+    if with_cutouts:
+        cutouts = "true"
+    else:
+        cutouts = "false"
+
+    # First, we create a json body to post
+    headers = {
+        "accept": "application/json",
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {ampel_api_archive_token}",
+    }
+
+    query = {
+        "nside": nside,
+        "pixels": pixels,
+        "jd": {
+            "lt": t_max_jd,
+            "gt": t_min_jd,
+        },
+        "latest": "false",
+        "with_history": with_history,
+        "with_cutouts": with_cutouts,
+        "chunk_size": chunk_size,
+    }
+
+    if resume_token:
+        query["resume_token"] = resume_token
+
+    queryurl_skymap = API_ZTF_ARCHIVE_URL + f"/alerts/healpix/skymap"
+
+    logger.debug(queryurl_skymap)
+    logger.debug(query)
+
+    response = requests.post(url=queryurl_skymap, json=query, headers=headers)
+
+    if response.status_code == 503:
+        raise requests.exceptions.RequestException
+
+    try:
+        resume_token = response.json()["resume_token"]
+        query_res = [i for i in response.json()["alerts"]]
+    except JSONDecodeError:
+        if response.headers:
+            logger.debug(response.headers)
+        raise requests.exceptions.RequestException
+
+    nr_results = len(query_res)
+
+    logger.debug(f"Found {nr_results} alerts.")
+
+    if nr_results == chunk_size and warn_exceeding_chunk:
+        logger.warning(
+            f"Query result limited by chunk size! You will most likely be missing alerts!"
+        )
+
+    return query_res, resume_token
 
 
 @backoff.on_exception(
