@@ -27,7 +27,8 @@ class TestNeutrinoScanner(unittest.TestCase):
 
         t_max = nu.default_t_max - 8
 
-        nu.scan_cones(t_max=t_max)
+        # nu.scan_cones(t_max=t_max)
+        nu.scan_area(t_max=t_max)
         retrieved_candidates = len(nu.cache)
 
         logging.info(f"found {retrieved_candidates}, expected {expected_candidates}")
