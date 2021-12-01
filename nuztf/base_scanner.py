@@ -856,12 +856,25 @@ class BaseScanner:
         self.logger.info("Unpacking observations")
         pix_map = dict()
 
+        # Creating lists for used radec pairs
+        # as get_quadrant_ipix is computationally costly
+        radec_pairs_used = []
+        pix_lookup = []
+
         for i, obs_time in enumerate(tqdm(obs_times)):
 
-            # radec = [f"{data['ra'].iat[i]} {data['dec'].iat[i]}"]
-            #
-            # coords = SkyCoord(radec, unit=(u.deg, u.deg))
-            pix = get_quadrant_ipix(nside, data["ra"].iat[i], data["dec"].iat[i])
+            ra = data["ra"].iat[i]
+            dec = data["dec"].iat[i]
+            radec = (ra, dec)
+
+            if radec in radec_pairs_used:
+                j = radec_pairs_used.index(radec)
+                pix = pix_lookup[j]
+
+            else:
+                pix = get_quadrant_ipix(nside, ra, dec)
+                radec_pairs_used.append(radec)
+                pix_lookup.append(pix)
 
             field = data["field"].iat[i]
 
@@ -874,6 +887,7 @@ class BaseScanner:
             flat_pix = list(set(flat_pix))
 
             t = obs_time.jd
+
             for p in flat_pix:
                 if p not in pix_obs_times.keys():
                     pix_obs_times[p] = [t]
