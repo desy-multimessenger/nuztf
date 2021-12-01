@@ -12,7 +12,7 @@ catsHTM==0.1.32
 coveralls==3.2.0
 datetime==4.3
 extcats==2.4.1
-fastavro==1.4.5
+fastavro==1.4.7
 fitsio==1.1.5
 gwemopt==0.0.73
 healpy==1.15.0
