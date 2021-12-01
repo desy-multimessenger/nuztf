@@ -22,14 +22,14 @@ class TestGRBScanner(unittest.TestCase):
             event_name=grb_name,
             scan_mode="grb",
             prob_threshold=prob_threshold,
-            n_days=3,
+            n_days=0.1,
             logger=logger,
         )
 
         scanner.get_alerts()
 
         n_retrieved_alerts = scanner.n_alerts
-        n_expected_alerts = 35130
+        n_expected_alerts = 6356
 
         logging.info(
             f"Retrieved {n_retrieved_alerts} alerts. {n_expected_alerts} alerts expected."
@@ -40,7 +40,7 @@ class TestGRBScanner(unittest.TestCase):
         scanner.filter_alerts()
 
         n_retrieved_candidates = len(scanner.final_candidates)
-        n_expected_candidates = 98
+        n_expected_candidates = 3
 
         logging.info(
             f"Retrieved {n_retrieved_candidates} candidates. {n_expected_candidates} candidates expected."

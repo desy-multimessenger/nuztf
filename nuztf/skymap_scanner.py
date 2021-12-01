@@ -322,50 +322,6 @@ class SkymapScanner(BaseScanner):
 
         self.final_candidates = final_objects
 
-    def reduce_pixels(
-        self, ipix: list, nside: int = None, min_nside: int = 1, logger=None
-    ):
-        """
-        Decompose a set of (nested) HEALpix indices into sets of complete superpixels at lower resolutions.
-
-        :param ipix: pixel indices
-        :param nside: nside of given indices
-        :min_nside: minimum nside of complete pixels
-        """
-
-        if nside is None:
-            nside = self.cone_nside
-
-        remaining_pixels = set(ipix)
-        decomposed = defaultdict(list)
-
-        for log2_nside in range(int(math.log2(min_nside)), int(math.log2(nside)) + 1):
-
-            super_nside = 2 ** log2_nside
-
-            logger.debug(f"Trying nside = {super_nside}")
-
-            # number of base_nside pixels per nside superpixel
-            scale = (nside // super_nside) ** 2
-            # sort remaining base_nside pixels by superpixel
-            by_superpixel = defaultdict(list)
-
-            for pix in remaining_pixels:
-                by_superpixel[pix // scale].append(pix)
-
-            # represent sets of pixels that fill a superpixel
-            # as a single superpixel, and remove from the working set
-            for superpix, members in by_superpixel.items():
-                if len(members) == scale:
-                    decomposed[super_nside].append(superpix)
-                    remaining_pixels.difference_update(members)
-
-            logger.debug(
-                f"Found {len(decomposed[super_nside])} pixels for nside = {super_nside}"
-            )
-
-        return decomposed, remaining_pixels
-
     def remove_duplicates(self, ztf_ids: list):
         """ """
         return list(set(ztf_ids))
