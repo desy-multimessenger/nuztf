@@ -508,6 +508,8 @@ def ampel_api_catalog(
     response = requests.post(url=queryurl_catalogmatch, json=query, headers=headers)
 
     if response.status_code == 503:
+        if response.headers:
+            logger.debug(response.headers)
         raise requests.exceptions.RequestException
 
     try:

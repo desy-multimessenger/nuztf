@@ -21,7 +21,7 @@ import healpy as hp
 from ztfquery.io import LOCALSOURCE
 
 from nuztf.base_scanner import BaseScanner
-from nuztf.ampel_api import ampel_api_healpix, ampel_api_name
+from nuztf.ampel_api import ampel_api_healpix, ampel_api_name, ampel_api_lightcurve
 
 BASE_GW_DIR = os.path.join(LOCALSOURCE, "GW_skymaps")
 BASE_GRB_DIR = os.path.join(LOCALSOURCE, "GRB_skymaps")
@@ -257,14 +257,18 @@ class SkymapScanner(BaseScanner):
                     t_min_jd=self.t_min.jd,
                     t_max_jd=self.default_t_max.jd,
                 ):
-                    self.logger.debug(f"{ztf_id}: Passed first cut (no prv).")
+                    self.logger.debug(
+                        f"{ztf_id}: Passed first cut (does not have previous detections)."
+                    )
                     if self.filter_ampel(res):
                         self.logger.debug(f"{ztf_id}: Passed AMPEL cut.")
                         indices.append(i)
                     else:
                         self.logger.debug(f"{ztf_id}: Failed AMPEL cut.")
                 else:
-                    self.logger.debug(f"{ztf_id}: Failed first cut (no prv).")
+                    self.logger.debug(
+                        f"{ztf_id}: Failed first cut (has previous detections)."
+                    )
 
             res = [query_res[i] for i in indices]
 
@@ -296,9 +300,12 @@ class SkymapScanner(BaseScanner):
 
         for ztf_id in tqdm(first_stage_objects):
 
-            query_res = ampel_api_name(
-                ztf_name=ztf_id, with_history=True, with_cutouts=True
-            )
+            # query_res = ampel_api_name(
+            #     ztf_name=ztf_id, with_history=True, with_cutouts=True
+            # )
+
+            # Get the full lightcurve from the API
+            query_res = ampel_api_lightcurve(ztf_name=ztf_id, logger=self.logger)
 
             for res in query_res:
 

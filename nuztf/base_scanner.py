@@ -31,6 +31,7 @@ from nuztf.ampel_api import (
     ampel_api_cone,
     ampel_api_timerange,
     ampel_api_name,
+    ampel_api_lightcurve,
     ensure_cutouts,
 )
 from nuztf.cat_match import get_cross_match_info, ampel_api_tns, query_ned_for_z
@@ -147,9 +148,6 @@ class BaseScanner:
         requests.exceptions.RequestException,
         max_time=600,
     )
-    def get_avro_by_name(self, ztf_name):
-        return ampel_api_name(ztf_name, logger=self.logger)
-
     def add_res_to_cache(self, res):
 
         for res_alert in res:
@@ -164,13 +162,14 @@ class BaseScanner:
 
     def add_to_cache_by_names(self, *args):
         for ztf_name in args:
-            self.add_res_to_cache(self.get_avro_by_name(ztf_name))
+            query_res = ampel_api_name(ztf_name, logger=self.logger)
+            self.add_res_to_cache(query_res)
 
     def check_ampel_filter(self, ztf_name):
         lvl = logging.getLogger().getEffectiveLevel()
         logging.getLogger().setLevel(logging.DEBUG)
         self.logger.info("Set logger level to DEBUG")
-        all_query_res = self.get_avro_by_name(ztf_name)
+        all_query_res = ampel_api_name(ztf_name, logger=self.logger)
         pipeline_bool = False
         for query_res in all_query_res:
             self.logger.info("Checking filter f (no prv)")
@@ -345,9 +344,12 @@ class BaseScanner:
 
         for ztf_id in ztf_ids:
 
-            query_res = ampel_api_name(
-                ztf_name=ztf_id, with_history=with_history, logger=self.logger
-            )
+            # query_res = ampel_api_name(
+            #     ztf_name=ztf_id, with_history=with_history, logger=self.logger
+            # )
+
+            # get the full lightcurve from the API
+            query_res = ampel_api_lightcurve(ztf_name=ztf_id, logger=self.logger)
 
             final_res = []
 
