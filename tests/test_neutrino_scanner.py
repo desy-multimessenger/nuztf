@@ -3,6 +3,7 @@ import logging
 import numpy as np
 
 from astropy.coordinates import Distance
+from astropy.time import Time
 
 from nuztf import NeutrinoScanner
 from nuztf.cat_match import query_ned_for_z
