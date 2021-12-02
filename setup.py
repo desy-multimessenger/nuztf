@@ -45,7 +45,7 @@ setuptools.setup(
         "jupyter == 1.0.0",
         "ligo-gracedb == 2.7.6",
         "lxml==4.6.3",
-        "matplotlib==3.4.3",
+        "matplotlib==3.5.0",
         "numpy==1.21.4",
         "pandas == 1.3.4",
         "psycopg2-binary == 2.9.1",
