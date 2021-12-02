@@ -247,10 +247,12 @@ class BaseScanner:
                     f"Chunk size reached ({chunk_size}), commencing next query."
                 )
 
-        self.logger.info(f"Before filtering: Found {len(query_res)} candidates")
+        self.logger.info(
+            f"Before filtering: Found {len(query_res)} candidates. Commencing filtering now."
+        )
 
         ztf_ids_first_stage = []
-        for res in query_res:
+        for res in tqdm(query_res):
             if self.filter_f_no_prv(res):
                 if self.filter_ampel(res):
                     ztf_ids_first_stage.append(res["objectId"])
@@ -298,7 +300,7 @@ class BaseScanner:
         """ """
         all_results = []
 
-        for ztf_id in ztf_ids:
+        for ztf_id in tqdm(ztf_ids):
 
             # get the full lightcurve from the API
             query_res = ampel_api_lightcurve(ztf_name=ztf_id, logger=self.logger)
