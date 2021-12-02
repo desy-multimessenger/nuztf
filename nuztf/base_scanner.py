@@ -340,6 +340,7 @@ class BaseScanner:
             old_flag = ""
 
             second_det = [x for x in jds if x > min(jds) + 0.01]
+
             if len(second_det) > 0:
                 if Time.now().jd - second_det[0] > 1.0:
                     old_flag = "(MORE THAN ONE DAY SINCE SECOND DETECTION)"
