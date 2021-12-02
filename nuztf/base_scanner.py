@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-import os, time, json, logging, datetime, logging
+import os, time, json, logging, datetime, logging, pickle
 
 import backoff
 import requests
@@ -12,6 +12,8 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.backends.backend_pdf import PdfPages
+
+import pandas as pd
 
 from astropy.time import Time
 from astropy import units as u
@@ -756,8 +758,6 @@ class BaseScanner:
     ):
         """ """
 
-        nside = self.nside
-
         fig = plt.figure()
         plt.subplot(projection="aitoff")
 
@@ -849,42 +849,32 @@ class BaseScanner:
             data = data[first_det_mask]
             obs_times = obs_times[first_det_mask]
 
+        self.logger.info(f"Most recent observation found is {obs_times[-1]}")
+        self.logger.info("Unpacking observations")
+
+        pix_map = dict()
         pix_obs_times = dict()
 
-        self.logger.info(f"Most recent observation found is {obs_times[-1]}")
+        infile = os.path.join(
+            "nuztf", "data", f"ztf_fields_ipix_nside={self.nside}.pickle"
+        )
 
-        self.logger.info("Unpacking observations")
-        pix_map = dict()
+        # Generate a lookup table for field healpix
+        # if none exists (because this is computationally costly)
+        if not os.path.isfile(infile):
+            self.generate_flatpix_file()
 
-        # Creating lists for used radec pairs
-        # as get_quadrant_ipix is computationally costly
-        radec_pairs_used = []
-        pix_lookup = []
+        with open(infile, "rb") as f:
+            field_pix = pickle.load(f)
+        f.close()
 
         for i, obs_time in enumerate(tqdm(obs_times)):
 
+            field = data["field"].iat[i]
             ra = data["ra"].iat[i]
             dec = data["dec"].iat[i]
-            radec = (ra, dec)
 
-            if radec in radec_pairs_used:
-                j = radec_pairs_used.index(radec)
-                pix = pix_lookup[j]
-
-            else:
-                pix = get_quadrant_ipix(nside, ra, dec)
-                radec_pairs_used.append(radec)
-                pix_lookup.append(pix)
-
-            field = data["field"].iat[i]
-
-            flat_pix = []
-
-            for sub_list in pix:
-                for p in sub_list:
-                    flat_pix.append(p)
-
-            flat_pix = list(set(flat_pix))
+            flat_pix = field_pix[field]
 
             t = obs_time.jd
 
@@ -899,8 +889,8 @@ class BaseScanner:
                 else:
                     pix_map[p] += [field]
 
-        npix = hp.nside2npix(nside)
-        theta, phi = hp.pix2ang(nside, np.arange(npix), nest=False)
+        npix = hp.nside2npix(self.nside)
+        theta, phi = hp.pix2ang(self.nside, np.arange(npix), nest=False)
         radecs = SkyCoord(ra=phi * u.rad, dec=(0.5 * np.pi - theta) * u.rad)
         idx = np.where(np.abs(radecs.galactic.b.deg) <= 10.0)[0]
 
@@ -918,7 +908,7 @@ class BaseScanner:
         single_no_plane_pixels = []
 
         overlapping_fields = []
-        for i, p in enumerate(tqdm(hp.nest2ring(nside, self.pixel_nos))):
+        for i, p in enumerate(tqdm(hp.nest2ring(self.nside, self.pixel_nos))):
 
             if p in pix_obs_times.keys():
 
@@ -957,10 +947,10 @@ class BaseScanner:
 
         self.overlap_prob = np.sum(double_in_plane_probs + double_no_plane_prob) * 100.0
 
-        size = hp.max_pixrad(nside) ** 2 * 50.0
+        size = hp.max_pixrad(self.nside) ** 2 * 50.0
 
         veto_pos = np.array(
-            [hp.pixelfunc.pix2ang(nside, i, lonlat=True) for i in veto_pixels]
+            [hp.pixelfunc.pix2ang(self.nside, i, lonlat=True) for i in veto_pixels]
         ).T
 
         if len(veto_pos) > 0:
@@ -973,7 +963,7 @@ class BaseScanner:
             )
 
         plane_pos = np.array(
-            [hp.pixelfunc.pix2ang(nside, i, lonlat=True) for i in plane_pixels]
+            [hp.pixelfunc.pix2ang(self.nside, i, lonlat=True) for i in plane_pixels]
         ).T
 
         if len(plane_pos) > 0:
@@ -987,7 +977,7 @@ class BaseScanner:
 
         single_pos = np.array(
             [
-                hp.pixelfunc.pix2ang(nside, i, lonlat=True)
+                hp.pixelfunc.pix2ang(self.nside, i, lonlat=True)
                 for i in single_no_plane_pixels
             ]
         ).T
@@ -1005,7 +995,7 @@ class BaseScanner:
 
         plot_pos = np.array(
             [
-                hp.pixelfunc.pix2ang(nside, i, lonlat=True)
+                hp.pixelfunc.pix2ang(self.nside, i, lonlat=True)
                 for i in double_no_plane_pixels
             ]
         ).T
@@ -1059,11 +1049,11 @@ class BaseScanner:
         n_double = len(double_no_plane_pixels + double_in_plane_pixels)
         n_plane = len(plane_pixels)
 
-        self.area = hp.pixelfunc.nside2pixarea(nside, degrees=True) * n_pixels
+        self.area = hp.pixelfunc.nside2pixarea(self.nside, degrees=True) * n_pixels
         self.double_extragalactic_area = (
-            hp.pixelfunc.nside2pixarea(nside, degrees=True) * n_double
+            hp.pixelfunc.nside2pixarea(self.nside, degrees=True) * n_double
         )
-        plane_area = hp.pixelfunc.nside2pixarea(nside, degrees=True) * n_plane
+        plane_area = hp.pixelfunc.nside2pixarea(self.nside, degrees=True) * n_plane
 
         try:
             self.first_obs = Time(min(times), format="jd")
@@ -1094,6 +1084,49 @@ class BaseScanner:
             f"{n_plane} pixels were covered at low galactic latitude, covering approximately {plane_area:.2g} sq deg."
         )
         return fig, message
+
+    def generate_flatpix_file(self):
+        """
+        Generate and save the fields-healpix lookup table
+        """
+        import pickle
+        from ztfquery.fields import FIELD_DATAFRAME
+
+        self.logger.info(
+            f"Generating field-healpix lookup table for nside={self.nside}"
+        )
+
+        FIELD_DATAFRAME = FIELD_DATAFRAME.reset_index()
+
+        fields = FIELD_DATAFRAME["ID"].values
+        ras = FIELD_DATAFRAME["RA"].values
+        decs = FIELD_DATAFRAME["Dec"].values
+
+        flat_pix_dict = dict()
+
+        for i, field in tqdm(enumerate(fields)):
+
+            ra = ras[i]
+            dec = decs[i]
+            pix = get_quadrant_ipix(self.nside, ra, dec)
+
+            flat_pix = []
+
+            for sub_list in pix:
+                for p in sub_list:
+                    flat_pix.append(p)
+
+            flat_pix = list(set(flat_pix))
+            flat_pix_dict[field] = flat_pix
+
+        outdir = os.path.join("nuztf", "data")
+        if not os.path.exists(outdir):
+            os.makedirs("nuztf", "data")
+
+        outfile = os.path.join(outdir, f"ztf_fields_ipix_nside={self.nside}.pickle")
+        with open(outfile, "wb") as f:
+            pickle.dump(flat_pix_dict, f)
+        f.close()
 
     def crosscheck_prob(self):
 
