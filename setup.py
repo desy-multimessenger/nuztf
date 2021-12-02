@@ -50,7 +50,7 @@ setuptools.setup(
         "pandas == 1.3.4",
         "psycopg2-binary == 2.9.2",
         "pydantic == 1.4",
-        "pymongo == 3.12.0",
+        "pymongo == 4.0",
         "pysedm == 0.27.4",
         "pyvo == 1.1",
         "ratelimit == 2.2.1",
