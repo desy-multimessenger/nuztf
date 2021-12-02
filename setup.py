@@ -33,7 +33,7 @@ setuptools.setup(
         "astropy_healpix == 0.6",
         "backoff == 1.11.1",
         "bs4 == 0.0.1",
-        "catsHTM == 0.1.32",
+        "catsHTM == 0.1.33",
         "coveralls == 3.3.1",
         "datetime == 4.3",
         "extcats == 2.4.1",
@@ -66,6 +66,6 @@ setuptools.setup(
         "wget == 3.2",
         "zerorpc == 0.6.3",
         "ztf-plan-obs == 0.33",
-        "ztfquery == 1.16.0",
+        "ztfquery == 1.17.0",
     ],
 )
