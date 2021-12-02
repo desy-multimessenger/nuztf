@@ -1104,7 +1104,7 @@ class BaseScanner:
 
         flat_pix_dict = dict()
 
-        for i, field in tqdm(enumerate(fields)):
+        for i, field in tqdm(enumerate(fields), total=len(fields)):
 
             ra = ras[i]
             dec = decs[i]
@@ -1121,7 +1121,7 @@ class BaseScanner:
 
         outdir = os.path.join("nuztf", "data")
         if not os.path.exists(outdir):
-            os.makedirs("nuztf", "data")
+            os.makedirs(outdir)
 
         outfile = os.path.join(outdir, f"ztf_fields_ipix_nside={self.nside}.pickle")
         with open(outfile, "wb") as f:
