@@ -121,7 +121,7 @@ class NeutrinoScanner(BaseScanner):
             * (self.dec_max - self.dec_min)
             * abs(np.cos(np.radians(dec[0])))
         )
-        self.logger.info(f"Projected Area: {self.area}")
+        self.logger.info(f"Projected Area: {self.area:.3f} sq. deg.")
         (
             self.map_coords,
             self.pixel_nos,
