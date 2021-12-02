@@ -220,16 +220,34 @@ class BaseScanner:
             f"API skymap search: nside = {self.cone_nside} / # pixels = {len(self.cone_ids)} / timespan = {t_max.jd-t_min.jd:.1f} days."
         )
 
-        query_res, _ = ampel_api_skymap(
-            pixels=self.cone_ids,
-            nside=self.cone_nside,
-            t_min_jd=t_min.jd,
-            t_max_jd=t_max.jd,
-            logger=self.logger,
-            chunk_size=8000,
-            resume_token=None,
-            warn_exceeding_chunk=True,
-        )
+        query_res = []
+
+        resume = True
+        chunk_size = 8000
+        resume_token = None
+
+        while resume:
+            res, resume_token = ampel_api_skymap(
+                pixels=self.cone_ids,
+                nside=self.cone_nside,
+                t_min_jd=t_min.jd,
+                t_max_jd=t_max.jd,
+                logger=self.logger,
+                chunk_size=chunk_size,
+                resume_token=resume_token,
+                warn_exceeding_chunk=False,
+            )
+            query_res.extend(res)
+
+            if len(res) < chunk_size:
+                resume = False
+                self.logger.info("Done.")
+            else:
+                self.logger.info(
+                    f"Chunk size reached ({chunk_size}), commencing next query."
+                )
+
+        self.logger.info(f"Before filtering: Found {len(query_res)} candidates")
 
         ztf_ids_first_stage = []
         for res in query_res:
@@ -239,9 +257,8 @@ class BaseScanner:
 
         ztf_ids_first_stage = list(set(ztf_ids_first_stage))
 
-        self.logger.info(
-            f"Before filtering: Found {len(ztf_ids_first_stage)} candidates"
-        )
+        self.logger.info(f"{len(ztf_ids_first_stage)} candidates survive filtering")
+
         self.logger.info(f"Retrieving alert history from AMPEL")
 
         results = self.ampel_object_search(ztf_ids=ztf_ids_first_stage)
@@ -252,55 +269,6 @@ class BaseScanner:
         self.logger.info(f"Found {len(self.cache)} candidates")
 
         self.create_candidate_summary()
-
-    # def scan_cones(self, t_max=None, max_cones: int = None):
-    #     """ """
-    #     if max_cones is None:
-    #         max_cones = len(self.cone_ids)
-
-    #     scan_radius = np.degrees(hp.max_pixrad(self.cone_nside))
-
-    #     self.logger.info("Commencing Ampel queries!")
-    #     self.logger.info(f"Scan radius is {scan_radius}")
-    #     self.logger.info(
-    #         f"So far, {len(self.scanned_pixels)} pixels out of {len(self.cone_ids)} have already been scanned."
-    #     )
-
-    #     all_ztf_ids = []
-
-    #     for i, cone_id in enumerate(tqdm(list(self.cone_ids)[:max_cones])):
-    #         ra, dec = self.cone_coords[i]
-
-    #         if cone_id not in self.scanned_pixels:
-    #             ztf_ids = self.ampel_cone_search(
-    #                 ra=np.degrees(ra),
-    #                 dec=np.degrees(dec),
-    #                 radius=scan_radius,
-    #                 t_max=t_max,
-    #             )
-
-    #             if ztf_ids:
-    #                 for ztf_id in ztf_ids:
-    #                     all_ztf_ids.append(ztf_id)
-
-    #             self.scanned_pixels.append(cone_id)
-
-    #     self.logger.info(f"Scanned {len(self.scanned_pixels)} pixels")
-
-    #     # remove duplicates
-    #     all_ztf_ids = list(set(all_ztf_ids))
-
-    #     self.logger.info(f"Before filtering: Found {len(all_ztf_ids)} candidates")
-    #     self.logger.info(f"Retrieving alert history from AMPEL")
-
-    #     results = self.ampel_object_search(ztf_ids=all_ztf_ids)
-
-    #     for res in results:
-    #         self.add_res_to_cache(res)
-
-    #     self.logger.info(f"Found {len(self.cache)} candidates")
-
-    #     self.create_candidate_summary()
 
     def filter_f_no_prv(self, res):
         raise NotImplementedError
@@ -325,76 +293,6 @@ class BaseScanner:
         ra_deg = np.rad2deg(ra_rad)
 
         return ra_deg
-
-    # @backoff.on_exception(
-    #     backoff.expo,
-    #     requests.exceptions.RequestException,
-    #     max_time=600,
-    # )
-    # def ampel_cone_search(
-    #     self, ra: float, dec: float, radius: float, t_max=None
-    # ) -> list:
-    #     """ """
-    #     if t_max is None:
-    #         t_max = self.default_t_max
-
-    #     t_min = self.t_min
-
-    #     query_res = ampel_api_cone(
-    #         ra, dec, radius, t_min.jd, t_max.jd, logger=self.logger
-    #     )
-
-    #     ztf_names = []
-    #     for res in query_res:
-    #         if self.filter_f_no_prv(res):
-    #             if self.filter_ampel(res):
-    #                 ztf_names.append(res["objectId"])
-
-    #     ztf_names = list(set(ztf_names))
-
-    #     return ztf_names
-
-    # @backoff.on_exception(
-    #     backoff.expo,
-    #     requests.exceptions.RequestException,
-    #     max_time=600,
-    # )
-    # def ampel_timerange_search(
-    #     self,
-    #     t_min=None,
-    #     t_max=None,
-    #     with_history: bool = False,
-    #     chunk_size: int = 500,
-    # ) -> list:
-    #     """ """
-    #     if t_max is None:
-    #         t_max = self.default_t_max
-
-    #     self.t_min = t_min
-
-    #     query_res = ampel_api_timerange(
-    #         t_min_jd=t_min.jd,
-    #         t_max_jd=t_max.jd,
-    #         with_history=with_history,
-    #         chunk_size=chunk_size,
-    #         logger=self.logger,
-    #     )
-
-    #     ztf_names_unfiltered = []
-
-    #     ztf_names = []
-
-    #     for res in query_res:
-    #         ztf_id = res["objectId"]
-    #         ztf_names_unfiltered.append(ztf_id)
-    #         if self.filter_f_no_prv(res):
-    #             if self.filter_ampel(res):
-    #                 ztf_names.append(ztf_id)
-
-    #     ztf_names_unfiltered = list(set(ztf_names_unfiltered))
-    #     ztf_names = list(set(ztf_names))
-
-    #     return ztf_names_unfiltered
 
     def ampel_object_search(self, ztf_ids: list, with_history: bool = True) -> list:
         """ """
