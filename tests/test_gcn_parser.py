@@ -1,22 +1,29 @@
-import unittest
+#!/usr/bin/env python
+# coding: utf-8
+
+import unittest, logging
 
 from nuztf.parse_nu_gcn import get_latest_gcn, gcn_url, find_gcn_no, ParsingError
-from ampel.log.AmpelLogger import AmpelLogger
 
+# from ampel.log.AmpelLogger import AmpelLogger
 
-logger = AmpelLogger()
+# logger = AmpelLogger()
 
 
 class TestNeutrinoScanner(unittest.TestCase):
 
     maxDiff = None
 
+    def setUp(self):
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.DEBUG)
+
     def test_latest(self):
-        logger.info("\n\n Testing parsing of GCNs \n\n")
+        self.logger.info("\n\n Testing parsing of GCNs \n\n")
         no = get_latest_gcn()
-        logger.info(f"Latest alert is {no}")
+        self.logger.info(f"Latest alert is {no}")
         url = gcn_url(gcn_number=no)
-        logger.info(f"URL is {url}")
+        self.logger.info(f"URL is {url}")
 
     def test_named(self):
 
@@ -26,14 +33,14 @@ class TestNeutrinoScanner(unittest.TestCase):
 
         ref = 27997
 
-        logger.info(f"GCN number for {name} was found to be {num}")
-        logger.info(f"Reference value was {ref}")
+        self.logger.info(f"GCN number for {name} was found to be {num}")
+        self.logger.info(f"Reference value was {ref}")
 
         self.assertEqual(num, ref)
 
         fakename = "IC130921A"
 
-        logger.info(f"Searching for fictional alert {fakename}")
+        self.logger.info(f"Searching for fictional alert {fakename}")
 
         try:
             no = find_gcn_no(fakename)
@@ -42,5 +49,5 @@ class TestNeutrinoScanner(unittest.TestCase):
                 f"fictional neutrino alert {fakename}"
             )
         except ParsingError:
-            logger.info("No GCN found, as expected.")
+            self.logger.info("No GCN found, as expected.")
             pass

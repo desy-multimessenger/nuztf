@@ -12,19 +12,22 @@ from nuztf.base_scanner import cosmo
 
 
 class TestNeutrinoScanner(unittest.TestCase):
+    def setUp(self):
+
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.DEBUG)
+
+        self.max_distance_diff_arcsec = 2
+
     def test_scan(self):
-        max_distance_diff_arcsec = 2
 
-        logger = logging.getLogger(__name__)
-        logger.setLevel(logging.DEBUG)
-
-        logger.info("\n\n Testing Neutrino Scanner \n\n")
+        self.logger.info("\n\n Testing Neutrino Scanner \n\n")
 
         neutrino_name = "IC200620A"
         expected_candidates = 2
 
-        logging.info(f"scanning with neutrino {neutrino_name}")
-        nu = NeutrinoScanner(nu_name=neutrino_name, logger=logger)
+        self.logger.info(f"scanning with neutrino {neutrino_name}")
+        nu = NeutrinoScanner(nu_name=neutrino_name, logger=self.logger)
 
         t_max = nu.default_t_max - 8
 
@@ -32,7 +35,9 @@ class TestNeutrinoScanner(unittest.TestCase):
         nu.scan_area(t_max=t_max)
         retrieved_candidates = len(nu.cache)
 
-        logging.info(f"found {retrieved_candidates}, expected {expected_candidates}")
+        self.logger.info(
+            f"found {retrieved_candidates}, expected {expected_candidates}"
+        )
         self.assertEqual(expected_candidates, retrieved_candidates)
 
         hist_and_new_values = {
@@ -64,7 +69,7 @@ class TestNeutrinoScanner(unittest.TestCase):
                 ra_deg=latest["ra"],
                 dec_deg=latest["dec"],
                 searchradius_arcsec=20,
-                logger=logger,
+                logger=self.logger,
             )
 
             if ned_z:
@@ -72,7 +77,7 @@ class TestNeutrinoScanner(unittest.TestCase):
                     hist_and_new_values[name]["ned_dist_hist"] - ned_dist
                 )
 
-                self.assertTrue(delta_to_historic_value < max_distance_diff_arcsec)
+                self.assertTrue(delta_to_historic_value < self.max_distance_diff_arcsec)
 
                 absmag = nu.calculate_abs_mag(latest["magpsf"], ned_z)
                 z_dist = Distance(z=ned_z, cosmology=cosmo).value
@@ -87,7 +92,7 @@ class TestNeutrinoScanner(unittest.TestCase):
                 ra_deg=res["candidate"]["ra"],
                 dec_deg=res["candidate"]["dec"],
                 searchradius_arcsec=1.5,
-                logger=logger,
+                logger=self.logger,
             )
 
             if milliquas_res:
@@ -96,7 +101,7 @@ class TestNeutrinoScanner(unittest.TestCase):
                     hist_and_new_values[name]["milliquas_dist_hist"] - milliquas_dist
                 )
 
-                self.assertTrue(delta_to_historic_value < max_distance_diff_arcsec)
+                self.assertTrue(delta_to_historic_value < self.max_distance_diff_arcsec)
 
                 hist_and_new_values[name]["milliquas_dist_new"] = milliquas_dist
 
@@ -122,12 +127,16 @@ class TestNeutrinoScanner(unittest.TestCase):
 
         false_candidate = nu.check_ampel_filter("ZTF18abteipt")
 
-        logging.info(f"For the false candidate, the pipeline bool is {false_candidate}")
+        self.logger.info(
+            f"For the false candidate, the pipeline bool is {false_candidate}"
+        )
 
         self.assertFalse(false_candidate)
 
         true_candidate = nu.check_ampel_filter("ZTF20abgvabi")
 
-        logging.info(f"For the true candidate, the pipeline bool is {true_candidate}")
+        self.logger.info(
+            f"For the true candidate, the pipeline bool is {true_candidate}"
+        )
 
         self.assertTrue(true_candidate)

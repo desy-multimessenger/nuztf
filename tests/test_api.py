@@ -16,9 +16,13 @@ class TestAPI(unittest.TestCase):
 
     maxDiff = None
 
+    def setUp(self):
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.DEBUG)
+
     def test_api(self):
 
-        logging.info("\n\n Testing API queries \n\n")
+        self.logger.info("\n\n Testing API queries \n\n")
 
         ztf_id = "ZTF21abyonuw"
 
@@ -27,27 +31,29 @@ class TestAPI(unittest.TestCase):
 
         logging.info(f"Retrieving alerts for {ztf_id}")
         api_name = ampel_api_name(
-            ztf_name=ztf_id, with_history=True, with_cutouts=False
+            ztf_name=ztf_id, with_history=True, with_cutouts=False, logger=self.logger
         )
         self.assertEqual(len(api_name), 1)
-        logging.info(f"Successfully retrieved the alert for {ztf_id}")
+        self.logger.info(f"Successfully retrieved the alert for {ztf_id}")
 
         candid = api_name[0]["candid"]
 
-        logging.info(f"Retrieving cutouts for {ztf_id}")
+        self.logger.info(f"Retrieving cutouts for {ztf_id}")
         api_cutouts = ampel_api_cutout(candid=candid)
         nr_cutouts = len(api_cutouts)
         ref = 3
 
-        logging.info(f"Retrieved {nr_cutouts}. Reference value is {ref}")
+        self.logger.info(f"Retrieved {nr_cutouts}. Reference value is {ref}")
 
         self.assertEqual(nr_cutouts, ref)
 
-        logging.info("Commencing API cone search")
+        self.logger.info("Commencing API cone search")
 
         t_max_jd_cone = Time("2021-10-07", format="isot").jd
 
-        api_cone = ampel_api_cone(ra=30, dec=30, radius=0.1, t_max_jd=t_max_jd_cone)
+        api_cone = ampel_api_cone(
+            ra=30, dec=30, radius=0.1, t_max_jd=t_max_jd_cone, logger=self.logger
+        )
 
         ztf_ids = []
         for entry in api_cone:
@@ -57,13 +63,16 @@ class TestAPI(unittest.TestCase):
         nr_transients = len(ztf_ids)
         ref = 94
 
-        logging.info(f"Found {nr_transients} transients. Reference value is {ref}")
+        self.logger.info(f"Found {nr_transients} transients. Reference value is {ref}")
 
         self.assertEqual(nr_transients, ref)
 
-        logging.info("Commencing API time search")
+        self.logger.info("Commencing API time search")
         api_time = ampel_api_timerange(
-            t_min_jd=t_min_jd, t_max_jd=t_max_jd_timerange, chunk_size=2000
+            t_min_jd=t_min_jd,
+            t_max_jd=t_max_jd_timerange,
+            chunk_size=2000,
+            logger=self.logger,
         )
 
         ztf_ids = []
@@ -74,6 +83,6 @@ class TestAPI(unittest.TestCase):
         nr_transients = len(ztf_ids)
         ref = 1887
 
-        logging.info(f"Found {nr_transients} transients. Reference value is {ref}")
+        self.logger.info(f"Found {nr_transients} transients. Reference value is {ref}")
 
         self.assertEqual(nr_transients, ref)
