@@ -67,5 +67,6 @@ setuptools.setup(
         "zerorpc == 0.6.3",
         "ztf-plan-obs == 0.33",
         "ztfquery == 1.18.0",
+        "geopandas == 0.10.2",
     ],
 )

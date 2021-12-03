@@ -16,6 +16,6 @@ class TestIrsa(unittest.TestCase):
         plot_irsa_lightcurve(
             source_name=src_name,
             nu_name="IC190730A",
-            check_obs=False,
-            # check_obs_lookback_weeks=12,
+            check_obs=True,
+            check_obs_lookback_weeks=12,
         )
