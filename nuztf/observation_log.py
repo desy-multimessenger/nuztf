@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-<<<<<<< HEAD
 import datetime
 import os
 import logging
-=======
-import logging, os, warnings
->>>>>>> deprecate datetime, suppress API credential warning
 import numpy as np
 
 from astropy.time import Time

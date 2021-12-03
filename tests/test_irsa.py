@@ -12,5 +12,10 @@ class TestIrsa(unittest.TestCase):
         logger.info("\n\n Testing IRSA \n\n")
 
         src_name = "PKS1502+106"
-        plot_irsa_lightcurve(source_name=src_name, nu_name="IC190730A", check_obs=False)
-        plot_irsa_lightcurve(source_name=src_name, nu_name="IC190730A", check_obs=False, plot_mag=True)
+
+        plot_irsa_lightcurve(
+            source_name=src_name,
+            nu_name="IC190730A",
+            check_obs=True,
+            check_obs_lookback_weeks=12,
+        )
