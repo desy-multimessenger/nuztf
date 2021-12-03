@@ -2,14 +2,24 @@
 # coding: utf-8
 
 import os
+import subprocess
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+import logging
 from ztfquery.io import LOCALSOURCE
 
+logger = logging.getLogger(__name__)
+
 sns.set_style("white")
-plt.rc("text", usetex=True)
-plt.rc("text.latex", preamble=r"\usepackage{romanbar}")
+
+# Use latex if available
+try:
+    subprocess.check_output(['which', 'latex'])
+    plt.rc("text", usetex=True)
+    plt.rc("text.latex", preamble=r"\usepackage{romanbar}")
+except subprocess.CalledProcessError:
+    logger.warning("No Latex installation found. Proceeding without, but plots may look weird.")
+
 plt.rcParams["font.family"] = "sans-serif"
 
 output_folder = os.path.join(LOCALSOURCE, "IRSA")
