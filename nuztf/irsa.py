@@ -46,6 +46,7 @@ def plot_irsa_lightcurve(
     atel: bool = True,
     public_folder: str = None,
     logger=None,
+    check_obs=True
 ):
 
     if logger is None:
@@ -130,11 +131,13 @@ def plot_irsa_lightcurve(
         f"{latest['filtercode'][1]}={latest['mag']:.2f}+/-{latest['magerr']:.2f}"
     )
 
-    mro = get_most_recent_obs(source_coords[0], source_coords[1])
+    if check_obs:
 
-    ot = format_date(Time(mro["obsjd"], format="jd"), atel=atel)
+        mro = get_most_recent_obs(source_coords[0], source_coords[1])
 
-    logger.info(f"Most recent observation at {ot}")
+        ot = format_date(Time(mro["obsjd"], format="jd"), atel=atel)
+
+        logger.info(f"Most recent observation at {ot}")
 
     for fc in ["zg", "zr", "zi"]:
         mask = data["filtercode"] == fc
