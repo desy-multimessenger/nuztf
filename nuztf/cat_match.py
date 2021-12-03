@@ -1,7 +1,9 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
+# coding: utf-8
 
 from astropy.coordinates import SkyCoord
 from astropy import units as u
+
 from nuztf.ampel_api import ampel_api_catalog, ampel_api_name
 
 

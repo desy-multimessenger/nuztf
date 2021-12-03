@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-import os, time, json, logging, datetime, logging, pickle
+import os, time, json, logging, logging, pickle
 
 import backoff
 import requests

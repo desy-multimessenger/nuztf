@@ -1,15 +1,18 @@
+#!/usr/bin/env python3
+# License: BSD-3-Clause
+
 import re, logging
 
 import requests
 import numpy as np
 from astropy.time import Time
 
-base_gcn_url = "https://gcn.gsfc.nasa.gov/gcn3"
+BASE_GCN_URL = "https://gcn.gsfc.nasa.gov/gcn3"
 
 
 def gcn_url(gcn_number):
     """ """
-    return f"{base_gcn_url}/{gcn_number}.gcn3"
+    return f"{BASE_GCN_URL}/{gcn_number}.gcn3"
 
 
 class ParsingError(Exception):
@@ -20,7 +23,7 @@ class ParsingError(Exception):
 
 def parse_gcn_archive():
     """ """
-    page = requests.get(f"{base_gcn_url}_archive.html")
+    page = requests.get(f"{BASE_GCN_URL}_archive.html")
 
     nu_circulars = []
 
@@ -35,7 +38,7 @@ def parse_gcn_archive():
 
 
 def parse_gcn_for_no(
-    base_nu_name: str, url: str = f"{base_gcn_url}_archive.html", logger=None
+    base_nu_name: str, url: str = f"{BASE_GCN_URL}_archive.html", logger=None
 ):
     """ """
     if logger:
@@ -85,7 +88,7 @@ def find_gcn_no(base_nu_name: str, logger=None):
         while np.logical_and(latest_archive_no > 0, gcn_no is None):
             gcn_no, name, _ = parse_gcn_for_no(
                 base_nu_name,
-                url=f"{base_gcn_url}_arch_old{latest_archive_no}.html",
+                url=f"{BASE_GCN_URL}_arch_old{latest_archive_no}.html",
             )
             latest_archive_no -= 1
 
