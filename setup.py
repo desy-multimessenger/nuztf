@@ -58,7 +58,7 @@ setuptools.setup(
         "scipy == 1.7.3",
         "seaborn == 0.11.2",
         "setuptools == 59.4.0",
-        "shapely == 1.7.1",
+        "shapely == 1.8.0",
         "sklearn == 0.0",
         "slackclient == 2.9.3",
         "sqlalchemy == 1.4.25",
