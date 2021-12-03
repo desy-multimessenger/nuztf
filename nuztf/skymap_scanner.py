@@ -636,7 +636,7 @@ class SkymapScanner(BaseScanner):
             int_sum += prob
             if int_sum > self.prob_threshold:
                 self.logger.info(
-                    f"Threshold found! \n To reach {int_sum * 100.0}% of probability, pixels with probability greater than {prob} are included."
+                    f"Threshold found! \n To reach {int_sum * 100.0:.2f}% of probability, pixels with probability greater than {prob} are included."
                 )
                 pixel_threshold = prob
                 break

@@ -439,7 +439,7 @@ class BaseScanner:
         else:
             pdf_path = outfile
 
-        self.logger.info(f"Saving to: {pdf_path}")
+        self.logger.info(f"Saving lightcurves to: {pdf_path}")
 
         with PdfPages(pdf_path) as pdf:
             for (name, alert) in tqdm(sorted(self.cache.items())):
@@ -457,7 +457,7 @@ class BaseScanner:
         else:
             csv_path = outfile
 
-        self.logger.info(f"Saving to {csv_path}")
+        self.logger.info(f"Saving overview table to {csv_path}")
 
         ztf_ids = []
         ras = []
@@ -485,6 +485,8 @@ class BaseScanner:
 
     def tns_summary(self):
         """ """
+        summary = ""
+
         for name, res in sorted(self.cache.items()):
             detections = [
                 x
@@ -498,13 +500,7 @@ class BaseScanner:
                 for x in res["prv_candidates"] + [res["candidate"]]
                 if "isdiffpos" in x.keys()
             ][-1]
-            print(
-                "Candidate:",
-                name,
-                res["candidate"]["ra"],
-                res["candidate"]["dec"],
-                first_detection["jd"],
-            )
+            summary += f"Candidate: {name} / RA={res['candidate']['ra']} / Dec={res['candidate']['dec']} / First detection={first_detection['jd']}\n"
             try:
                 last_upper_limit = [
                     x
@@ -513,39 +509,26 @@ class BaseScanner:
                         "isdiffpos" in x.keys(), x["jd"] < first_detection["jd"]
                     )
                 ][-1]
-                print(
-                    "Last Upper Limit:",
-                    last_upper_limit["jd"],
-                    self.parse_ztf_filter(last_upper_limit["fid"]),
-                    last_upper_limit["diffmaglim"],
-                )
+                summary += f"Last Upper Limit: {last_upper_limit['jd']} / band={self.parse_ztf_filter(last_upper_limit['fid'])} / maglim={last_upper_limit['diffmaglim']:.3f}\n"
+
             except IndexError:
                 last_upper_limit = None
-                print("Last Upper Limit: None")
-            print(
-                "First Detection:",
-                first_detection["jd"],
-                self.parse_ztf_filter(first_detection["fid"]),
-                first_detection["magpsf"],
-                first_detection["sigmapsf"],
-            )
+                summary += "Last Upper Limit: None\n"
+
+            summary += f"First Detection: {first_detection['jd']} / band={self.parse_ztf_filter(first_detection['fid'])} / mag={first_detection['magpsf']:.3f} +/- {first_detection['sigmapsf']:.3f}\n"
+
             hours_after_merger = 24.0 * (first_detection["jd"] - self.t_min.jd)
-            print(f"First observed {hours_after_merger} hours after merger")
+
+            summary += f"First observed {hours_after_merger:.2f} hours after merger\n"
+
             if last_upper_limit:
-                print(
-                    "It has risen",
-                    -latest["magpsf"] + last_upper_limit["diffmaglim"],
-                    self.parse_ztf_filter(latest["fid"]),
-                    self.parse_ztf_filter(last_upper_limit["fid"]),
-                )
-            print(
-                [
-                    x["jd"]
-                    for x in res["prv_candidates"] + [res["candidate"]]
-                    if "isdiffpos" in x.keys()
-                ]
-            )
-            print("\n")
+                summary += f"It has risen {-latest['magpsf'] + last_upper_limit['diffmaglim']} / band={self.parse_ztf_filter(latest['fid'])} / Last upper limit was in band {self.parse_ztf_filter(last_upper_limit['fid'])}\n"
+
+            summary += f"{[x['jd'] for x in res['prv_candidates'] + [res['candidate']] if 'isdiffpos' in x.keys()]}\n"
+
+        self.logger.info(summary)
+
+        return summary
 
     def peak_mag_summary(self):
         for name, res in sorted(self.cache.items()):
@@ -919,12 +902,12 @@ class BaseScanner:
         plt.legend(handles=[red_patch, gray_patch, violet_patch])
 
         message = (
-            "In total, {0:.2f} % of the contour was observed at least once. \n "
+            "In total, {0:.2f} % of the contour was observed at least once.\n"
             "This estimate includes {1:.2f} % of the contour "
-            "at a galactic latitude <10 deg. \n "
+            "at a galactic latitude <10 deg.\n"
             "In total, {2:.2f} % of the contour was observed at least twice. \n"
             "In total, {3:.2f} % of the contour was observed at least twice, "
-            "and excluding low galactic latitudes. \n"
+            "and excluding low galactic latitudes.\n"
             "These estimates account for chip gaps.".format(
                 100
                 * (

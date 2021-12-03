@@ -47,3 +47,19 @@ class TestGWScanner(unittest.TestCase):
         )
 
         self.assertEqual(n_retrieved_candidates, n_expected_candidates)
+
+        scanner.create_overview_table()
+
+        scanner.create_candidate_summary()
+
+        fig, coverage_summary = scanner.plot_coverage()
+
+        true_coverage_summary = "In total, 88.57 % of the contour was observed at least once.\nThis estimate includes 0.00 % of the contour at a galactic latitude <10 deg.\nIn total, 73.81 % of the contour was observed at least twice. \nIn total, 73.81 % of the contour was observed at least twice, and excluding low galactic latitudes.\nThese estimates account for chip gaps."
+
+        self.assertEqual(coverage_summary, true_coverage_summary)
+
+        tns_summary = scanner.tns_summary()
+
+        true_tns_summary = "Candidate: ZTF19abpuhbh / RA=11.2569224 / Dec=-22.5161471 / First detection=2458710.9475231\nLast Upper Limit: None\nFirst Detection: 2458710.9475231 / band=r / mag=20.857 +/- 0.284\nFirst observed 13.56 hours after merger\n[2458710.9475231, 2458710.9948611]\n"
+
+        self.assertEqual(tns_summary, true_tns_summary)
