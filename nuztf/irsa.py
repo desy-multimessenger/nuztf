@@ -9,6 +9,8 @@ import numpy as np
 from astropy.time import Time
 from astropy import units as u
 from astropy import constants as const
+from astroquery.exceptions import RemoteServiceError
+from astroquery.ned import Ned
 from ztfquery.lightcurve import LCQuery
 from astropy.table import Table
 from astropy.coordinates import SkyCoord
@@ -71,6 +73,22 @@ def plot_irsa_lightcurve(
     ax = ax2.twiny()
 
     # If you have a redshift, you can add a second y axis!
+
+    if source_redshift is None:
+        logger.info("Querying NED to check for a redshift")
+        try:
+            result_table = Ned.query_object(source_name)
+            if len(result_table["Redshift"]) == 1:
+
+                if str(result_table["Redshift"][0]) == "--":
+                    raise RemoteServiceError
+
+                source_redshift = result_table["Redshift"][0]
+                logger.info(f"Found a redshift of {source_redshift}")
+            else:
+                logger.warning(f"Found multiple redshifts: {result_table['Redshift']}")
+        except RemoteServiceError:
+            logger.info("No redshift found")
 
     if source_redshift is not None:
 
