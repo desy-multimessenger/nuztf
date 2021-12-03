@@ -46,7 +46,8 @@ def plot_irsa_lightcurve(
     atel: bool = True,
     public_folder: str = None,
     logger=None,
-    check_obs=True
+    check_obs=True,
+    check_obs_lookback_weeks=4,
 ):
 
     if logger is None:
@@ -59,7 +60,7 @@ def plot_irsa_lightcurve(
     if source_coords is None:
         sc = SkyCoord.from_name(source_name)
         logger.info(
-            f"Using Astropy CDS query for name {source_name} (RA={sc.ra}, Dec={sc.dec})"
+            f"Using Astropy CDS query result for name {source_name} (RA={sc.ra}, Dec={sc.dec})"
         )
         source_coords = (sc.ra.value, sc.dec.value)
 
@@ -133,11 +134,18 @@ def plot_irsa_lightcurve(
 
     if check_obs:
 
-        mro = get_most_recent_obs(source_coords[0], source_coords[1])
+        mro = get_most_recent_obs(
+            ra=source_coords[0],
+            dec=source_coords[1],
+            lookback_weeks_max=check_obs_lookback_weeks,
+            logger=logger,
+        )
 
-        ot = format_date(Time(mro["obsjd"], format="jd"), atel=atel)
-
-        logger.info(f"Most recent observation at {ot}")
+        if mro is not None:
+            ot = format_date(Time(mro["obsjd"], format="jd"), atel=atel)
+            logger.info(f"Most recent observation at {ot}")
+        else:
+            logger.info("No recent observation found.")
 
     for fc in ["zg", "zr", "zi"]:
         mask = data["filtercode"] == fc
@@ -248,7 +256,6 @@ def plot_irsa_lightcurve(
         gcn_info = parse_gcn_circular(gcn_no)
 
         ax.axvline(gcn_info["time"].mjd, linestyle=":", label=nu, color=f"C{j}")
-
 
     # Set up ISO dates
 
