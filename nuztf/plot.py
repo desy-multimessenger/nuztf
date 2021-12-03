@@ -2,7 +2,6 @@
 # License: BSD-3-Clause
 
 import os, time, gzip, io
-from datetime import datetime
 import numpy as np
 import pandas as pd
 

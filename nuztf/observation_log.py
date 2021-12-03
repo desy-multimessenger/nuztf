@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-import datetime, logging, os, warnings
+import logging, os, warnings
 import numpy as np
+
 from astropy.time import Time
 from astropy import units as u
 from ztfquery import skyvision
@@ -63,7 +64,9 @@ def get_obs_summary(t_min, t_max=None, max_days: int = None, logger=None):
     return mns
 
 
-def get_most_recent_obs(ra, dec, lookback_weeks_max=12, logger=None):
+def get_most_recent_obs(
+    ra: float, dec: float, lookback_weeks_max: int = 12, logger=None
+):
     """ """
     if logger is None:
         logger = logging.getLogger(__name__)

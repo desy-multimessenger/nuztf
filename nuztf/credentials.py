@@ -1,5 +1,8 @@
-import os
-import logging
+#!/usr/bin/env python
+# coding: utf-8
+
+import os, warnings, logging
+
 from ztfquery import io
 
 # Manage ztfquery logins from environment variables
@@ -35,12 +38,14 @@ except KeyError:
     )
 
 try:
-    io.set_account(
-        "ampel_api_archive_token",
-        username=os.environ["AMPEL_API_ARCHIVE_TOKEN_USER"],
-        password=os.environ["AMPEL_API_ARCHIVE_TOKEN_PASSWORD"],
-    )
-    logging.info('Set up "ampel_api_archive_token" credentials')
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning)
+        io.set_account(
+            "ampel_api_archive_token",
+            username=os.environ["AMPEL_API_ARCHIVE_TOKEN_USER"],
+            password=os.environ["AMPEL_API_ARCHIVE_TOKEN_PASSWORD"],
+        )
+        logging.info('Set up "ampel_api_archive_token" credentials')
 
 except KeyError:
     logging.info("No Token for AMPEL API found in environment" "Assume they are set.")

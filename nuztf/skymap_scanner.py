@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import os, datetime, wget, logging, time, json, math
+import os, wget, logging, time, json, math
 
 from collections import Counter, defaultdict
 from tqdm import tqdm
@@ -525,13 +525,9 @@ class SkymapScanner(BaseScanner):
         event_letter = event_name[9]
         event_number = ord(event_letter) - 65
 
-        event_date = datetime.datetime(
-            int(event_year), int(event_month), int(event_day)
-        )
-
         # get possible skymap URLs
 
-        url = f"https://heasarc.gsfc.nasa.gov/FTP/fermi/data/gbm/triggers/{event_date.year}"
+        url = f"https://heasarc.gsfc.nasa.gov/FTP/fermi/data/gbm/triggers/{event_year}"
 
         from lxml import html
 
