@@ -94,22 +94,6 @@ def lightcurve_from_alert(
     df["mjd"] = df["jd"] - 2400000.5
     df_ulims["mjd"] = df_ulims["jd"] - 2400000.5
 
-    # Helper functions for the axis conversion (from MJD to days from today)
-    def t0_dist(obsmjd):
-        t0 = Time(time.time(), format="unix", scale="utc").mjd
-        return obsmjd - t0
-
-    def t0_to_mjd(dist_to_t0):
-        t0 = Time(time.time(), format="unix", scale="utc").mjd
-        return t0 + dist_to_t0
-
-    def mjd_to_date(mjd):
-        # return mjd + 20000
-        return Time(mjd, format="mjd").mjd
-
-    def date_to_mjd(date):
-        return Time(date, format="mjd").mjd
-
     fig = plt.figure(figsize=figsize)
 
     if include_cutouts:
