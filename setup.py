@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="nuztf",
-    version="2.4.0",
+    version="2.4.1",
     author="Robert Stein, Simeon Reusch, Jannis Necker",
     author_email="robert.stein@desy.de, simeon.reusch@desy.de, jannis.necker@desy.de",
     description="Package for multi-messenger correlation searches with ZTF",
@@ -31,6 +31,7 @@ setuptools.setup(
         "astrobject == 0.8.6",
         "astropy == 4.3.1",
         "astropy_healpix == 0.6",
+        "astroquery == 0.4.4",
         "backoff == 1.11.1",
         "bs4 == 0.0.1",
         "catsHTM == 0.1.32",
@@ -39,6 +40,7 @@ setuptools.setup(
         "extcats == 2.4.1",
         "fastavro == 1.4.7",
         "fitsio == 1.1.5",
+        "geopandas == 0.10.2",
         "gwemopt == 0.0.73",
         "healpy == 1.15.0",
         "ipykernel == 6.6.0",
@@ -67,6 +69,5 @@ setuptools.setup(
         "zerorpc == 0.6.3",
         "ztf-plan-obs == 0.33",
         "ztfquery == 1.18.0",
-        "geopandas == 0.10.2",
     ],
 )
