@@ -109,7 +109,7 @@ class BaseScanner:
         self.first_obs = None
         self.last_obs = None
         self.n_fields = None
-        self.area = None
+        self.rectangular_area = None
         self.double_extragalactic_area = None
 
         if not hasattr(self, "dist"):
@@ -933,7 +933,9 @@ class BaseScanner:
         n_double = len(double_no_plane_pixels + double_in_plane_pixels)
         n_plane = len(plane_pixels)
 
-        self.area = hp.pixelfunc.nside2pixarea(self.nside, degrees=True) * n_pixels
+        self.healpix_area = (
+            hp.pixelfunc.nside2pixarea(self.nside, degrees=True) * n_pixels
+        )
         self.double_extragalactic_area = (
             hp.pixelfunc.nside2pixarea(self.nside, degrees=True) * n_double
         )
@@ -959,7 +961,7 @@ class BaseScanner:
         #     n_fields = len(overlapping_fields)
 
         self.logger.info(
-            f"{n_pixels} pixels were covered, covering approximately {self.area:.2g} sq deg."
+            f"{n_pixels} pixels were covered, covering approximately {self.healpix_area:.2g} sq deg."
         )
         self.logger.info(
             f"{n_double} pixels were covered at least twice (b>10), covering approximately {self.double_extragalactic_area:.2g} sq deg."

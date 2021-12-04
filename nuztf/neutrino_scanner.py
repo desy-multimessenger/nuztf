@@ -118,12 +118,12 @@ class NeutrinoScanner(BaseScanner):
             cone_nside=cone_nside,
         )
         self.prob_threshold = 0.9
-        self.area = (
+        self.rectangular_area = (
             (self.ra_max - self.ra_min)
             * (self.dec_max - self.dec_min)
             * abs(np.cos(np.radians(dec[0])))
         )
-        self.logger.info(f"Projected Area: {self.area:.3f} sq. deg.")
+        self.logger.info(f"Projected Area: {self.rectangular_area:.3f} sq. deg.")
         (
             self.map_coords,
             self.pixel_nos,
@@ -144,7 +144,7 @@ class NeutrinoScanner(BaseScanner):
     def get_overlap_line(self):
         """ """
         return (
-            f"We covered {self.area:.1f} sq deg, corresponding to {self.overlap_prob:.1f}% of the reported localization region. "
+            f"We covered {self.healpix_area:.1f} sq deg, corresponding to {self.overlap_prob:.1f}% of the reported localization region. "
             "This estimate accounts for chip gaps. "
         )
 
