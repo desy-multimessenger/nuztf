@@ -2,7 +2,7 @@
 [run]
 source = nuztf
 omit =
-    nuztf/slack_bot.py
+    nuztf/TNS_submit.py
 
 [report]
 # Regexes for lines to exclude from consideration
@@ -19,6 +19,10 @@ exclude_lines =
     raise NotImplementedError
     raise KeyError
     raise ValueError
+    except JSONDecodeError:
+    if response.headers:
+    logger.debug(response.headers)
+    raise requests.exceptions.RequestException
 
     # Don't complain if non-runnable code isn't run:
     if 0:

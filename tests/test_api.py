@@ -4,11 +4,13 @@
 import unittest
 import logging
 from astropy.time import Time
+import astropy.units as u
 from nuztf.ampel_api import (
     ampel_api_name,
     ampel_api_cutout,
     ampel_api_cone,
     ampel_api_timerange,
+    ampel_api_healpix,
 )
 
 
@@ -77,3 +79,25 @@ class TestAPI(unittest.TestCase):
         logging.info(f"Found {nr_transients} transients. Reference value is {ref}")
 
         self.assertEqual(nr_transients, ref)
+
+        self.logger.info("Commencing API healpix search")
+
+        t_min = Time("2019-07-01T00:00:00.0", format="isot", scale="utc")
+        t_max = t_min + 5 * u.day
+
+        api_healpix = ampel_api_healpix(
+            ipix=1000,
+            nside=64,
+            t_min_jd=t_min.jd,
+            t_max_jd=t_max.jd,
+            with_history=True,
+            with_cutouts=True,
+            logger=self.logger,
+        )
+
+        nr_transients = len(api_healpix)
+        ref = 5
+
+        self.assertEqual(nr_transients, ref)
+
+        self.logger.info(f"Found {nr_transients} transients. Reference value is {ref}")
