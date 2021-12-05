@@ -18,6 +18,7 @@ exclude_lines =
     raise AssertionError
     raise NotImplementedError
     raise KeyError
+    except KeyError
     raise ValueError
     except JSONDecodeError:
     if response.headers:
