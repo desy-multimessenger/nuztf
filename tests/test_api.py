@@ -20,7 +20,7 @@ class TestAPI(unittest.TestCase):
 
     def setUp(self):
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(logging.INFO)
 
     def test_api(self):
 

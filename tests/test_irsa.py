@@ -9,7 +9,7 @@ from nuztf.irsa import plot_irsa_lightcurve
 class TestIrsa(unittest.TestCase):
     def setUp(self):
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(logging.INFO)
 
     def test_lightcurve(self):
         self.logger.info("\n\n Testing IRSA \n\n")

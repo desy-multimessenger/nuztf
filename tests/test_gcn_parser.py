@@ -12,7 +12,7 @@ class TestNeutrinoScanner(unittest.TestCase):
 
     def setUp(self):
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(logging.INFO)
 
     def test_latest(self):
         self.logger.info("\n\n Testing parsing of GCNs \n\n")
