@@ -287,7 +287,6 @@ class BaseScanner:
         ra_rad = np.deg2rad(ra_deg)
         ra_rad[ra_rad > np.pi] -= 2 * np.pi
         ra_deg = np.rad2deg(ra_rad)
-
         return ra_deg
 
     def ampel_object_search(self, ztf_ids: list, with_history: bool = True) -> list:
@@ -834,7 +833,7 @@ class BaseScanner:
         if len(veto_pos) > 0:
 
             plt.scatter(
-                self.wrap_around_180(np.radians(veto_pos[0])),
+                np.radians(self.wrap_around_180(veto_pos[0])),
                 np.radians(veto_pos[1]),
                 color="red",
                 s=size,
@@ -847,7 +846,7 @@ class BaseScanner:
         if len(plane_pos) > 0:
 
             plt.scatter(
-                self.wrap_around_180(np.radians(plane_pos[0])),
+                np.radians(self.wrap_around_180(plane_pos[0])),
                 np.radians(plane_pos[1]),
                 color="green",
                 s=size,
@@ -862,7 +861,7 @@ class BaseScanner:
 
         if len(single_pos) > 0:
             plt.scatter(
-                self.wrap_around_180(np.radians(single_pos[0])),
+                np.radians(self.wrap_around_180(single_pos[0])),
                 np.radians(single_pos[1]),
                 c=single_no_plane_prob,
                 vmin=0.0,
@@ -880,7 +879,7 @@ class BaseScanner:
 
         if len(plot_pos) > 0:
             plt.scatter(
-                self.wrap_around_180(np.radians(plot_pos[0])),
+                np.radians(self.wrap_around_180(plot_pos[0])),
                 np.radians(plot_pos[1]),
                 c=double_no_plane_prob,
                 vmin=0.0,
