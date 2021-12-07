@@ -163,6 +163,18 @@ def get_cross_match_info(raw: dict, logger=None):
             else:
                 label = "[MULTIPLE WISE MATCHES]"
 
+    # Extra check to TNS, append to other info
+
+    full_name, _, _ = ampel_api_tns(
+        ra_deg=alert["ra"],
+        dec_deg=alert["dec"],
+    )
+    
+    if full_name is not None:
+            label += (
+                f" [TNS NAME={full_name}]"
+            )
+
     return label
 
 
