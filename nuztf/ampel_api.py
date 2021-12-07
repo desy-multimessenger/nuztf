@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 
-import io, logging, gzip
+import io
+import logging
+import gzip
 import requests
 import backoff
-from base64 import b64decode, b64encode
+from base64 import b64encode
 from json import JSONDecodeError
 import numpy as np
-
 from astropy.time import Time
 from astropy.io import fits
 from requests.auth import HTTPBasicAuth
-
 from nuztf.credentials import load_credentials
 
 # AMPEL API URLs

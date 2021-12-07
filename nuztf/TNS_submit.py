@@ -2,7 +2,10 @@
 # Author: Simeon Reusch (simeon.reusch@desy.de)
 # License: BSD-3-Clause
 
-import os, argparse, logging, re
+import os
+import argparse
+import logging
+import re
 
 # from ampel.ztf.archive.ArchiveDB import ArchiveDB
 import ampel.contrib.hu.t3.TNSTalker as TNSTalker

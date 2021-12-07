@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-import os, logging
+import os
+import logging
 
 from astropy.time import Time
 import healpy as hp
 import numpy as np
 from tqdm import tqdm
-from os import environ
-from pathlib import Path
-import requests
 
 from ztfquery.io import LOCALSOURCE
 

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-import os, time, json, logging, logging, pickle
-
+import os
+import logging
+import pickle
 import backoff
 import requests
 import pandas
@@ -12,19 +13,12 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.backends.backend_pdf import PdfPages
-
-import pandas as pd
-
 from astropy.time import Time
 from astropy import units as u
 from astropy.coordinates import SkyCoord, Distance
 from astropy.cosmology import FlatLambdaCDM
-
-from ztfquery import alert
 from ztfquery import fields as ztfquery_fields
-
 from gwemopt.ztf_tiling import get_quadrant_ipix
-
 from ampel.ztf.t0.DecentFilter import DecentFilter
 from ampel.ztf.dev.DevAlertProcessor import DevAlertProcessor
 from ampel.alert.PhotoAlert import PhotoAlert

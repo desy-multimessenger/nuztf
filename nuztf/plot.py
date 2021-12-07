@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 # License: BSD-3-Clause
 
-import os, time, gzip, io
+import gzip
+import io
 import numpy as np
 import pandas as pd
 
 import matplotlib.pyplot as plt
-from matplotlib.ticker import AutoMinorLocator, MultipleLocator
+from matplotlib.ticker import MultipleLocator
 from matplotlib.colors import Normalize
 from base64 import b64decode
 
