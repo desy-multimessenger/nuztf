@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import os, wget, logging, time, json, math
+import os
+import wget
+import logging
+import time
+import json
 
-from collections import Counter, defaultdict
 from tqdm import tqdm
 import requests
 from numpy.lib.recfunctions import append_fields
 import lxml.etree
+from lxml import html
 import fitsio
 import numpy as np
 import matplotlib.pyplot as plt
@@ -20,10 +24,10 @@ from astropy.time import Time
 import healpy as hp
 from ztfquery.io import LOCALSOURCE
 
+from ligo.skymap.moc import rasterize
+
 from nuztf.base_scanner import BaseScanner
 from nuztf.ampel_api import (
-    ampel_api_healpix,
-    ampel_api_name,
     ampel_api_lightcurve,
     ampel_api_skymap,
 )
@@ -93,7 +97,7 @@ class SkymapScanner(BaseScanner):
         else:
             self.logger = logging.getLogger(__name__)
 
-        if not scan_mode in ["gw", "grb"]:
+        if scan_mode not in ["gw", "grb"]:
             raise ValueError(f"Scan mode must be either 'gw' or 'grb'.")
 
         self.prob_threshold = prob_threshold
@@ -529,8 +533,6 @@ class SkymapScanner(BaseScanner):
 
         url = f"https://heasarc.gsfc.nasa.gov/FTP/fermi/data/gbm/triggers/{event_year}"
 
-        from lxml import html
-
         page_overview = requests.get(url)
         webpage_overview = html.fromstring(page_overview.content)
 
@@ -591,6 +593,7 @@ class SkymapScanner(BaseScanner):
             dist_unc = None
         else:
             dist_unc = h["DISTSTD"]
+
         if "DATE-OBS" not in h:
             t_obs = fitsio.read_header(self.skymap_path)["DATE-OBS"]
         else:
@@ -602,14 +605,32 @@ class SkymapScanner(BaseScanner):
             key = "PROB"
             prob = np.array(data["PROBABILITY"]).flatten()
             data = append_fields(data, "PROB", prob)
+        elif "PROBDENSITY" in data.dtype.names:
+            key = "PROB"
+            prob = np.array(data["PROBDENSITY"])
+            data = append_fields(data, "PROB", prob)
         else:
             raise Exception(
-                "No recognised probability key in map. This is probably a weird one, right?"
+                f"No recognised probability key in map. This is probably a weird one, right? "
+                f"Found the following keys: {data.dtype.names}"
             )
 
-        if not isinstance(data[0], float):
+        if h["ORDERING"]  == "NUNIQ":
+            self.logger.info("Rasterising skymap to convert to nested format")
+            data = data[list(["UNIQ", key])]
+            probs = rasterize(data, order=7)
+            data = np.array(probs, dtype=np.dtype([("PROB", float)]))
+            h["ORDERING"] = "NESTED"
+
+        if not isinstance(data["PROB"][0], float):
+            self.logger.info("Flattening skymap")
             probs = np.array(data["PROB"]).flatten()
             data = np.array(probs, dtype=np.dtype([("PROB", float)]))
+
+        if "NSIDE" not in h.keys():
+            h["NSIDE"] = hp.npix2nside(len(data[key]))
+
+        data["PROB"] /= np.sum(data["PROB"])
 
         self.logger.info(f"Summed probability is {100. * np.sum(data['PROB']):.1f}%")
 
