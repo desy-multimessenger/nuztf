@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # License: BSD-3-Clause
 
-import re, logging
+import re
+import logging
 
 import requests
 import numpy as np

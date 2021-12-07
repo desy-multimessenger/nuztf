@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-import os, logging
+import os
+import logging
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -39,7 +40,7 @@ def format_date(t, atel=True):
 
 def plot_irsa_lightcurve(
     source_name: str,
-    nu_name: [],
+    nu_name: list = None,
     source_coords: list = None,
     source_redshift: float = None,
     plot_mag: bool = False,
@@ -51,8 +52,6 @@ def plot_irsa_lightcurve(
 ):
 
     if logger is None:
-        import logging
-
         logger = logging.getLogger(__name__)
     else:
         logger = logger
@@ -87,8 +86,10 @@ def plot_irsa_lightcurve(
 
                 source_redshift = result_table["Redshift"][0]
                 logger.info(f"Found a redshift of {source_redshift}")
+            elif len(result_table["Redshift"]) > 1:
+                logger.warning(f"Found multiple redshifts: {result_table}")
             else:
-                logger.warning(f"Found multiple redshifts: {result_table['Redshift']}")
+                raise RemoteServiceError
         except RemoteServiceError:
             logger.info("No redshift found")
 
@@ -247,6 +248,9 @@ def plot_irsa_lightcurve(
     ax.set_xlabel("Date (MJD)", fontsize=big_fontsize)
 
     # Add neutrino
+
+    if nu_name is None:
+        nu_name = []
 
     if not isinstance(nu_name, list):
         nu_name = [nu_name]

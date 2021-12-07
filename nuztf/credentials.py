@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import os, warnings, logging
-
+import os
+import warnings
+import logging
 from ztfquery import io
 
 # Manage ztfquery logins from environment variables
