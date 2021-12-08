@@ -75,8 +75,8 @@ class SkymapScanner(BaseScanner):
     ):
 
         self.base_skymap_dir = os.path.join(LOCALSOURCE, f"{custom_prefix}skymaps")
-        self.candidate_output_dir = os.path.join(LOCALSOURCE, f"{custom_prefix}skymaps")
-        skymap_candidate_cache = os.path.join(LOCALSOURCE, f"{custom_prefix}skymaps")
+        self.candidate_output_dir = os.path.join(LOCALSOURCE, f"{custom_prefix}candidates")
+        skymap_candidate_cache = os.path.join(LOCALSOURCE, f"{custom_prefix}cache")
 
         for entry in [
             self.base_skymap_dir,
