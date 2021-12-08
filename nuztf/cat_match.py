@@ -169,7 +169,7 @@ def get_cross_match_info(raw: dict, logger=None):
         ra_deg=alert["ra"],
         dec_deg=alert["dec"],
     )
-    
+
     if full_name is not None:
             label += (
                 f" [TNS NAME={full_name}]"
