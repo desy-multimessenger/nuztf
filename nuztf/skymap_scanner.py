@@ -32,24 +32,6 @@ from nuztf.ampel_api import (
     ampel_api_skymap,
 )
 
-BASE_GW_DIR = os.path.join(LOCALSOURCE, "GW_skymaps")
-BASE_GRB_DIR = os.path.join(LOCALSOURCE, "GRB_skymaps")
-GW_CANDIDATE_OUTPUT_DIR = os.path.join(LOCALSOURCE, "GW_candidates")
-GRB_CANDIDATE_OUTPUT_DIR = os.path.join(LOCALSOURCE, "GRB_candidates")
-GW_CANDIDATE_CACHE = os.path.join(LOCALSOURCE, "GW_cache")
-GRB_CANDIDATE_CACHE = os.path.join(LOCALSOURCE, "GRB_cache")
-
-for entry in [
-    BASE_GW_DIR,
-    BASE_GRB_DIR,
-    GW_CANDIDATE_OUTPUT_DIR,
-    GRB_CANDIDATE_OUTPUT_DIR,
-    GW_CANDIDATE_CACHE,
-    GRB_CANDIDATE_CACHE,
-]:
-    if not os.path.exists(entry):
-        os.makedirs(entry)
-
 GW_RUN_CONFIG = {
     "min_ndet": 1,  # Default:2
     "min_tspan": -1,  # Default 0, but that rejects everything!
@@ -83,63 +65,71 @@ class RetractionError(Exception):
 class SkymapScanner(BaseScanner):
     def __init__(
         self,
-        event_name: str = None,
-        skymap_file: str = None,
-        scan_mode: str = "grb",
+        event: str = None,
         rev: int = None,
         prob_threshold: float = 0.9,
         cone_nside: int = 64,
         n_days: int = 3,
         logger=None,
+        custom_prefix="",
     ):
+
+        self.base_skymap_dir = os.path.join(LOCALSOURCE, f"{custom_prefix}skymaps")
+        self.candidate_output_dir = os.path.join(LOCALSOURCE, f"{custom_prefix}skymaps")
+        skymap_candidate_cache = os.path.join(LOCALSOURCE, f"{custom_prefix}skymaps")
+
+        for entry in [
+            self.base_skymap_dir,
+            self.candidate_output_dir,
+            skymap_candidate_cache,
+        ]:
+            if not os.path.exists(entry):
+                os.makedirs(entry)
+
+
         if logger:
             self.logger = logger
         else:
             self.logger = logging.getLogger(__name__)
 
-        if scan_mode not in ["gw", "grb"]:
-            raise ValueError(f"Scan mode must be either 'gw' or 'grb'.")
-
         self.prob_threshold = prob_threshold
         self.n_days = n_days
-        self.scan_mode = scan_mode
 
-        if skymap_file is None and self.scan_mode == "gw":
-            self.skymap_path, self.summary_path, self.event_name = self.get_gw_skymap(
-                event_name=event_name, rev=rev
-            )
+        if ".fits" in event:
 
-        elif skymap_file is None and self.scan_mode == "grb":
-            self.get_grb_skymap(event_name=event_name)
+            basename = os.path.basename(event)
 
-        else:
-            basename = os.path.basename(skymap_file)
+            self.skymap_path = os.path.join(self.base_skymap_dir, basename)
 
-            if self.scan_mode == "gw":
-                self.skymap_path = os.path.join(BASE_GW_DIR, basename)
-            else:
-                self.skymap_path = os.path.join(BASE_GRB_DIR, basename)
-
-            if skymap_file[:8] == "https://" and scan_mode == "gw":
-                self.logger.info(f"Downloading from: {skymap_file}")
+            if event[:8] == "https://":
+                self.logger.info(f"Downloading from: {event}")
                 self.skymap_path = os.path.join(
-                    BASE_GW_DIR, os.path.basename(skymap_file[7:])
+                    self.base_skymap_dir, os.path.basename(event[7:])
                 )
-                wget.download(skymap_file, self.skymap_path)
+                wget.download(event, self.skymap_path)
 
-            if self.scan_mode == "gw":
                 self.summary_path = os.path.join(
-                    GW_CANDIDATE_OUTPUT_DIR,
-                    f"{os.path.basename(skymap_file)}_{self.prob_threshold}",
+                    self.candidate_output_dir,
+                    f"{os.path.basename(event)}_{self.prob_threshold}",
                 )
 
             else:
                 self.summary_path = os.path.join(
-                    GRB_CANDIDATE_OUTPUT_DIR,
-                    f"{os.path.basename(skymap_file)}_{self.prob_threshold}",
+                    self.candidate_output_dir,
+                    f"{os.path.basename(event)}_{self.prob_threshold}",
                 )
 
-            self.event_name = os.path.basename(skymap_file[7:])
+            self.event_name = os.path.basename(event[7:])
+
+        elif np.sum([x in event for x in ["grb", "GRB"]]) > 0:
+            self.get_grb_skymap(event_name=event)
+
+        elif np.sum([x in event for x in ["s", "S", "gw", "GW"]]) > 0:
+            self.skymap_path, self.summary_path, self.event_name = self.get_gw_skymap(
+                event_name=event, rev=rev
+            )
+        else:
+            raise Exception(f"Event {event} not recognised as a fits file, a GRB or a GW event.")
 
         self.data, t_obs, self.hpm, self.key, self.dist, self.dist_unc = self.read_map()
 
@@ -170,10 +160,7 @@ class SkymapScanner(BaseScanner):
 
         self.logger.info(f"Time-range is {self.t_min} -- {self.default_t_max.isot}")
 
-        if self.scan_mode == "gw":
-            self.cache_dir = os.path.join(GW_CANDIDATE_CACHE, self.event_name)
-        else:
-            self.cache_dir = os.path.join(GRB_CANDIDATE_CACHE, self.event_name)
+        self.cache_dir = os.path.join(skymap_candidate_cache, self.event_name)
 
         if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir)
@@ -501,7 +488,7 @@ class SkymapScanner(BaseScanner):
 
         base_file_name = os.path.basename(latest_skymap)
         savepath = os.path.join(
-            BASE_GW_DIR,
+            self.base_skymap_dir,
             f"{event_name}_{latest_voevent['N']}_{base_file_name}",
         )
 
@@ -511,7 +498,7 @@ class SkymapScanner(BaseScanner):
         with open(savepath, "wb") as f:
             f.write(response.content)
 
-        summary_path = f"{GW_CANDIDATE_OUTPUT_DIR}/{event_name}_{latest_voevent['N']}_{self.prob_threshold}"
+        summary_path = f"{self.base_skymap_dir}/{event_name}_{latest_voevent['N']}_{self.prob_threshold}"
 
         return savepath, summary_path, event_name
 
@@ -560,7 +547,7 @@ class SkymapScanner(BaseScanner):
                 final_link = event_url + link
                 break
 
-        self.skymap_path = os.path.join(BASE_GRB_DIR, link)
+        self.skymap_path = os.path.join(self.base_skymap_dir, link)
 
         if os.path.isfile(self.skymap_path):
             self.logger.info(
@@ -571,7 +558,7 @@ class SkymapScanner(BaseScanner):
             wget.download(final_link, self.skymap_path)
 
         self.summary_path = (
-            f"{GRB_CANDIDATE_OUTPUT_DIR}/{event_name}_{self.prob_threshold}"
+            f"{self.base_skymap_dir}/{event_name}_{self.prob_threshold}"
         )
 
         self.event_name = event_name
@@ -742,7 +729,7 @@ class SkymapScanner(BaseScanner):
         plt.scatter(ra_cone_rad, dec_cone_rad)
         plt.title("CONE REGION")
 
-        outpath = os.path.join(BASE_GRB_DIR, f"{self.event_name}.png")
+        outpath = os.path.join(self.base_skymap_dir, f"{self.event_name}.png")
         plt.tight_layout()
 
         plt.savefig(outpath, dpi=300)
@@ -757,7 +744,7 @@ class SkymapScanner(BaseScanner):
         plt.tight_layout()
 
         outpath = os.path.join(
-            GRB_CANDIDATE_OUTPUT_DIR, f"{self.event_name}_coverage.png"
+            self.candidate_output_dir, f"{self.event_name}_coverage.png"
         )
         plt.savefig(outpath, dpi=300)
 

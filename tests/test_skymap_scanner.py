@@ -3,7 +3,7 @@ import logging
 from nuztf.skymap_scanner import SkymapScanner
 
 
-class TestGWScanner(unittest.TestCase):
+class TestSkymapScanner(unittest.TestCase):
 
     maxDiff = None
 
@@ -11,9 +11,9 @@ class TestGWScanner(unittest.TestCase):
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
 
-    def test_scan(self):
+    def test_gw_scan(self):
 
-        self.logger.info("\n\n Testing GW Scanner \n\n")
+        self.logger.info("\n\n Testing GW Scanning \n\n")
 
         gw_name = "S190814bv"
         prob_threshold = 0.9
@@ -21,8 +21,7 @@ class TestGWScanner(unittest.TestCase):
         self.logger.info(f"Scanning with GW {gw_name}")
 
         scanner = SkymapScanner(
-            event_name=gw_name,
-            scan_mode="gw",
+            event=gw_name,
             prob_threshold=prob_threshold,
             n_days=3,
             logger=self.logger,
@@ -65,3 +64,42 @@ class TestGWScanner(unittest.TestCase):
         true_tns_summary = "Candidate: ZTF19abpuhbh / RA=11.2569224 / Dec=-22.5161471 / First detection=2458710.9475231\nLast Upper Limit: None\nFirst Detection: 2458710.9475231 / band=r / mag=20.857 +/- 0.284\nFirst observed 13.56 hours after merger\n[2458710.9475231, 2458710.9948611]\n"
 
         self.assertEqual(tns_summary, true_tns_summary)
+
+    def test_grb_scan(self):
+
+        self.logger.info("\n\n Testing GRB Scanner \n\n")
+
+        grb_name = "GRB210927A"
+        prob_threshold = 0.9
+
+        self.logger.info(f"Scanning with GRB {grb_name}")
+
+        scanner = SkymapScanner(
+            event=grb_name,
+            prob_threshold=prob_threshold,
+            n_days=0.1,
+            logger=self.logger,
+        )
+
+        scanner.get_alerts()
+
+        n_retrieved_alerts = scanner.n_alerts
+        n_expected_alerts = 6356
+
+        self.logger.info(
+            f"Retrieved {n_retrieved_alerts} alerts. {n_expected_alerts} alerts expected."
+        )
+
+        self.assertEqual(n_retrieved_alerts, n_expected_alerts)
+
+        scanner.filter_alerts()
+
+        n_retrieved_candidates = len(scanner.final_candidates)
+        n_expected_candidates = 3
+
+        self.logger.info(
+            f"Retrieved {n_retrieved_candidates} candidates. {n_expected_candidates} candidates expected."
+        )
+
+        self.assertEqual(n_retrieved_candidates, n_expected_candidates)
+
