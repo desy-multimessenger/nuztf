@@ -88,17 +88,29 @@ def plot_irsa_lightcurve(
     if source_coords is None:
 
         result_table = Ned.query_object(source_name)
-        if "ZTF" in plot_title:
-            plot_title += f' ({result_table["Object Name"][0]})'
-        source_coords = [result_table["RA"][0], result_table["DEC"][0]]
+        if len(result_table) == 0:
+            logger.warning(f"Failed to resolve name {source_name} in NED. Trying to be clever instead.")
+            Ned.query_object("".join([x for x in source_name if x in [str(i) for i in range(10)]+["+", "-"]]))
 
-        if str(result_table["Redshift"][0]) != "--":
-            source_redshift = result_table["Redshift"]
+        if len(result_table) == 1:
+            source_coords = [result_table["RA"][0], result_table["DEC"][0]]
 
-        # sc = SkyCoord.from_name(source_name)
-        logger.info(
-            f"Using Astropy NED query result for name {source_name} ({source_coords})"
-        )
+            if "ZTF" in plot_title:
+                plot_title += f' ({result_table["Object Name"][0]})'
+
+            if str(result_table["Redshift"][0]) != "--":
+                source_redshift = result_table["Redshift"]
+
+            logger.info(
+                f"Using Astropy NED query result for name {source_name} ({source_coords})"
+            )
+
+        if source_coords is None:
+            sc = SkyCoord.from_name(source_name)
+            logger.info(
+                f"Using Astropy CDS query result for name {source_name} (RA={sc.ra}, Dec={sc.dec})"
+            )
+            source_coords = (sc.ra.value, sc.dec.value)
 
     df = LCQuery.from_position(source_coords[0], source_coords[1], 1.0).data
 
@@ -129,7 +141,7 @@ def plot_irsa_lightcurve(
                 logger.warning(f"Found multiple redshifts: {result_table}")
             else:
                 raise RemoteServiceError
-        except RemoteServiceError:
+        except (RemoteServiceError, IndexError) as e:
             logger.info("No redshift found")
 
     if source_redshift is not None:
