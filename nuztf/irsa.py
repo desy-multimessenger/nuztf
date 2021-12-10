@@ -87,22 +87,18 @@ def plot_irsa_lightcurve(
 
     if source_coords is None:
 
-        try:
+        result_table = Ned.query_object(source_name)
+        if "ZTF" in plot_title:
+            plot_title += f' ({result_table["Object Name"][0]})'
+        source_coords = [result_table["RA"][0], result_table["DEC"][0]]
 
-            result_table = Ned.query_object(source_name)
-            if "ZTF" in plot_title:
-                plot_title += f' ({result_table["Object Name"][0]})'
-            source_coords = [result_table["RA"][0], result_table["DEC"][0]]
+        if str(result_table["Redshift"][0]) != "--":
+            source_redshift = result_table["Redshift"]
 
-            if str(result_table["Redshift"][0]) != "--":
-                source_redshift = result_table["Redshift"]
-
-            # sc = SkyCoord.from_name(source_name)
-            logger.info(
-                f"Using Astropy NED query result for name {source_name} ({source_coords})"
-            )
-        except RemoteServiceError:
-            pass
+        # sc = SkyCoord.from_name(source_name)
+        logger.info(
+            f"Using Astropy NED query result for name {source_name} ({source_coords})"
+        )
 
     df = LCQuery.from_position(source_coords[0], source_coords[1], 1.0).data
 
