@@ -53,22 +53,59 @@ def plot_irsa_lightcurve(
     check_obs=True,
     check_obs_lookback_weeks=4,
 ):
+    plot_title = source_name
 
     if logger is None:
         logger = logging.getLogger(__name__)
     else:
         logger = logger
 
+    if np.logical_and("ZTF" in source_name, source_coords is not None):
+
+        c = SkyCoord(source_coords[0], source_coords[1], unit=u.deg, frame='icrs')
+
+        r = 0.5 * u.arcsecond
+
+        result_table = Ned.query_region(c, radius=r)
+
+        if len(result_table) == 1:
+            plot_title += f' ({result_table["Object Name"][0]})'
+            source_coords = [result_table["RA"][0], result_table["DEC"][0]]
+
+            if str(result_table["Redshift"][0]) != "--":
+                source_redshift = result_table["Redshift"]
+
+            logger.info(f"Found likely match to {source_name}"
+                        f"(type = '{result_table['Type'][0]}'. "
+                        f"distance = {result_table['Separation'][0]} arcsec')")
+        elif len(result_table) > 1:
+            logger.warning(f"Found multiple possible cross-matches: {result_table['Object Name']}")
+        else:
+            logger.info("No NED crossmatch found.")
+
     if source_coords is None:
-        sc = SkyCoord.from_name(source_name)
-        logger.info(
-            f"Using Astropy CDS query result for name {source_name} (RA={sc.ra}, Dec={sc.dec})"
-        )
-        source_coords = (sc.ra.value, sc.dec.value)
+
+        try:
+
+            result_table = Ned.query_object(source_name)
+            plot_title += f' ({result_table["Object Name"][0]})'
+            source_coords = [result_table["RA"][0], result_table["DEC"][0]]
+
+            if str(result_table["Redshift"][0]) != "--":
+                source_redshift = result_table["Redshift"]
+
+            # sc = SkyCoord.from_name(source_name)
+            logger.info(
+                f"Using Astropy NED query result for name {source_name} ({source_coords})"
+            )
+        except RemoteServiceError:
+            pass
 
     df = LCQuery.from_position(source_coords[0], source_coords[1], 1.0).data
 
     data = Table.from_pandas(df)
+
+    logger.info(f"There are a total of {len(data)} detections for {source_name}")
 
     plt.figure(figsize=(base_width, base_height), dpi=dpi)
 
@@ -130,7 +167,6 @@ def plot_irsa_lightcurve(
 
     dt = format_date(Time(latest["mjd"], format="mjd"), atel=atel)
 
-    logger.info(f"There are a total of {len(data)} detections for {source_name}")
     logger.info(
         f"Most recent detection on {dt} UT at a magnitude of "
         f"{latest['filtercode'][1]}={latest['mag']:.2f}+/-{latest['magerr']:.2f}"
@@ -293,7 +329,7 @@ def plot_irsa_lightcurve(
 
     ax2.set_xlim(lmjd, umjd)
 
-    ax.set_title(f'ZTF Lightcurve of {source_name.replace("J", " J")}', y=1.4)
+    ax.set_title(f'ZTF Lightcurve of {plot_title.replace("J", " J")}', y=1.4)
 
     ax.tick_params(axis="both", which="major", labelsize=big_fontsize)
     ax2.tick_params(axis="both", which="major", labelsize=big_fontsize)

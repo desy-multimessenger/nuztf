@@ -22,9 +22,9 @@ except subprocess.CalledProcessError:
 
 plt.rcParams["font.family"] = "sans-serif"
 
-output_folder = os.path.join(LOCALSOURCE, "IRSA")
-if not os.path.exists(output_folder):
-    os.makedirs(output_folder)
+plot_dir = os.path.join(LOCALSOURCE, "plots")
+if not os.path.exists(plot_dir):
+    os.makedirs(plot_dir)
 
 dpi = 300
 
