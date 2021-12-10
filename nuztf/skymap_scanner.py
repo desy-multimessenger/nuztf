@@ -237,8 +237,6 @@ class SkymapScanner(BaseScanner):
 
             if self.filter_f_no_prv(
                 res=res,
-                t_min_jd=self.t_min.jd,
-                t_max_jd=self.default_t_max.jd,
             ):
                 self.logger.debug(
                     f"{ztf_id}: Passed first cut (does not have previous detections)."
@@ -288,7 +286,7 @@ class SkymapScanner(BaseScanner):
                 _ztf_id = res["objectId"]
 
                 if self.filter_f_history(
-                    res=res, t_min_jd=self.t_min.jd, t_max_jd=self.default_t_max.jd
+                    res=res
                 ):
                     final_objects.append(_ztf_id)
                     self.cache[_ztf_id] = res
@@ -360,12 +358,15 @@ class SkymapScanner(BaseScanner):
 
         return text
 
-    def filter_f_no_prv(self, res: dict, t_min_jd: float, t_max_jd: float) -> bool:
+    def filter_f_no_prv(self, res: dict, t_max_jd=None) -> bool:
         """First filtering stage"""
+
+        if t_max_jd is None:
+            t_max_jd = self.default_t_max.jd
 
         # Veto transients older than t_min_jd
         # as we don't expect detections before GRB or GW event time)
-        if res["candidate"]["jdstarthist"] < t_min_jd:
+        if res["candidate"]["jdstarthist"] < self.t_min.jd:
             startdate_jd = res["candidate"]["jdstarthist"]
             startdate_date = Time(startdate_jd, format="jd").isot
             self.logger.debug(
@@ -403,12 +404,15 @@ class SkymapScanner(BaseScanner):
 
         return True
 
-    def filter_f_history(self, res: dict, t_min_jd, t_max_jd):
+    def filter_f_history(self, res: dict, t_max_jd=None):
         """Veto transients"""
+
+        if t_max_jd is None:
+            t_max_jd = self.default_t_max.jd
 
         # Veto old transients
         ztf_id = res["objectId"]
-        if res["candidate"]["jdstarthist"] < t_min_jd:
+        if res["candidate"]["jdstarthist"] < self.t_min.jd:
             self.logger.debug(
                 f"{ztf_id}: Transient is too old. (jdstarthist history predates event)"
             )
@@ -430,7 +434,7 @@ class SkymapScanner(BaseScanner):
         old_detections = [
             x
             for x in res["prv_candidates"]
-            if np.logical_and("isdiffpos" in x.keys(), x["jd"] > t_min_jd)
+            if np.logical_and("isdiffpos" in x.keys(), x["jd"] > self.t_min.jd)
         ]
 
         pos_detections = [x for x in old_detections if "isdiffpos" in x.keys()]
