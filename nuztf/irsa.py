@@ -318,5 +318,6 @@ def plot_irsa_lightcurve(
     plt.savefig(output_path, bbox_inches="tight", pad_inches=0.05)
 
     if extra_folder is not None:
-        public_path = os.path.join(extra_folder, f"{filename}")
-        plt.savefig(public_path, bbox_inches="tight", pad_inches=0.5)
+        extra_path = os.path.join(extra_folder, f"{filename}")
+        logger.info(f"Saving to {extra_path}")
+        plt.savefig(extra_path, bbox_inches="tight", pad_inches=0.5)
