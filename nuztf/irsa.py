@@ -69,7 +69,9 @@ def plot_irsa_lightcurve(
         result_table = Ned.query_region(c, radius=r)
 
         if len(result_table) == 1:
-            plot_title += f' ({result_table["Object Name"][0]})'
+            if "ZTF" in plot_title:
+                plot_title += f' ({result_table["Object Name"][0]})'
+
             source_coords = [result_table["RA"][0], result_table["DEC"][0]]
 
             if str(result_table["Redshift"][0]) != "--":
@@ -88,7 +90,8 @@ def plot_irsa_lightcurve(
         try:
 
             result_table = Ned.query_object(source_name)
-            plot_title += f' ({result_table["Object Name"][0]})'
+            if "ZTF" in plot_title:
+                plot_title += f' ({result_table["Object Name"][0]})'
             source_coords = [result_table["RA"][0], result_table["DEC"][0]]
 
             if str(result_table["Redshift"][0]) != "--":
