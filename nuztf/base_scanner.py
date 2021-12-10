@@ -603,7 +603,7 @@ class BaseScanner:
             ned_z, ned_dist = query_ned_for_z(
                 ra_deg=latest["ra"],
                 dec_deg=latest["dec"],
-                searchradius_arcsec=20,
+                searchradius_arcsec=1,
                 logger=self.logger,
             )
 
