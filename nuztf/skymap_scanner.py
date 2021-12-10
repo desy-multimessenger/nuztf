@@ -69,7 +69,7 @@ class SkymapScanner(BaseScanner):
         rev: int = None,
         prob_threshold: float = 0.9,
         cone_nside: int = 64,
-        n_days: int = 3,
+        n_days: float = 3.0,
         logger=None,
         custom_prefix="",
     ):
