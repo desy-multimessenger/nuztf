@@ -17,11 +17,13 @@ from astropy.table import Table
 from astropy.coordinates import SkyCoord
 from astropy.cosmology import FlatLambdaCDM
 
-from nuztf.style import output_folder, big_fontsize, base_width, base_height, dpi
+from nuztf.style import plot_dir, big_fontsize, base_width, base_height, dpi
 from nuztf.observation_log import get_most_recent_obs
 from nuztf.parse_nu_gcn import find_gcn_no, parse_gcn_circular
 
 cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
+
+logger = logging.getLogger(__name__)
 
 
 def format_date(t, atel=True):
@@ -45,7 +47,8 @@ def plot_irsa_lightcurve(
     source_redshift: float = None,
     plot_mag: bool = False,
     atel: bool = True,
-    public_folder: str = None,
+    plot_folder: str = plot_dir,
+    extra_folder: str = None,
     logger=None,
     check_obs=True,
     check_obs_lookback_weeks=4,
@@ -308,10 +311,12 @@ def plot_irsa_lightcurve(
 
     filename = f"{source_name.replace(' ', '')}_lightcurve{['_flux', ''][plot_mag]}.png"
 
-    output_path = os.path.join(output_folder, f"{filename}")
+    output_path = os.path.join(plot_folder, f"{filename}")
+
+    logger.info(f"Saving to {output_path}")
 
     plt.savefig(output_path, bbox_inches="tight", pad_inches=0.05)
 
-    if public_folder is not None:
-        public_path = os.path.join(public_folder, f"{filename}")
+    if extra_folder is not None:
+        public_path = os.path.join(extra_folder, f"{filename}")
         plt.savefig(public_path, bbox_inches="tight", pad_inches=0.5)
