@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+from astropy.coordinates import SkyCoord
+from astroquery.ned import Ned
+from astroquery.exceptions import RemoteServiceError
+from astropy import units as u
 from nuztf.ampel_api import ampel_api_catalog, ampel_api_name
 
 
@@ -27,6 +31,22 @@ def query_ned_for_z(
         dist_arcsec = query["dist_arcsec"]
 
     return z, dist_arcsec
+
+
+def query_ned_astroquery(
+        ra_deg: float, dec_deg: float, searchradius_arcsec: float = 0.5
+):
+    """
+    Function to obtain NED crossmatches via astroquery
+    """
+    c = SkyCoord(ra_deg, dec_deg, unit=u.deg, frame='icrs')
+
+    r = searchradius_arcsec * u.arcsecond
+
+    try:
+        return Ned.query_region(c, radius=r)
+    except RemoteServiceError:
+        return None
 
 
 def ampel_api_tns(
@@ -163,6 +183,23 @@ def get_cross_match_info(raw: dict, logger=None):
             else:
                 label = "[MULTIPLE WISE MATCHES]"
 
+    # Just check NED
+
+    if label == "":
+
+        res = query_ned_astroquery(
+            ra_deg=alert["ra"],
+            dec_deg=alert["dec"],
+            searchradius_arcsec=0.5,
+        )
+
+        if res is not None:
+            if len(res) == 1:
+                label = f"{res['Object Name'][0]} ['{res['Type'][0]}'-type source " \
+                        f"({res['Separation'][0]:.2f} arsec)]"
+            else:
+                label += "[MULTIPLE NED MATCHES]"
+
     # Extra check to TNS, append to other info
 
     full_name, _, _ = ampel_api_tns(
@@ -183,3 +220,4 @@ def check_cross_match_info_by_name(name: str, logger=None):
     return get_cross_match_info(
         raw=ampel_api_name(name, with_history=False, logger=logger)[0], logger=logger
     )
+
