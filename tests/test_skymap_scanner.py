@@ -27,6 +27,8 @@ class TestSkymapScanner(unittest.TestCase):
             logger=self.logger,
         )
 
+        scanner.plot_skymap()
+
         scanner.get_alerts()
 
         n_retrieved_alerts = scanner.n_alerts
