@@ -43,7 +43,7 @@ setuptools.setup(
         "matplotlib==3.5.0",
         "numpy==1.21.4",
         "pandas == 1.3.4",
-        "python-ligo-lw=1.7.1",
+        "python-ligo-lw == 1.7.1",
         "requests == 2.26.0",
         "seaborn == 0.11.2",
         "setuptools == 59.5.0",
