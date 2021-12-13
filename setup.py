@@ -41,7 +41,7 @@ setuptools.setup(
         "lxml==4.6.4",
         "matplotlib==3.5.0",
         "numpy==1.21.4",
-        "pandas == 1.3.4",
+        "pandas == 1.3.5",
         "requests == 2.26.0",
         "seaborn == 0.11.2",
         "setuptools == 59.6.0",
