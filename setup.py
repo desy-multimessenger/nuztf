@@ -38,6 +38,7 @@ setuptools.setup(
         "ipykernel == 6.6.0",
         "jupyter == 1.0.0",
         "ligo-gracedb == 2.7.6",
+        "ligo.skymap == 0.6.0",
         "lxml==4.6.4",
         "matplotlib==3.5.0",
         "numpy==1.21.4",
