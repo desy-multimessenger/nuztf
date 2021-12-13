@@ -40,7 +40,7 @@ setuptools.setup(
         "ligo-gracedb == 2.7.6",
         "ligo.skymap == 0.5.3",
         "lxml==4.6.4",
-        "matplotlib==3.5.0",
+        "matplotlib==3.5.1",
         "numpy==1.21.4",
         "pandas == 1.3.5",
         "requests == 2.26.0",
