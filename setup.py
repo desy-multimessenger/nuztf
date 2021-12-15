@@ -46,7 +46,7 @@ setuptools.setup(
         "python-ligo-lw == 1.7.1",
         "requests == 2.26.0",
         "seaborn == 0.11.2",
-        "setuptools == 59.5.0",
+        "setuptools == 59.6.0",
         "tqdm == 4.62.3",
         "wget == 3.2",
         "ztfquery == 1.18.0",
