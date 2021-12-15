@@ -6,7 +6,7 @@ import logging
 
 import matplotlib.pyplot as plt
 import numpy as np
-
+import pandas as pd
 from astropy.time import Time
 from astropy import units as u
 from astropy import constants as const
@@ -16,6 +16,8 @@ from ztfquery.lightcurve import LCQuery
 from astropy.table import Table
 from astropy.coordinates import SkyCoord
 from astropy.cosmology import FlatLambdaCDM
+from ztfquery.io import LOCALSOURCE
+from nuztf.ampel_api import ampel_api_name
 
 from nuztf.style import plot_dir, big_fontsize, base_width, base_height, dpi
 from nuztf.observation_log import get_most_recent_obs
@@ -52,6 +54,10 @@ def plot_irsa_lightcurve(
     logger=None,
     check_obs=True,
     check_obs_lookback_weeks=4,
+    from_cache: bool = False,
+    cache_dir: str = os.path.join(LOCALSOURCE, "cache/"),
+    expanded_labels: bool = True,
+    ylim: tuple = None
 ):
     plot_title = source_name
 
@@ -59,6 +65,50 @@ def plot_irsa_lightcurve(
         logger = logging.getLogger(__name__)
     else:
         logger = logger
+
+    # If there are no coordinates, try name resolve to get coordinates!
+
+    if source_coords is None:
+
+        # Try ampel to find ZTF
+
+        if "ZTF" in source_name:
+            res = ampel_api_name(source_name, with_history=False)[0]
+            source_coords = [res["candidate"]["ra"], res["candidate"]["dec"]]
+            logger.info(f"Found ZTF coordinates for source {source_name}")
+
+        else:
+
+            # Otherwise try NED
+
+            result_table = Ned.query_object(source_name)
+            if len(result_table) == 0:
+                logger.warning(f"Failed to resolve name {source_name} in NED. Trying to be clever instead.")
+                result_table = Ned.query_object(
+                    "".join([x for x in source_name if x in [str(i) for i in range(10)]+["+", "-"]])
+                )
+
+            if len(result_table) == 1:
+                source_coords = [result_table["RA"][0], result_table["DEC"][0]]
+
+                if "ZTF" in plot_title:
+                    plot_title += f' ({result_table["Object Name"][0]})'
+
+                if str(result_table["Redshift"][0]) != "--":
+                    source_redshift = result_table["Redshift"]
+
+                logger.info(
+                    f"Using Astropy NED query result for name {source_name} ({source_coords})"
+                )
+
+            if source_coords is None:
+                sc = SkyCoord.from_name(source_name)
+                logger.info(
+                    f"Using Astropy CDS query result for name {source_name} (RA={sc.ra}, Dec={sc.dec})"
+                )
+                source_coords = (sc.ra.value, sc.dec.value)
+
+    # Try to find a catalogue source nearby using coordinates
 
     if np.logical_and("ZTF" in source_name, source_coords is not None):
 
@@ -85,44 +135,41 @@ def plot_irsa_lightcurve(
         else:
             logger.info("No NED crossmatch found.")
 
-    if source_coords is None:
+    # Query IRSA, or load from cache
 
-        result_table = Ned.query_object(source_name)
-        if len(result_table) == 0:
-            logger.warning(f"Failed to resolve name {source_name} in NED. Trying to be clever instead.")
-            Ned.query_object("".join([x for x in source_name if x in [str(i) for i in range(10)]+["+", "-"]]))
+    try:
+        os.makedirs(cache_dir)
+    except OSError:
+        pass
 
-        if len(result_table) == 1:
-            source_coords = [result_table["RA"][0], result_table["DEC"][0]]
+    cache_path = os.path.join(cache_dir, f'{source_name.replace(" ", "")}.csv')
 
-            if "ZTF" in plot_title:
-                plot_title += f' ({result_table["Object Name"][0]})'
+    if from_cache:
+        logger.debug(f"Loading from {cache_path}")
+        df = pd.read_csv(cache_path)
 
-            if str(result_table["Redshift"][0]) != "--":
-                source_redshift = result_table["Redshift"]
+    else:
 
-            logger.info(
-                f"Using Astropy NED query result for name {source_name} ({source_coords})"
-            )
+        df = LCQuery.from_position(source_coords[0], source_coords[1], 1.0).data
 
-        if source_coords is None:
-            sc = SkyCoord.from_name(source_name)
-            logger.info(
-                f"Using Astropy CDS query result for name {source_name} (RA={sc.ra}, Dec={sc.dec})"
-            )
-            source_coords = (sc.ra.value, sc.dec.value)
-
-    df = LCQuery.from_position(source_coords[0], source_coords[1], 1.0).data
+        logger.debug(f"Saving to {cache_path}")
+        df.to_csv(cache_path)
 
     data = Table.from_pandas(df)
 
     logger.info(f"There are a total of {len(data)} detections for {source_name}")
 
+    # Start Figure
+
     plt.figure(figsize=(base_width, base_height), dpi=dpi)
 
-    ax2 = plt.subplot(111)
+    if expanded_labels:
 
-    ax = ax2.twiny()
+        ax2 = plt.subplot(111)
+
+        ax = ax2.twiny()
+    else:
+        ax = plt.subplot(111)
 
     # If you have a redshift, you can add a second y axis!
 
@@ -183,6 +230,8 @@ def plot_irsa_lightcurve(
         f"{latest['filtercode'][1]}={latest['mag']:.2f}+/-{latest['magerr']:.2f}"
     )
 
+    # If you want, you can check the most recent observation
+
     if check_obs:
 
         mro = get_most_recent_obs(
@@ -197,6 +246,8 @@ def plot_irsa_lightcurve(
             logger.info(f"Most recent observation at {ot}")
         else:
             logger.info("No recent observation found.")
+
+    # Plot each band (g/r/i)
 
     for fc in ["zg", "zr", "zi"]:
         mask = data["filtercode"] == fc
@@ -264,10 +315,15 @@ def plot_irsa_lightcurve(
                     label=f"{fc[-1]} ({wl[fc]:.0f} nm)",
                 )
 
-    if plot_mag:
-        ax2.set_ylabel(r"Apparent magnitude [AB]", fontsize=big_fontsize)
+    # You can force the y limits if you want
 
-        ax2.invert_yaxis()
+    if ylim is not None:
+        ax.set_ylim(ylim)
+
+    if plot_mag:
+        ax.set_ylabel(r"Apparent magnitude [AB]", fontsize=big_fontsize)
+
+        ax.invert_yaxis()
 
         if source_redshift is not None:
             ax1b.set_ylabel(fr"Absolute magnitude [AB]", fontsize=big_fontsize)
@@ -279,11 +335,11 @@ def plot_irsa_lightcurve(
             ax1b.set_ylim(y_min - dist_mod, y_max - dist_mod)
 
     else:
-        ax2.set_ylabel(
+        ax.set_ylabel(
             r"$\nu$F$_{\nu}$ [erg cm$^{-2}$ s$^{-1}$]", fontsize=big_fontsize
         )
 
-        ax2.set_yscale("log")
+        ax.set_yscale("log")
 
         if source_redshift is not None:
             ax1b.set_ylabel(r"$\nu$L$_{\nu}$ [erg s$^{-1}$]", fontsize=big_fontsize)
@@ -311,46 +367,54 @@ def plot_irsa_lightcurve(
 
         ax.axvline(gcn_info["time"].mjd, linestyle=":", label=nu, color=f"C{j}")
 
-    # Set up ISO dates
+    if expanded_labels:
 
-    lmjd, umjd = ax.get_xlim()
+        # Set up ISO dates
 
-    lt = Time(lmjd, format="mjd")
-    ut = Time(umjd, format="mjd")
+        lmjd, umjd = ax.get_xlim()
 
-    nt = Time.now()
-    nt.format = "fits"
+        lt = Time(lmjd, format="mjd")
+        ut = Time(umjd, format="mjd")
 
-    mjds = []
-    labs = []
+        nt = Time.now()
+        nt.format = "fits"
 
-    for year in range(2016, int(nt.value[:4]) + 1):
-        for k, month in enumerate([1, 7]):
+        mjds = []
+        labs = []
 
-            t = Time(f"{year}-{month}-01T00:00:00.01", format="isot", scale="utc")
-            t.format = "fits"
-            t.out_subfmt = "date"
+        for year in range(2016, int(nt.value[:4]) + 1):
+            for k, month in enumerate([1, 7]):
 
-            if np.logical_and(t > lt, t < ut):
-                mjds.append(t.mjd)
-                labs.append(t.value)
+                t = Time(f"{year}-{month}-01T00:00:00.01", format="isot", scale="utc")
+                t.format = "fits"
+                t.out_subfmt = "date"
 
-    ax2.set_xticks(mjds)
-    ax2.set_xticklabels(labels=labs, rotation=80)
+                if np.logical_and(t > lt, t < ut):
+                    mjds.append(t.mjd)
+                    labs.append(t.value)
 
-    ax2.set_xlim(lmjd, umjd)
+        ax2.set_xticks(mjds)
+        ax2.set_xticklabels(labels=labs, rotation=80)
 
-    ax.set_title(f'ZTF Lightcurve of {plot_title.replace("J", " J")}', y=1.4)
+        ax2.set_xlim(lmjd, umjd)
+
+        ax.set_title(f'ZTF Lightcurve of {plot_title.replace("J", " J")}', y=1.4)
+
+        ax2.tick_params(axis="both", which="major", labelsize=big_fontsize)
 
     ax.tick_params(axis="both", which="major", labelsize=big_fontsize)
-    ax2.tick_params(axis="both", which="major", labelsize=big_fontsize)
+
+    # plt.setp(ax2.get_yticklabels(), visible=True)
+    # ax.yaxis.set_tick_params(visible=True)
 
     if source_redshift is not None:
         ax1b.tick_params(axis="both", which="major", labelsize=big_fontsize)
 
+    # 1.42
+
     ax.legend(
         loc="upper center",
-        bbox_to_anchor=(0.5, 1.42),
+        bbox_to_anchor=(0.5, 1.22 + 0.2*float(expanded_labels)),
         ncol=3 + len(nu_name),
         fancybox=True,
         fontsize=big_fontsize,
@@ -367,4 +431,4 @@ def plot_irsa_lightcurve(
     if extra_folder is not None:
         extra_path = os.path.join(extra_folder, f"{filename}")
         logger.info(f"Saving to {extra_path}")
-        plt.savefig(extra_path, bbox_inches="tight", pad_inches=0.5)
+        plt.savefig(extra_path, bbox_inches="tight", pad_inches=0.05)
