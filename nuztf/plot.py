@@ -12,17 +12,40 @@ from matplotlib.colors import Normalize
 from base64 import b64decode
 
 from astropy.time import Time
-from astropy.cosmology import FlatLambdaCDM
 from astropy import units as u
 from astropy.io import fits
 from astropy import visualization
 from ztfquery.utils.stamps import get_ps_stamp
+from nuztf.style import cosmo
 
 from nuztf.cat_match import get_cross_match_info
 from nuztf.ampel_api import ensure_cutouts
 
-# For absolute magnitude calculation
-GENERIC_COSMOLOGY = FlatLambdaCDM(H0=70, Om0=0.3)
+
+def alert_to_pandas(alert):
+
+    candidate = alert[0]["candidate"]
+    prv_candid = alert[0]["prv_candidates"]
+
+    df = pd.DataFrame(candidate, index=[0])
+    df_ulims = pd.DataFrame()
+
+    # Filter out images with negative difference flux
+    i = 0
+    for prv in prv_candid:
+        # Go through the alert history
+        if "magpsf" in prv.keys() and "isdiffpos" in prv.keys():
+            i += 1
+            ser = pd.Series(prv, name=i)
+            df = df.append(ser)
+        else:
+            df_ulims = df_ulims.append(prv, ignore_index=True)
+            i += 1
+
+    df["mjd"] = df["jd"] - 2400000.5
+    df_ulims["mjd"] = df_ulims["jd"] - 2400000.5
+
+    return df, df_ulims
 
 
 def lightcurve_from_alert(
@@ -59,7 +82,6 @@ def lightcurve_from_alert(
 
     name = alert[0]["objectId"]
     candidate = alert[0]["candidate"]
-    prv_candid = alert[0]["prv_candidates"]
 
     if include_cutouts:
         if "cutoutScience" in alert[0].keys():
@@ -76,23 +98,7 @@ def lightcurve_from_alert(
 
     logger.debug(f"Plotting {name}")
 
-    df = pd.DataFrame(candidate, index=[0])
-    df_ulims = pd.DataFrame()
-
-    # Filter out images with negative difference flux
-    i = 0
-    for prv in prv_candid:
-        # Go through the alert history
-        if "magpsf" in prv.keys() and "isdiffpos" in prv.keys():
-            i += 1
-            ser = pd.Series(prv, name=i)
-            df = df.append(ser)
-        else:
-            df_ulims = df_ulims.append(prv, ignore_index=True)
-            i += 1
-
-    df["mjd"] = df["jd"] - 2400000.5
-    df_ulims["mjd"] = df_ulims["jd"] - 2400000.5
+    df, df_ulims = alert_to_pandas(alert)
 
     fig = plt.figure(figsize=figsize)
 
@@ -128,7 +134,7 @@ def lightcurve_from_alert(
     # and plot as right axis
     if z is not None:
 
-        dist_l = GENERIC_COSMOLOGY.luminosity_distance(z).to(u.pc).value
+        dist_l = cosmo.luminosity_distance(z).to(u.pc).value
 
         def mag_to_absmag(mag):
             absmag = mag - 5 * (np.log10(dist_l) - 1)

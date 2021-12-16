@@ -15,15 +15,12 @@ from astroquery.ned import Ned
 from ztfquery.lightcurve import LCQuery
 from astropy.table import Table
 from astropy.coordinates import SkyCoord
-from astropy.cosmology import FlatLambdaCDM
 from ztfquery.io import LOCALSOURCE
 from nuztf.ampel_api import ampel_api_name
 
-from nuztf.style import plot_dir, big_fontsize, base_width, base_height, dpi
+from nuztf.style import plot_dir, big_fontsize, base_width, base_height, dpi, cosmo
 from nuztf.observation_log import get_most_recent_obs
 from nuztf.parse_nu_gcn import find_gcn_no, parse_gcn_circular
-
-cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 
 logger = logging.getLogger(__name__)
 
@@ -409,8 +406,6 @@ def plot_irsa_lightcurve(
 
     if source_redshift is not None:
         ax1b.tick_params(axis="both", which="major", labelsize=big_fontsize)
-
-    # 1.42
 
     ax.legend(
         loc="upper center",

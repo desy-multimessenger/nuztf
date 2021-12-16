@@ -7,6 +7,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import logging
 from ztfquery.io import LOCALSOURCE
+from astropy.cosmology import FlatLambdaCDM
+
+# same cosmology everywhere
+
+cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 
 logger = logging.getLogger(__name__)
 
