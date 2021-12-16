@@ -164,7 +164,7 @@ def get_cross_match_info(raw: dict, logger=None):
             catalog_type="extcats",
             ra_deg=alert["ra"],
             dec_deg=alert["dec"],
-            searchradius_arcsec=1.5,
+            searchradius_arcsec=6.0,
             logger=logger,
         )
         if res is not None:
@@ -175,11 +175,13 @@ def get_cross_match_info(raw: dict, logger=None):
                         f"[Probable WISE-selected quasar:W1-W2={w1mw2:.1f}>0.8  "
                         f"({res[0]['dist_arcsec']:.2f} arsec)]"
                     )
-                elif w1mw2 > 0.8:
+                elif w1mw2 > 0.5:
                     label = (
                         f"[Possible WISE-selected quasar:W1-W2={w1mw2:.1f}>0.5  "
                         f"({res[0]['dist_arcsec']:.2f} arsec)]"
                     )
+                else:
+                    label = "WISE DETECTIOM"
             else:
                 label = "[MULTIPLE WISE MATCHES]"
 
@@ -190,15 +192,16 @@ def get_cross_match_info(raw: dict, logger=None):
         res = query_ned_astroquery(
             ra_deg=alert["ra"],
             dec_deg=alert["dec"],
-            searchradius_arcsec=0.5,
+            searchradius_arcsec=3.0,
         )
 
         if res is not None:
             if len(res) == 1:
                 label = f"{res['Object Name'][0]} ['{res['Type'][0]}'-type source " \
                         f"({res['Separation'][0]:.2f} arsec)]"
-            else:
+            elif len(res) > 1:
                 label += "[MULTIPLE NED MATCHES]"
+                logger.debug(f"{res}")
 
     # Extra check to TNS, append to other info
 
