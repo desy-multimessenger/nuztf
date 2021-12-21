@@ -15,6 +15,8 @@ from requests.auth import HTTPBasicAuth
 # same cosmology everywhere
 cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 
+_, TNS_API_TOKEN = load_credentials("tns_api_token")
+
 
 def is_ztf_name(name: str):
     """
@@ -41,7 +43,6 @@ def query_tns_by_name(name, logger=None):
 
     tns_bot_id = "115364"
     tns_bot_name = "ZTF_DESY"
-    _, tns_api_token = load_credentials("tns_api_token")
 
     if logger is None:
         logger = logging.getLogger(__name__)
@@ -63,7 +64,7 @@ def query_tns_by_name(name, logger=None):
     get_obj = [("objname", name), ("objid", ""), ("photometry", "1"), ("spectra", "0")]
     json_file = OrderedDict(get_obj)
 
-    get_data = {"api_key": tns_api_token, "data": json.dumps(json_file)}
+    get_data = {"api_key": TNS_API_TOKEN, "data": json.dumps(json_file)}
 
     response = requests.post(queryurl_tns, headers=headers, data=get_data)
 
