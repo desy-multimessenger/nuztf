@@ -18,7 +18,8 @@ from astropy.coordinates import SkyCoord
 from ztfquery.io import LOCALSOURCE
 from nuztf.ampel_api import ampel_api_name
 
-from nuztf.style import plot_dir, big_fontsize, base_width, base_height, dpi, cosmo
+from nuztf.style import plot_dir, big_fontsize, base_width, base_height, dpi
+from nuztf.utils import cosmo, is_ztf_name, is_tns_name, query_tns_by_name
 from nuztf.observation_log import get_most_recent_obs
 from nuztf.parse_nu_gcn import find_gcn_no, parse_gcn_circular
 
@@ -54,7 +55,7 @@ def plot_irsa_lightcurve(
     from_cache: bool = False,
     cache_dir: str = os.path.join(LOCALSOURCE, "cache/"),
     expanded_labels: bool = True,
-    ylim: tuple = None
+    ylim: tuple = None,
 ):
     plot_title = source_name
 
@@ -65,24 +66,62 @@ def plot_irsa_lightcurve(
 
     # If there are no coordinates, try name resolve to get coordinates!
 
+    # source_name = "AT2022lol"
+
     if source_coords is None:
 
-        # Try ampel to find ZTF
+        # Try ampel to find ZTF coordinates
 
-        if "ZTF" in source_name:
+        if is_ztf_name(name=source_name):
+            logger.info("Source name is a ZTF name.")
             res = ampel_api_name(source_name, with_history=False)[0]
             source_coords = [res["candidate"]["ra"], res["candidate"]["dec"]]
             logger.info(f"Found ZTF coordinates for source {source_name}")
 
+        # Try TNS
+
+        elif is_tns_name(name=source_name):
+            logger.info("Source name is a TNS name.")
+            result_dict = query_tns_by_name(name=source_name, logger=logger)
+
+            if not result_dict:
+                logger.warning(f"{source_name} is not in TNS.")
+
+            if result_dict:
+                logger.info(f"Found {source_name} on TNS.")
+                res = result_dict["data"]["reply"]
+                ra = res["radeg"]
+                dec = res["decdeg"]
+                source_coords = [ra, dec]
+                if "redshift" in res.keys():
+                    source_redshift = res["redshift"]
+
+        # Otherwise try NED
+
         else:
-
-            # Otherwise try NED
-
             result_table = Ned.query_object(source_name)
+
             if len(result_table) == 0:
-                logger.warning(f"Failed to resolve name {source_name} in NED. Trying to be clever instead.")
+                logger.warning(
+                    f"Failed to resolve name {source_name} in NED. Trying to be clever instead."
+                )
+
+                querystring = "".join(
+                    [
+                        x
+                        for x in source_name
+                        if x in [str(i) for i in range(10)] + ["+", "-"]
+                    ]
+                )
+
                 result_table = Ned.query_object(
-                    "".join([x for x in source_name if x in [str(i) for i in range(10)]+["+", "-"]])
+                    "".join(
+                        [
+                            x
+                            for x in source_name
+                            if x in [str(i) for i in range(10)] + ["+", "-"]
+                        ]
+                    )
                 )
 
             if len(result_table) == 1:
@@ -109,7 +148,7 @@ def plot_irsa_lightcurve(
 
     if np.logical_and("ZTF" in source_name, source_coords is not None):
 
-        c = SkyCoord(source_coords[0], source_coords[1], unit=u.deg, frame='icrs')
+        c = SkyCoord(source_coords[0], source_coords[1], unit=u.deg, frame="icrs")
 
         r = 0.5 * u.arcsecond
 
@@ -124,11 +163,15 @@ def plot_irsa_lightcurve(
             if str(result_table["Redshift"][0]) != "--":
                 source_redshift = result_table["Redshift"]
 
-            logger.info(f"Found likely match to {source_name}"
-                        f"(type = '{result_table['Type'][0]}'. "
-                        f"distance = {result_table['Separation'][0]} arcsec')")
+            logger.info(
+                f"Found likely match to {source_name}"
+                f"(type = '{result_table['Type'][0]}'. "
+                f"distance = {result_table['Separation'][0]} arcsec')"
+            )
         elif len(result_table) > 1:
-            logger.warning(f"Found multiple possible cross-matches: {result_table['Object Name']}")
+            logger.warning(
+                f"Found multiple possible cross-matches: {result_table['Object Name']}"
+            )
         else:
             logger.info("No NED crossmatch found.")
 
@@ -332,9 +375,7 @@ def plot_irsa_lightcurve(
             ax1b.set_ylim(y_min - dist_mod, y_max - dist_mod)
 
     else:
-        ax.set_ylabel(
-            r"$\nu$F$_{\nu}$ [erg cm$^{-2}$ s$^{-1}$]", fontsize=big_fontsize
-        )
+        ax.set_ylabel(r"$\nu$F$_{\nu}$ [erg cm$^{-2}$ s$^{-1}$]", fontsize=big_fontsize)
 
         ax.set_yscale("log")
 
@@ -409,7 +450,7 @@ def plot_irsa_lightcurve(
 
     ax.legend(
         loc="upper center",
-        bbox_to_anchor=(0.5, 1.22 + 0.2*float(expanded_labels)),
+        bbox_to_anchor=(0.5, 1.22 + 0.2 * float(expanded_labels)),
         ncol=3 + len(nu_name),
         fancybox=True,
         fontsize=big_fontsize,

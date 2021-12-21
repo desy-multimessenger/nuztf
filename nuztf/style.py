@@ -7,11 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import logging
 from ztfquery.io import LOCALSOURCE
-from astropy.cosmology import FlatLambdaCDM
 
-# same cosmology everywhere
-
-cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 
 logger = logging.getLogger(__name__)
 
@@ -19,11 +15,13 @@ sns.set_style("white")
 
 # Use latex if available
 try:
-    subprocess.check_output(['which', 'latex'])
+    subprocess.check_output(["which", "latex"])
     plt.rc("text", usetex=True)
     plt.rc("text.latex", preamble=r"\usepackage{romanbar}")
 except subprocess.CalledProcessError:
-    logger.warning("No Latex installation found. Proceeding without, but plots may look weird.")
+    logger.warning(
+        "No Latex installation found. Proceeding without, but plots may look weird."
+    )
 
 plt.rcParams["font.family"] = "sans-serif"
 
