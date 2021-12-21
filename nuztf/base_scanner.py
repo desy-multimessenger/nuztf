@@ -34,12 +34,11 @@ from nuztf.ampel_api import (
 from nuztf.cat_match import get_cross_match_info, ampel_api_tns, query_ned_for_z
 from nuztf.observation_log import get_obs_summary
 from nuztf.plot import lightcurve_from_alert
+from nuztf.utils import cosmo
 
 DEBUG = False
 RATELIMIT_CALLS = 10
 RATELIMIT_PERIOD = 1
-
-cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 
 
 class BaseScanner:

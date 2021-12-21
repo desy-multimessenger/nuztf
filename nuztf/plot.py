@@ -16,7 +16,7 @@ from astropy import units as u
 from astropy.io import fits
 from astropy import visualization
 from ztfquery.utils.stamps import get_ps_stamp
-from nuztf.style import cosmo
+from nuztf.utils import cosmo
 
 from nuztf.cat_match import get_cross_match_info
 from nuztf.ampel_api import ensure_cutouts
