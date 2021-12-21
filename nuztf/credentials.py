@@ -50,3 +50,16 @@ try:
 
 except KeyError:
     logging.info("No Token for AMPEL API found in environment" "Assume they are set.")
+
+try:
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning)
+        io.set_account(
+            "tns_api_token",
+            username=os.environ["TNS_API_TOKEN_USER"],
+            password=os.environ["TNS_API_TOKEN_PASSWORD"],
+        )
+        logging.info('Set up "tns_api_token" credentials')
+
+except KeyError:
+    logging.info("No Token for TNS API found in environment" "Assume they are set.")
