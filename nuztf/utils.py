@@ -8,15 +8,12 @@ import json
 from json import JSONDecodeError
 from collections import OrderedDict
 
-from nuztf import credentials
 from astropy.cosmology import FlatLambdaCDM
 from nuztf.credentials import load_credentials
 from requests.auth import HTTPBasicAuth
 
 # same cosmology everywhere
 cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
-
-_, TNS_API_TOKEN = load_credentials("tns_api_token")
 
 
 def is_ztf_name(name: str):
@@ -39,6 +36,8 @@ def query_tns_by_name(name, logger=None):
     """
     if not is_tns_name(name):
         raise ValueError("String is not a TNS name")
+
+    _, tns_api_token = load_credentials("tns_api_token")
 
     name = name[2:]
 
@@ -65,7 +64,7 @@ def query_tns_by_name(name, logger=None):
     get_obj = [("objname", name), ("objid", ""), ("photometry", "1"), ("spectra", "0")]
     json_file = OrderedDict(get_obj)
 
-    get_data = {"api_key": TNS_API_TOKEN, "data": json.dumps(json_file)}
+    get_data = {"api_key": tns_api_token, "data": json.dumps(json_file)}
 
     response = requests.post(queryurl_tns, headers=headers, data=get_data)
 
