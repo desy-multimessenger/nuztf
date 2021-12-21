@@ -8,6 +8,7 @@ import json
 from json import JSONDecodeError
 from collections import OrderedDict
 
+from nuztf import credentials
 from astropy.cosmology import FlatLambdaCDM
 from nuztf.credentials import load_credentials
 from requests.auth import HTTPBasicAuth
