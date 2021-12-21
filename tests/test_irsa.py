@@ -14,11 +14,15 @@ class TestIrsa(unittest.TestCase):
     def test_lightcurve(self):
         self.logger.info("\n\n Testing IRSA \n\n")
 
-        src_name = "PKS1502+106"
+        src_names = ["PKS1502+106", "SN2021gpw"]
+        nu_names = ["IC190730A", "IC211216B"]
 
-        plot_irsa_lightcurve(
-            source_name=src_name,
-            nu_name="IC190730A",
-            check_obs=True,
-            check_obs_lookback_weeks=12,
-        )
+        for i, src_name in enumerate(src_names):
+
+            plot_irsa_lightcurve(
+                source_name=src_name,
+                nu_name=nu_names[i],
+                check_obs=True,
+                check_obs_lookback_weeks=1,
+                logger=self.logger,
+            )
