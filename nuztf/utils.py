@@ -14,6 +14,7 @@ from requests.auth import HTTPBasicAuth
 
 # same cosmology everywhere
 cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
+# test
 
 
 def is_ztf_name(name: str):
