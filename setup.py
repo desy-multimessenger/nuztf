@@ -31,7 +31,7 @@ setuptools.setup(
         "astropy == 4.3.1",
         "backoff == 1.11.1",
         "coveralls == 3.3.1",
-        "fitsio == 1.1.5",
+        "fitsio == 1.1.6",
         "geopandas == 0.10.2",
         "gwemopt == 0.0.73",
         "healpy == 1.15.0",
