@@ -629,17 +629,9 @@ class BaseScanner:
 
         return text
 
-    def plot_overlap_with_observations(
-        self, fields=None, pid=None, first_det_window_days=None, min_sep=0.01
+    def calculate_overlap_with_observations(
+            self, fields=None, pid=None, first_det_window_days=None, min_sep=0.01
     ):
-        """ """
-
-        fig = plt.figure()
-        plt.subplot(projection="aitoff")
-
-        double_in_plane_probs = []
-        single_in_plane_prob = []
-
         if fields is None:
             mns = self.get_multi_night_summary(first_det_window_days)
 
@@ -819,6 +811,52 @@ class BaseScanner:
                 veto_pixels.append(p)
 
         overlapping_fields = sorted(list(set(overlapping_fields)))
+
+        return (
+            double_in_plane_pixels,
+            double_in_plane_probs,
+            single_in_plane_pixels,
+            single_in_plane_prob,
+            veto_pixels,
+            plane_pixels,
+            plane_probs,
+            times,
+            double_no_plane_prob,
+            double_no_plane_pixels,
+            single_no_plane_prob,
+            single_no_plane_pixels,
+            overlapping_fields
+        )
+
+    def plot_overlap_with_observations(
+        self, fields=None, pid=None, first_det_window_days=None, min_sep=0.01
+    ):
+        """ """
+
+        (
+            double_in_plane_pixels,
+            double_in_plane_probs,
+            single_in_plane_pixels,
+            single_in_plane_prob,
+            veto_pixels,
+            plane_pixels,
+            plane_probs,
+            times,
+            double_no_plane_prob,
+            double_no_plane_pixels,
+            single_no_plane_prob,
+            single_no_plane_pixels,
+            overlapping_fields
+        ) = self.calculate_overlap_with_observations(
+            fields=fields,
+            pid=pid,
+            first_det_window_days=first_det_window_days,
+            min_sep=min_sep
+        )
+
+        fig = plt.figure()
+        plt.subplot(projection="aitoff")
+
         self.overlap_fields = list(set(overlapping_fields))
 
         self.overlap_prob = np.sum(double_in_plane_probs + double_no_plane_prob) * 100.0
