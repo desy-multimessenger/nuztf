@@ -85,8 +85,16 @@ jobs:
           --wheel
           --outdir dist/
           .
+
       - name: Publish distribution 📦 to PyPI
         if: ${{ startsWith(github.ref, 'refs/tags/') && success() && matrix.python-version == 3.8}}
         uses: pypa/gh-action-pypi-publish@master
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
+
+      - name: Merge pull request if from Dependabot
+        if: ${{success() && matrix.python-version == 3.8}}
+        run: gh pr merge --auto --merge "$PR_URL"
+        env:
+          PR_URL: ${{github.event.pull_request.html_url}}
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
