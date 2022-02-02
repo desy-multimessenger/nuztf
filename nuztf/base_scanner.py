@@ -825,7 +825,8 @@ class BaseScanner:
             double_no_plane_pixels,
             single_no_plane_prob,
             single_no_plane_pixels,
-            overlapping_fields
+            overlapping_fields,
+            obs_times
         )
 
     def plot_overlap_with_observations(
@@ -846,7 +847,8 @@ class BaseScanner:
             double_no_plane_pixels,
             single_no_plane_prob,
             single_no_plane_pixels,
-            overlapping_fields
+            overlapping_fields,
+            obs_times
         ) = self.calculate_overlap_with_observations(
             fields=fields,
             pid=pid,
