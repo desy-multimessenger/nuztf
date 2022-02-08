@@ -114,7 +114,12 @@ def get_latest_gcn(logger=None):
 def parse_radec(str: str):
     """ """
     regex_findall = re.findall(r"[-+]?\d*\.\d+|\d+", str)
-    if len(regex_findall) == 4:
+
+    if len(regex_findall) == 2:
+        pos = float(regex_findall[0])
+        pos_upper = None
+        pos_lower = None
+    elif len(regex_findall) == 4:
         pos = float(regex_findall[0])
         pos_upper = float(regex_findall[1])
         pos_lower = float(regex_findall[1])
@@ -152,8 +157,15 @@ def parse_gcn_circular(gcn_number: int):
         ):
             ra, ra_upper, ra_lower = parse_radec(line)
             dec, dec_upper, dec_lower = parse_radec(splittext[i + 1])
-            ra_err = [ra_upper, -ra_lower]
-            dec_err = [dec_upper, -dec_lower]
+            if ra_upper and ra_lower:
+                ra_err = [ra_upper, -ra_lower]
+            else:
+                ra_err = [None, None]
+
+            if dec_upper and dec_lower:
+                dec_err = [dec_upper, -dec_lower]
+            else:
+                dec_err = [None, None]
             returndict.update(
                 {"ra": ra, "ra_err": ra_err, "dec": dec, "dec_err": dec_err}
             )
