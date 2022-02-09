@@ -93,7 +93,7 @@ jobs:
           password: ${{ secrets.PYPI_API_TOKEN }}
 
       - name: Merge pull request if from Dependabot
-        if: ${{success() && matrix.python-version == 3.8}}
+        if: ${{success() && matrix.python-version == 3.8 && github.actor == 'dependabot[bot]'}}
         run: gh pr merge --auto --merge "$PR_URL"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
