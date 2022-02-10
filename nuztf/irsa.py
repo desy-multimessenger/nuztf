@@ -50,8 +50,8 @@ def plot_irsa_lightcurve(
     plot_folder: str = plot_dir,
     extra_folder: str = None,
     logger=None,
-    check_obs=True,
-    check_obs_lookback_weeks=4,
+    check_obs: bool = True,
+    check_obs_lookback_weeks: float = 4,
     from_cache: bool = False,
     cache_dir: str = os.path.join(LOCALSOURCE, "cache/"),
     expanded_labels: bool = True,
@@ -389,7 +389,7 @@ def plot_irsa_lightcurve(
                 y_min * conversion_factor.value, y_max * conversion_factor.value
             )
 
-    ax.set_xlabel("Date (MJD)", fontsize=big_fontsize)
+    ax.set_xlabel("Date [MJD]", fontsize=big_fontsize)
 
     # Add neutrino
 
