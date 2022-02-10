@@ -34,12 +34,12 @@ def query_ned_for_z(
 
 
 def query_ned_astroquery(
-        ra_deg: float, dec_deg: float, searchradius_arcsec: float = 0.5
+    ra_deg: float, dec_deg: float, searchradius_arcsec: float = 0.5
 ):
     """
     Function to obtain NED crossmatches via astroquery
     """
-    c = SkyCoord(ra_deg, dec_deg, unit=u.deg, frame='icrs')
+    c = SkyCoord(ra_deg, dec_deg, unit=u.deg, frame="icrs")
 
     r = searchradius_arcsec * u.arcsecond
 
@@ -197,8 +197,10 @@ def get_cross_match_info(raw: dict, logger=None):
 
         if res is not None:
             if len(res) == 1:
-                label = f"{res['Object Name'][0]} ['{res['Type'][0]}'-type source " \
-                        f"({res['Separation'][0]:.2f} arsec)]"
+                label = (
+                    f"{res['Object Name'][0]} ['{res['Type'][0]}'-type source "
+                    f"({res['Separation'][0]:.2f} arsec)]"
+                )
             elif len(res) > 1:
                 label += "[MULTIPLE NED MATCHES]"
                 logger.debug(f"{res}")
@@ -211,9 +213,7 @@ def get_cross_match_info(raw: dict, logger=None):
     )
 
     if full_name is not None:
-            label += (
-                f" [TNS NAME={full_name}]"
-            )
+        label += f" [TNS NAME={full_name}]"
 
     return label
 
@@ -223,4 +223,3 @@ def check_cross_match_info_by_name(name: str, logger=None):
     return get_cross_match_info(
         raw=ampel_api_name(name, with_history=False, logger=logger)[0], logger=logger
     )
-

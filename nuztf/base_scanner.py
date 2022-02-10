@@ -310,7 +310,7 @@ class BaseScanner:
     # @staticmethod
     def calculate_abs_mag(self, mag: float, redshift: float) -> float:
         """ """
-        luminosity_distance = cosmo.luminosity_distance(redshift).value * 10 ** 6
+        luminosity_distance = cosmo.luminosity_distance(redshift).value * 10**6
         abs_mag = mag - 5 * (np.log10(luminosity_distance) - 1)
 
         return abs_mag
@@ -630,7 +630,7 @@ class BaseScanner:
         return text
 
     def calculate_overlap_with_observations(
-            self, fields=None, pid=None, first_det_window_days=3., min_sep=0.01
+        self, fields=None, pid=None, first_det_window_days=3.0, min_sep=0.01
     ):
         if fields is None:
             mns = self.get_multi_night_summary(first_det_window_days)
@@ -865,7 +865,7 @@ class BaseScanner:
             fields=fields,
             pid=pid,
             first_det_window_days=first_det_window_days,
-            min_sep=min_sep
+            min_sep=min_sep,
         )
 
         fig = plt.figure()

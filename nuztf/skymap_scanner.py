@@ -75,7 +75,9 @@ class SkymapScanner(BaseScanner):
     ):
 
         self.base_skymap_dir = os.path.join(LOCALSOURCE, f"{custom_prefix}skymaps")
-        self.candidate_output_dir = os.path.join(LOCALSOURCE, f"{custom_prefix}candidates")
+        self.candidate_output_dir = os.path.join(
+            LOCALSOURCE, f"{custom_prefix}candidates"
+        )
         skymap_candidate_cache = os.path.join(LOCALSOURCE, f"{custom_prefix}cache")
 
         for entry in [
@@ -85,7 +87,6 @@ class SkymapScanner(BaseScanner):
         ]:
             if not os.path.exists(entry):
                 os.makedirs(entry)
-
 
         if logger:
             self.logger = logger
@@ -129,7 +130,9 @@ class SkymapScanner(BaseScanner):
                 event_name=event, rev=rev
             )
         else:
-            raise Exception(f"Event {event} not recognised as a fits file, a GRB or a GW event.")
+            raise Exception(
+                f"Event {event} not recognised as a fits file, a GRB or a GW event."
+            )
 
         self.data, t_obs, self.hpm, self.key, self.dist, self.dist_unc = self.read_map()
 
@@ -285,9 +288,7 @@ class SkymapScanner(BaseScanner):
 
                 _ztf_id = res["objectId"]
 
-                if self.filter_f_history(
-                    res=res
-                ):
+                if self.filter_f_history(res=res):
                     final_objects.append(_ztf_id)
                     self.cache[_ztf_id] = res
                     self.logger.debug(f"{_ztf_id}: Passed all filters.")
@@ -561,9 +562,7 @@ class SkymapScanner(BaseScanner):
             self.logger.info(f"Downloading skymap and saving to {self.skymap_path}")
             wget.download(final_link, self.skymap_path)
 
-        self.summary_path = (
-            f"{self.base_skymap_dir}/{event_name}_{self.prob_threshold}"
-        )
+        self.summary_path = f"{self.base_skymap_dir}/{event_name}_{self.prob_threshold}"
 
         self.event_name = event_name
 
@@ -606,7 +605,7 @@ class SkymapScanner(BaseScanner):
                 f"Found the following keys: {data.dtype.names}"
             )
 
-        if h["ORDERING"]  == "NUNIQ":
+        if h["ORDERING"] == "NUNIQ":
             self.logger.info("Rasterising skymap to convert to nested format")
             data = data[list(["UNIQ", key])]
             probs = rasterize(data, order=7)
