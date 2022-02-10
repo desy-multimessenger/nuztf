@@ -302,14 +302,3 @@ class NeutrinoScanner(BaseScanner):
         data[np.array(pixel_nos)] = map_probs
 
         return map_coords, pixel_nos, nside, map_probs, data, key
-
-
-if __name__ == "__main__":
-
-    import logging
-
-    logger = logging.getLogger("quiet_logger")
-    logger.setLevel(logging.ERROR)
-
-    nu = NeutrinoScanner(logger=logger)
-    nu.scan_cones()
