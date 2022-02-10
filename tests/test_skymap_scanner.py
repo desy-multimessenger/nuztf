@@ -104,4 +104,3 @@ class TestSkymapScanner(unittest.TestCase):
         )
 
         self.assertEqual(n_retrieved_candidates, n_expected_candidates)
-
