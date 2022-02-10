@@ -630,7 +630,7 @@ class BaseScanner:
         return text
 
     def calculate_overlap_with_observations(
-            self, fields=None, pid=None, first_det_window_days=None, min_sep=0.01
+            self, fields=None, pid=None, first_det_window_days=3., min_sep=0.01
     ):
         if fields is None:
             mns = self.get_multi_night_summary(first_det_window_days)
@@ -812,6 +812,20 @@ class BaseScanner:
 
         overlapping_fields = sorted(list(set(overlapping_fields)))
 
+        try:
+            self.first_obs = Time(min(times), format="jd")
+            self.first_obs.utc.format = "isot"
+            self.last_obs = Time(max(times), format="jd")
+            self.last_obs.utc.format = "isot"
+
+        except ValueError:
+            raise Exception(
+                f"No observations of this field were found at any time between {self.t_min} and"
+                f"{obs_times[-1]}. Coverage overlap is 0%, but recent observations might be missing!"
+            )
+
+        self.logger.info(f"Observations started at {self.first_obs.jd}")
+
         return (
             double_in_plane_pixels,
             double_in_plane_probs,
@@ -826,7 +840,6 @@ class BaseScanner:
             single_no_plane_prob,
             single_no_plane_pixels,
             overlapping_fields,
-            obs_times
         )
 
     def plot_overlap_with_observations(
@@ -848,7 +861,6 @@ class BaseScanner:
             single_no_plane_prob,
             single_no_plane_pixels,
             overlapping_fields,
-            obs_times
         ) = self.calculate_overlap_with_observations(
             fields=fields,
             pid=pid,
@@ -972,20 +984,6 @@ class BaseScanner:
             hp.pixelfunc.nside2pixarea(self.nside, degrees=True) * n_double
         )
         plane_area = hp.pixelfunc.nside2pixarea(self.nside, degrees=True) * n_plane
-
-        try:
-            self.first_obs = Time(min(times), format="jd")
-            self.first_obs.utc.format = "isot"
-            self.last_obs = Time(max(times), format="jd")
-            self.last_obs.utc.format = "isot"
-
-        except ValueError:
-            raise Exception(
-                f"No observations of this field were found at any time between {self.t_min} and"
-                f"{obs_times[-1]}. Coverage overlap is 0%, but recent observations might be missing!"
-            )
-
-        self.logger.info(f"Observations started at {self.first_obs.jd}")
 
         self.overlap_fields = overlapping_fields
 
