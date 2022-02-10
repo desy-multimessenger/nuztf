@@ -366,7 +366,7 @@ def plot_irsa_lightcurve(
         ax.invert_yaxis()
 
         if source_redshift is not None:
-            ax1b.set_ylabel(fr"Absolute magnitude [AB]", fontsize=big_fontsize)
+            ax1b.set_ylabel(rf"Absolute magnitude [AB]", fontsize=big_fontsize)
 
             y_min, y_max = ax.get_ylim()
 

@@ -111,9 +111,9 @@ def get_latest_gcn(logger=None):
     return latest[1]
 
 
-def parse_radec(str: str):
+def parse_radec(string: str):
     """ """
-    regex_findall = re.findall(r"[-+]?\d*\.\d+|\d+", str)
+    regex_findall = re.findall(r"[-+]?\d*\.\d+|\d+", string)
 
     if len(regex_findall) == 2:
         pos = float(regex_findall[0])
