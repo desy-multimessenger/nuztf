@@ -40,20 +40,19 @@ def format_date(t, atel=True):
     return dt
 
 
-def load_irsa(
-        ra_deg: float,
-        dec_deg: float,
-        radius_arcsec: float = 1.
-):
+def load_irsa(ra_deg: float, dec_deg: float, radius_arcsec: float = 1.0):
     df = LCQuery.from_position(ra_deg, dec_deg, radius_arcsec).data
 
     mask = df.catflags > 0
 
-    logger.debug(f"Found {len(df)} datapoints, masking {np.sum(mask)} datapoints with bad flags.")
+    logger.info(
+        f"Found {len(df)} datapoints, masking {np.sum(mask)} datapoints with bad flags."
+    )
 
     df = df.drop(df[mask].index)
 
     return df
+
 
 def plot_irsa_lightcurve(
     source_name: str,
