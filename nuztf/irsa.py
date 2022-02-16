@@ -40,8 +40,8 @@ def format_date(t, atel=True):
     return dt
 
 
-def load_irsa(ra_deg: float, dec_deg: float, radius_arcsec: float = 1.0):
-    df = LCQuery.from_position(ra_deg, dec_deg, radius_arcsec).data
+def load_irsa(ra_deg: float, dec_deg: float, radius_arcsec: float = 0.5, **kwargs):
+    df = LCQuery.from_position(ra_deg, dec_deg, radius_arcsec, **kwargs).data
 
     mask = df.catflags > 0
 
