@@ -55,6 +55,7 @@ def load_irsa(ra_deg: float, dec_deg: float, radius_arcsec: float = 0.5, **kwarg
     df = df.drop(df[mask].index)
     return df
 
+
 def plot_irsa_lightcurve(
     source_name: str,
     nu_name: list = None,
