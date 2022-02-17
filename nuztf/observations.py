@@ -27,17 +27,11 @@ logger = logging.getLogger(__name__)
 username, password = credentials.load_credentials("irsa")
 
 # Gather login information
-data = {
-    'username': username,
-    'password': password
-}
+data = {"username": username, "password": password}
 
-headers = {
-    'Content-Type': 'application/x-www-form-urlencoded',
-    'Accept': 'text/plain'
-}
+headers = {"Content-Type": "application/x-www-form-urlencoded", "Accept": "text/plain"}
 
-login_url = 'https://irsa.ipac.caltech.edu'
+login_url = "https://irsa.ipac.caltech.edu"
 
 coverage_dir = os.path.join(LOCALSOURCE, "all_obs")
 
@@ -49,16 +43,14 @@ except OSError:
 partial_flag = "_PARTIAL"
 
 
-def coverage_path(
-        jd: float
-) -> str:
+def coverage_path(jd: float) -> str:
 
     if (Time.now().jd - jd) < 1:
         partial_ext = partial_flag
     else:
         partial_ext = ""
 
-    return os.path.join(coverage_dir, f'{jd}{partial_ext}.csv')
+    return os.path.join(coverage_dir, f"{jd}{partial_ext}.csv")
 
 
 class MNS:
@@ -66,9 +58,7 @@ class MNS:
         self.data = df
 
 
-def write_coverage(
-        jds: [int]
-):
+def write_coverage(jds: [int]):
     with requests.Session() as session:
         # Create a session and do the login.
         # The cookie will end up in the cookie jar of the session.
@@ -76,24 +66,28 @@ def write_coverage(
         response.raise_for_status()
         auth = authsession.AuthSession()
         auth.credentials.set(securitymethods.ANONYMOUS, session)
-        client = pyvo.dal.TAPService('https://irsa.ipac.caltech.edu/TAP', auth)
+        client = pyvo.dal.TAPService("https://irsa.ipac.caltech.edu/TAP", auth)
 
         for jd in jds:
-            obstable = client.search(f"""
+            obstable = client.search(
+                f"""
             SELECT field,rcid,fid,expid,obsjd,exptime,maglimit,ipac_gid,seeing
             FROM ztf.ztf_current_meta_sci WHERE (obsjd BETWEEN {jd} AND {jd + 1})
-            """).to_table()
-            names = ('ipac_gid',)
-            renames = ('programid',)
+            """
+            ).to_table()
+            names = ("ipac_gid",)
+            renames = ("programid",)
             obstable.rename_columns(names, renames)
 
-            obs_grouped_by_exp = obstable.to_pandas().groupby('expid')
+            obs_grouped_by_exp = obstable.to_pandas().groupby("expid")
 
             output_path = coverage_path(jd)
 
-            with open(output_path, 'w') as fid:
+            with open(output_path, "w") as fid:
 
-                fid.write('obsid,field,obsjd,seeing,limmag,exposure_time,fid,processed_fraction\n')
+                fid.write(
+                    "obsid,field,obsjd,seeing,limmag,exposure_time,fid,processed_fraction\n"
+                )
 
                 for group_name, df_group in obs_grouped_by_exp:
                     processed_fraction = len(df_group["field"]) / 64.0
@@ -103,13 +97,11 @@ def write_coverage(
             time.sleep(1)
 
 
-def get_coverage(
-        jds: [int]
-) -> pd.DataFrame:
+def get_coverage(jds: [int]) -> pd.DataFrame:
 
     # Clear any logs flagged as partial/incomplete
 
-    cache_files = glob(f'{coverage_dir}/*.csv')
+    cache_files = glob(f"{coverage_dir}/*.csv")
     partial_logs = [x for x in cache_files if partial_flag in x]
 
     if len(partial_logs) > 0:
@@ -127,7 +119,9 @@ def get_coverage(
             missing_logs.append(jd)
 
     if len(missing_logs) > 0:
-        logger.debug(f"Some logs were missing from the cache. Querying for the following JDs: {missing_logs}")
+        logger.debug(
+            f"Some logs were missing from the cache. Querying for the following JDs: {missing_logs}"
+        )
         write_coverage(missing_logs)
 
     # Load logs from cache
@@ -149,7 +143,7 @@ def get_obs_summary(t_min, t_max=None, max_days: int = None):
         else:
             t_max = t_min + (max_days * u.day)
 
-    jds = np.arange(int(t_min.jd), int(t_max.jd)+1)
+    jds = np.arange(int(t_min.jd), int(t_max.jd) + 1)
 
     df = get_coverage(jds)
 
@@ -212,9 +206,7 @@ def get_obs_summary_2(t_min, t_max=None, max_days: int = None):
     return mns
 
 
-def get_most_recent_obs(
-    ra: float, dec: float, lookback_weeks_max: int = 12
-):
+def get_most_recent_obs(ra: float, dec: float, lookback_weeks_max: int = 12):
     """ """
 
     fields = get_fields_containing_target(ra, dec)._data

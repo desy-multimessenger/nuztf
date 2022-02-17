@@ -17,19 +17,18 @@ class TestCoverage(unittest.TestCase):
         self.logger.info("\n\n Testing observation log parsing \n\n")
 
         res = get_obs_summary(
-            Time(2458865.96, format="jd"),
-            Time(2458867.96, format="jd")
+            Time(2458865.96, format="jd"), Time(2458867.96, format="jd")
         )
 
         expected = {
             "obsid": 111223429.0,
-            "field": 3.550000e+02,
+            "field": 3.550000e02,
             "obsjd": 2458866.734294,
             "seeing": 3.4250149727,
             "limmag": 19.998298645,
-            "exposure_time": 3.000000e+01,
-            "fid": 2.000000e+00,
-            "processed_fraction": 1.000000e+00
+            "exposure_time": 3.000000e01,
+            "fid": 2.000000e00,
+            "processed_fraction": 1.000000e00,
         }
 
         self.assertEqual(len(res.data), 1127)
@@ -44,11 +43,4 @@ class TestCoverage(unittest.TestCase):
         #
         # print(res2)
 
-        get_obs_summary(
-            Time.now()-5.*u.day,
-            Time.now()
-        )
-
-
-
-
+        get_obs_summary(Time.now() - 5.0 * u.day, Time.now())
