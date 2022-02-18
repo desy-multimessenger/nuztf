@@ -5,19 +5,22 @@ import os
 import logging
 
 import matplotlib.pyplot as plt
+
 import numpy as np
 import pandas as pd
+
 from astropy.time import Time
 from astropy import units as u
 from astropy import constants as const
+from astropy.coordinates import SkyCoord
+from astropy.table import Table
 from astroquery.exceptions import RemoteServiceError
 from astroquery.ned import Ned
-from ztfquery.lightcurve import LCQuery
-from astropy.table import Table
-from astropy.coordinates import SkyCoord
-from ztfquery.io import LOCALSOURCE
-from nuztf.ampel_api import ampel_api_name
 
+from ztfquery.io import LOCALSOURCE
+from ztfquery.lightcurve import LCQuery
+
+from nuztf.ampel_api import ampel_api_name
 from nuztf.style import plot_dir, big_fontsize, base_width, base_height, dpi
 from nuztf.utils import cosmo, is_ztf_name, is_tns_name, query_tns_by_name
 from nuztf.observations import get_most_recent_obs
@@ -63,24 +66,17 @@ def plot_irsa_lightcurve(
     atel: bool = True,
     plot_folder: str = plot_dir,
     extra_folder: str = None,
-    logger=None,
     check_obs: bool = True,
     check_obs_lookback_weeks: float = 4,
     from_cache: bool = False,
     cache_dir: str = os.path.join(LOCALSOURCE, "cache/"),
     expanded_labels: bool = True,
     ylim: tuple = None,
+    radius_arcsec: float = 0.5,
 ):
     plot_title = source_name
 
-    if logger is None:
-        logger = logging.getLogger(__name__)
-    else:
-        logger = logger
-
     # If there are no coordinates, try name resolve to get coordinates!
-
-    # source_name = "AT2022lol"
 
     if source_coords is None:
 
@@ -96,7 +92,7 @@ def plot_irsa_lightcurve(
 
         elif is_tns_name(name=source_name):
             logger.info("Source name is a TNS name.")
-            result_dict = query_tns_by_name(name=source_name, logger=logger)
+            result_dict = query_tns_by_name(name=source_name)
 
             if not result_dict:
                 logger.warning(f"{source_name} is not in TNS.")
@@ -107,7 +103,7 @@ def plot_irsa_lightcurve(
                 ra = res["radeg"]
                 dec = res["decdeg"]
                 source_coords = [ra, dec]
-                if "redshift" in res.keys():
+                if np.logical_and("redshift" in res.keys(), source_redshift is None):
                     source_redshift = res["redshift"]
 
         # Otherwise try NED
@@ -144,7 +140,9 @@ def plot_irsa_lightcurve(
                 if "ZTF" in plot_title:
                     plot_title += f' ({result_table["Object Name"][0]})'
 
-                if str(result_table["Redshift"][0]) != "--":
+                if np.logical_and(
+                    str(result_table["Redshift"][0]) != "--", source_redshift is None
+                ):
                     source_redshift = result_table["Redshift"]
 
                 logger.info(
@@ -174,7 +172,9 @@ def plot_irsa_lightcurve(
 
             source_coords = [result_table["RA"][0], result_table["DEC"][0]]
 
-            if str(result_table["Redshift"][0]) != "--":
+            if np.logical_and(
+                str(result_table["Redshift"][0]) != "--", source_redshift is None
+            ):
                 source_redshift = result_table["Redshift"]
 
             logger.info(
@@ -204,7 +204,7 @@ def plot_irsa_lightcurve(
 
     else:
 
-        df = load_irsa(source_coords[0], source_coords[1], 1.0)
+        df = load_irsa(source_coords[0], source_coords[1], radius_arcsec=radius_arcsec)
 
         logger.debug(f"Saving to {cache_path}")
         df.to_csv(cache_path)
@@ -215,13 +215,14 @@ def plot_irsa_lightcurve(
 
     # Start Figure
 
-    plt.figure(figsize=(base_width, base_height), dpi=dpi)
+    plt.figure(figsize=(base_width * 1.1, base_height), dpi=dpi)
 
     if expanded_labels:
 
         ax2 = plt.subplot(111)
 
         ax = ax2.twiny()
+
     else:
         ax = plt.subplot(111)
 
@@ -244,6 +245,9 @@ def plot_irsa_lightcurve(
                 raise RemoteServiceError
         except (RemoteServiceError, IndexError) as e:
             logger.info("No redshift found")
+
+    elif np.isnan(source_redshift):
+        source_redshift = None
 
     if source_redshift is not None:
 
@@ -453,10 +457,7 @@ def plot_irsa_lightcurve(
 
         ax2.tick_params(axis="both", which="major", labelsize=big_fontsize)
 
-    ax.tick_params(axis="both", which="major", labelsize=big_fontsize)
-
-    # plt.setp(ax2.get_yticklabels(), visible=True)
-    # ax.yaxis.set_tick_params(visible=True)
+    ax.tick_params(axis="both", which="both", labelsize=big_fontsize, left=True)
 
     if source_redshift is not None:
         ax1b.tick_params(axis="both", which="major", labelsize=big_fontsize)
