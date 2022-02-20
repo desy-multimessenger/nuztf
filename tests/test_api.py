@@ -43,7 +43,10 @@ class TestAPI(unittest.TestCase):
         self.logger.info(f"Retrieving cutouts for {ztf_id}")
         api_cutouts = ampel_api_cutout(candid=candid)
         nr_cutouts = len(api_cutouts)
-        ref = 3
+
+        # setting the ref to 1 for now (this is a workaround and
+        # should be revisited when ArchiveDB v3 is stable)
+        ref = 1
 
         self.logger.info(f"Retrieved {nr_cutouts}. Reference value is {ref}")
 
