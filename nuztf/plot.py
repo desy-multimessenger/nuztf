@@ -161,7 +161,7 @@ def lightcurve_from_alert(
     if grid_interval is not None:
         lc_ax1.xaxis.set_major_locator(MultipleLocator(grid_interval))
 
-    lc_ax1.grid(b=True, axis="both", alpha=0.5)
+    lc_ax1.grid(visible=True, axis="both", alpha=0.5)
     lc_ax1.set_ylabel("Magnitude [AB]")
 
     if not include_cutouts:
