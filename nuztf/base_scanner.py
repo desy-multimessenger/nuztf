@@ -32,7 +32,7 @@ from nuztf.ampel_api import (
     ensure_cutouts,
 )
 from nuztf.cat_match import get_cross_match_info, ampel_api_tns, query_ned_for_z
-from nuztf.observation_log import get_obs_summary
+from nuztf.observations import get_obs_summary
 from nuztf.plot import lightcurve_from_alert
 from nuztf.utils import cosmo
 
@@ -310,7 +310,7 @@ class BaseScanner:
     # @staticmethod
     def calculate_abs_mag(self, mag: float, redshift: float) -> float:
         """ """
-        luminosity_distance = cosmo.luminosity_distance(redshift).value * 10**6
+        luminosity_distance = cosmo.luminosity_distance(redshift).value * 10 ** 6
         abs_mag = mag - 5 * (np.log10(luminosity_distance) - 1)
 
         return abs_mag
