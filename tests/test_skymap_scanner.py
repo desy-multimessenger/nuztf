@@ -23,7 +23,7 @@ class TestSkymapScanner(unittest.TestCase):
         scanner = SkymapScanner(
             event=gw_name,
             prob_threshold=prob_threshold,
-            n_days=3,
+            n_days=1,
             logger=self.logger,
         )
 
@@ -32,7 +32,7 @@ class TestSkymapScanner(unittest.TestCase):
         scanner.get_alerts()
 
         n_retrieved_alerts = scanner.n_alerts
-        n_expected_alerts = 3474
+        n_expected_alerts = 1649
 
         self.logger.info(
             f"Retrieved {n_retrieved_alerts} alerts. {n_expected_alerts} alerts expected."
