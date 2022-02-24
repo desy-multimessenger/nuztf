@@ -88,12 +88,16 @@ def write_coverage(jds: [int]):
             with open(output_path, "w") as fid:
 
                 fid.write(
-                    "obsid,field,obsjd,seeing,limmag,exposure_time,fid,processed_fraction\n"
+                    "obsid,field,obsjd,datetime,seeing,limmag,exposure_time,fid,processed_fraction\n"
                 )
 
                 for group_name, df_group in obs_grouped_by_exp:
                     processed_fraction = len(df_group["field"]) / 64.0
-                    line = f'{int(df_group["expid"].iloc[0])},{int(df_group["field"].iloc[0])},{df_group["obsjd"].iloc[0]},{df_group["seeing"].median():.10f},{df_group["maglimit"].median():.10f},{df_group["exptime"].iloc[0]},{int(df_group["fid"].iloc[0])},{processed_fraction} \n'
+
+                    t = Time(df_group["obsjd"].iloc[0], format="jd")
+                    t.format = "isot"
+
+                    line = f'{int(df_group["expid"].iloc[0])},{int(df_group["field"].iloc[0])},{t.jd},{t},{df_group["seeing"].median():.10f},{df_group["maglimit"].median():.10f},{df_group["exptime"].iloc[0]},{int(df_group["fid"].iloc[0])},{processed_fraction} \n'
                     fid.write(line)
 
             time.sleep(1)
