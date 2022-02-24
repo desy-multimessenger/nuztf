@@ -5,7 +5,7 @@ import unittest
 import logging
 from astropy.time import Time
 from astropy import units as u
-from nuztf.observations import get_obs_summary, get_obs_summary_2
+from nuztf.observations import get_obs_summary, get_obs_summary_skyvision
 
 
 class TestCoverage(unittest.TestCase):
@@ -16,9 +16,10 @@ class TestCoverage(unittest.TestCase):
     def test_lightcurve(self):
         self.logger.info("\n\n Testing observation log parsing \n\n")
 
-        res = get_obs_summary(
-            Time(2458865.96, format="jd"), Time(2458867.96, format="jd")
-        )
+        t_start = Time(2458865.96, format="jd")
+        t_end = Time(2458866.96, format="jd")
+
+        res = get_obs_summary(t_start, t_end)
 
         expected = {
             "obsid": 111223429.0,
@@ -31,16 +32,20 @@ class TestCoverage(unittest.TestCase):
             "processed_fraction": 1.000000e00,
         }
 
-        self.assertEqual(len(res.data), 1127)
+        self.assertEqual(len(res.data), 211)
 
         for (name, val) in expected.items():
             self.assertEqual(res.data.iloc[0][name], val)
 
-        # res2 = get_obs_summary_2(
-        #     Time(2458865.96, format="jd"),
-        #     Time(2458867.96, format="jd")
+        # res2 = get_obs_summary_skyvision(
+        #     t_start,
+        #     t_end
         # )
         #
-        # print(res2)
+        # for name in ["obsjd"]:
+        #     val = expected[name]
+        #     self.assertAlmostEqual(res2.data.iloc[0][name], val)
+        #
+        # print("Lens", len(res2.data), len(res.data))
 
-        get_obs_summary(Time.now() - 5.0 * u.day, Time.now())
+        # get_obs_summary(Time.now() - 1.0 * u.day, Time.now())
