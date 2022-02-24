@@ -20,7 +20,7 @@ from nuztf.ampel_api import ampel_api_name
 
 from nuztf.style import plot_dir, big_fontsize, base_width, base_height, dpi
 from nuztf.utils import cosmo, is_ztf_name, is_tns_name, query_tns_by_name
-from nuztf.observation_log import get_most_recent_obs
+from nuztf.observations import get_most_recent_obs
 from nuztf.parse_nu_gcn import find_gcn_no, parse_gcn_circular
 
 logger = logging.getLogger(__name__)
