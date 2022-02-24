@@ -37,15 +37,24 @@ class TestCoverage(unittest.TestCase):
         for (name, val) in expected.items():
             self.assertEqual(res.data.iloc[0][name], val)
 
-        # res2 = get_obs_summary_skyvision(
-        #     t_start,
-        #     t_end
-        # )
-        #
-        # for name in ["obsjd"]:
-        #     val = expected[name]
-        #     self.assertAlmostEqual(res2.data.iloc[0][name], val)
-        #
-        # print("Lens", len(res2.data), len(res.data))
+        res2 = get_obs_summary_skyvision(t_start, t_end)
+
+        expected_2 = {
+            "datetime": "2020-01-18T05:37:54.356",
+            "date": "2020-01-18",
+            "exptime": 30.0,
+            "totalexptime": 207.428,
+            "fid": 2,
+            "field": 355,
+            "pid": 1,
+            "ra": "+05:02:46.24",
+            "dec": "-09:51:00",
+            "totaltime": 207.428,
+            "base_name": "ztf_20200118233438_000355_zr",
+            "obsjd": 2458866.7346568983,
+        }
+
+        for (name, val) in expected_2.items():
+            self.assertEqual(res2.data.iloc[0][name], val)
 
         # get_obs_summary(Time.now() - 1.0 * u.day, Time.now())
