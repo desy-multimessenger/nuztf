@@ -28,5 +28,4 @@ class TestIrsa(unittest.TestCase):
                 nu_name=nu_names[i],
                 check_obs=True,
                 check_obs_lookback_weeks=1,
-                logger=self.logger,
             )
