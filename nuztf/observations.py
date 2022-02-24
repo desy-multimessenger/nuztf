@@ -12,6 +12,7 @@ import pandas as pd
 from astropy.time import Time
 import logging
 from glob import glob
+import backoff
 
 import os
 import warnings
@@ -58,6 +59,7 @@ class MNS:
         self.data = df
 
 
+@backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_time=60)
 def write_coverage(jds: [int]):
     with requests.Session() as session:
         # Create a session and do the login.
@@ -148,6 +150,7 @@ def get_obs_summary(t_min, t_max=None, max_days: int = None):
     df = get_coverage(jds)
 
     mns = MNS(df)
+
     mns.data.query(f"obsjd >= {t_min.jd} and obsjd <= {t_max.jd}", inplace=True)
     mns.data.reset_index(inplace=True)
     mns.data.drop(columns=["index"], inplace=True)
@@ -157,7 +160,7 @@ def get_obs_summary(t_min, t_max=None, max_days: int = None):
     return mns
 
 
-def get_obs_summary_2(t_min, t_max=None, max_days: int = None):
+def get_obs_summary_skyvision(t_min, t_max=None, max_days: int = None):
     """ """
 
     t_min_jd = t_min.jd
