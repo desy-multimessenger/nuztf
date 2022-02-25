@@ -50,10 +50,10 @@ class NeutrinoScanner(BaseScanner):
         nu_name: str = None,
         manual_args=None,
         gcn_no: int = None,
+        cone_nside: int = 128,
+        t_precursor: float = None,
         logger=None,
-        cone_nside=128,
-        t_precursor=None,
-        min_forceddiffsig=5
+        min_forceddiffsig: float=5
     ):
 
         if logger is None:
