@@ -288,16 +288,14 @@ class BaseScanner:
         ra_deg = np.rad2deg(ra_rad)
         return ra_deg
 
-    def ampel_object_search(self, ztf_ids: list, with_history: bool = True) -> list:
+    def ampel_object_search(self, ztf_ids: list) -> list:
         """ """
         all_results = []
 
         for ztf_id in tqdm(ztf_ids):
 
             # get the full lightcurve from the API
-            query_res = ampel_api_lightcurve(
-                ztf_name=ztf_id, logger=self.logger, with_history=with_history
-            )
+            query_res = ampel_api_lightcurve(ztf_name=ztf_id, logger=self.logger)
 
             final_res = []
 
