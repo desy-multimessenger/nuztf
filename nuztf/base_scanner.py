@@ -288,7 +288,7 @@ class BaseScanner:
         ra_deg = np.rad2deg(ra_rad)
         return ra_deg
 
-    def ampel_object_search(self, ztf_ids: list, with_history: bool = True) -> list:
+    def ampel_object_search(self, ztf_ids: list) -> list:
         """ """
         all_results = []
 
@@ -739,8 +739,6 @@ class BaseScanner:
         for i, obs_time in enumerate(tqdm(obs_times)):
 
             field = data["field"].iat[i]
-            ra = data["ra"].iat[i]
-            dec = data["dec"].iat[i]
 
             flat_pix = field_pix[field]
 
@@ -776,6 +774,7 @@ class BaseScanner:
         single_no_plane_pixels = []
 
         overlapping_fields = []
+
         for i, p in enumerate(tqdm(hp.nest2ring(self.nside, self.pixel_nos))):
 
             if p in pix_obs_times.keys():
@@ -819,10 +818,12 @@ class BaseScanner:
             self.last_obs.utc.format = "isot"
 
         except ValueError:
-            raise Exception(
+            err = (
                 f"No observations of this field were found at any time between {self.t_min} and"
                 f"{obs_times[-1]}. Coverage overlap is 0%, but recent observations might be missing!"
             )
+            self.logger.error(err)
+            raise ValueError(err)
 
         self.logger.info(f"Observations started at {self.first_obs.jd}")
 
