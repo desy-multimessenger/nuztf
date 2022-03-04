@@ -295,7 +295,9 @@ class BaseScanner:
         for ztf_id in tqdm(ztf_ids):
 
             # get the full lightcurve from the API
-            query_res = ampel_api_lightcurve(ztf_name=ztf_id, logger=self.logger)
+            query_res = ampel_api_lightcurve(
+                ztf_name=ztf_id, logger=self.logger, with_history=with_history
+            )
 
             final_res = []
 
@@ -310,7 +312,7 @@ class BaseScanner:
     # @staticmethod
     def calculate_abs_mag(self, mag: float, redshift: float) -> float:
         """ """
-        luminosity_distance = cosmo.luminosity_distance(redshift).value * 10**6
+        luminosity_distance = cosmo.luminosity_distance(redshift).value * 10 ** 6
         abs_mag = mag - 5 * (np.log10(luminosity_distance) - 1)
 
         return abs_mag
@@ -739,8 +741,6 @@ class BaseScanner:
         for i, obs_time in enumerate(tqdm(obs_times)):
 
             field = data["field"].iat[i]
-            ra = data["ra"].iat[i]
-            dec = data["dec"].iat[i]
 
             flat_pix = field_pix[field]
 
@@ -776,6 +776,7 @@ class BaseScanner:
         single_no_plane_pixels = []
 
         overlapping_fields = []
+
         for i, p in enumerate(tqdm(hp.nest2ring(self.nside, self.pixel_nos))):
 
             if p in pix_obs_times.keys():
@@ -819,10 +820,12 @@ class BaseScanner:
             self.last_obs.utc.format = "isot"
 
         except ValueError:
-            raise Exception(
+            err = (
                 f"No observations of this field were found at any time between {self.t_min} and"
                 f"{obs_times[-1]}. Coverage overlap is 0%, but recent observations might be missing!"
             )
+            self.logger.error(err)
+            raise ValueError(err)
 
         self.logger.info(f"Observations started at {self.first_obs.jd}")
 
