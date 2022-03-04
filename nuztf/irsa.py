@@ -48,9 +48,14 @@ def load_irsa(ra_deg: float, dec_deg: float, radius_arcsec: float = 0.5, **kwarg
 
     mask = df.catflags > 0
 
+    flags = list(set(df.catflags))
+
     logger.info(
         f"Found {len(df)} datapoints, masking {np.sum(mask)} datapoints with bad flags."
     )
+
+    for flag in sorted(flags):
+        logger.debug(f"{np.sum(df.catflags == flag)} datapoints with flag {flag}")
 
     df = df.drop(df[mask].index)
     return df
