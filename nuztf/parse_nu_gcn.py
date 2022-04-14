@@ -16,7 +16,7 @@ def gcn_url(gcn_number):
     return f"{BASE_GCN_URL}/{gcn_number}.gcn3"
 
 
-class ParsingError(Exception):
+class GCNParsingError(Exception):
     """Base class for parsing error"""
 
     pass
@@ -67,7 +67,7 @@ def parse_gcn_for_no(
                 name = res[3].split(" - ")[0]
                 print(f"Found match to {base_nu_name}: {name}")
             else:
-                raise Exception(f"Multiple matches found to {base_nu_name}")
+                raise GCNParsingError(f"Multiple matches found to {base_nu_name}")
 
         elif np.logical_and("gcn3_arch_old" in line, latest_archive_no is None):
             url = line.split('"')[1]
@@ -96,7 +96,7 @@ def find_gcn_no(base_nu_name: str, logger=None):
     # while
 
     if name is None:
-        raise ParsingError("No GCN match found for {0}".format(base_nu_name))
+        raise GCNParsingError("No GCN match found for {0}".format(base_nu_name))
 
     logging.info(f"Match is {name} (GCN #{gcn_no})")
 
@@ -129,7 +129,7 @@ def parse_radec(string: str):
         pos_upper = float(pos_upper.replace("+", ""))
         pos_lower = float(pos_lower.replace("-", ""))
     else:
-        raise ParsingError(f"Could not parse GCN ra and dec")
+        raise GCNParsingError(f"Could not parse GCN ra and dec")
 
     return pos, pos_upper, pos_lower
 

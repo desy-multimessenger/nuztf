@@ -12,7 +12,12 @@ from tqdm import tqdm
 from ztfquery.io import LOCALSOURCE
 
 from nuztf.base_scanner import BaseScanner
-from nuztf.parse_nu_gcn import find_gcn_no, parse_gcn_circular, get_latest_gcn
+from nuztf.parse_nu_gcn import (
+    find_gcn_no,
+    parse_gcn_circular,
+    get_latest_gcn,
+    GCNParsingError,
+)
 
 
 nu_candidate_output_dir = os.path.join(LOCALSOURCE, "neutrino_candidates")
@@ -65,7 +70,10 @@ class NeutrinoScanner(BaseScanner):
         if manual_args is None:
 
             if nu_name is not None:
-                gcn_no = find_gcn_no(nu_name, logger=self.logger)
+                try:
+                    gcn_no = find_gcn_no(nu_name, logger=self.logger)
+                except GCNParsingError:
+                    pass
 
             elif gcn_no is None:
                 gcn_no = get_latest_gcn(logger=self.logger)
