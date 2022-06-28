@@ -16,7 +16,9 @@ class TestIrsa(unittest.TestCase):
 
         res = load_irsa(77.358185, 5.693148, 0.5, TIME=[58204.1, 59678.9])
 
-        self.assertEqual(len(res), 400)
+        res = res[res["programid"] == 1]
+
+        self.assertEqual(len(res), 375)
 
         src_names = ["PKS1502+106", "SN2021gpw"]
         nu_names = ["IC190730A", "IC211216B"]
