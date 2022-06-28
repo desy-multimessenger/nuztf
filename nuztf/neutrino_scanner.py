@@ -46,7 +46,7 @@ NU_RUN_CONFIG = {
 
 class NeutrinoScanner(BaseScanner):
 
-    default_fritz_group = "221"
+    default_fritz_group = 221
 
     def __init__(
         self,

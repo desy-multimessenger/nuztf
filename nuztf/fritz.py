@@ -16,7 +16,7 @@ def fritz_api(method: str, endpoint_extension: str, data: dict = None):
     return response
 
 
-def save_source_to_group(object_id: int, group_id: int):
+def save_source_to_group(object_id: str, group_id: int):
     payload = {
         "objId": object_id,
         "inviteGroupIds": [group_id],
@@ -26,7 +26,7 @@ def save_source_to_group(object_id: int, group_id: int):
     )
 
 
-def delete_source_from_group(object_id: int, group_id: int):
+def delete_source_from_group(object_id: str, group_id: int):
     payload = {
         "objId": object_id,
         "unsaveGroupIds": [group_id],

@@ -44,7 +44,7 @@ RATELIMIT_PERIOD = 1
 
 class BaseScanner:
 
-    default_fritz_group = "1430"
+    default_fritz_group = 1430
 
     def __init__(
         self,
