@@ -282,6 +282,36 @@ def ampel_api_name(
     return query_res
 
 
+def calculate_mean_position(res: list) -> tuple:
+
+    key = "magfromlim"
+
+    all_dets = [
+        x
+        for x in res[0]["prv_candidates"] + [res[0]["candidate"]]
+        if "magpsf" in x.keys()
+    ]
+
+    # Crude SNR estimate
+
+    weight = np.array([10.0 ** x[key] for x in all_dets])
+
+    ras = np.array([x["ra"] for x in all_dets])
+    decs = np.array([x["dec"] for x in all_dets])
+
+    return np.mean(ras * weight) / np.mean(weight), np.mean(decs * weight) / np.mean(
+        weight
+    )
+
+
+def ampel_api_get_coordinates(ztf_name: str) -> tuple:
+    """Function to query ampel via name and retrieve weighted position"""
+
+    res = ampel_api_name(ztf_name=ztf_name, with_history=True, with_cutouts=False)
+
+    return calculate_mean_position(res)
+
+
 @backoff.on_exception(
     backoff.expo,
     requests.exceptions.RequestException,
