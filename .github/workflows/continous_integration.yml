@@ -50,8 +50,7 @@ jobs:
         env:
           AMPEL_API_ARCHIVE_TOKEN_USER: ${{ secrets.ampel_api_archive_token_user }}
           AMPEL_API_ARCHIVE_TOKEN_PASSWORD: ${{ secrets.ampel_api_archive_token_password }}
-          TNS_API_TOKEN_USER: ${{ secrets.tns_api_token_user }}
-          TNS_API_TOKEN_PASSWORD: ${{ secrets.tns_api_token_password }}
+          TNS_API_TOKEN: ${{ secrets.tns_api_token }}
           IRSA_USER: ${{ secrets.irsa_user }}
           IRSA_PASSWORD: ${{ secrets.irsa_password }}
           SKYVISION_USER: ${{ secrets.skyvision_user }}
