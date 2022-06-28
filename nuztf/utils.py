@@ -38,7 +38,7 @@ def query_tns_by_name(name, logger=None):
     if not is_tns_name(name):
         raise ValueError("String is not a TNS name")
 
-    _, tns_api_token = load_credentials("tns_api_token")
+    tns_api_token = load_credentials("tns_api_token", token_based=True)
 
     name = name[2:]
 
