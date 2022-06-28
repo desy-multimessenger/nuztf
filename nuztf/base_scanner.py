@@ -35,6 +35,7 @@ from nuztf.cat_match import get_cross_match_info, ampel_api_tns, query_ned_for_z
 from nuztf.observation_log import get_obs_summary
 from nuztf.plot import lightcurve_from_alert
 from nuztf.utils import cosmo
+from nuztf.fritz import save_source_to_group
 
 DEBUG = False
 RATELIMIT_CALLS = 10
@@ -42,6 +43,9 @@ RATELIMIT_PERIOD = 1
 
 
 class BaseScanner:
+
+    default_fritz_group = 1430
+
     def __init__(
         self,
         run_config,
@@ -1096,3 +1100,20 @@ class BaseScanner:
         self.logger.info(
             f"Intergrating all fields overlapping 90% contour gives {100*field_prob:.2g}%"
         )
+
+    def export_cache_to_fritz(self, group_id=None):
+
+        if group_id is None:
+            group_id = self.default_fritz_group
+
+        saved_sources = []
+
+        for source in self.cache.keys():
+            response = save_source_to_group(object_id=source, group_id=group_id)
+
+            if response.status_code not in [200]:
+                self.logger.warning(f"Bad API call for source {source}: {response}")
+            else:
+                saved_sources.append(source)
+
+        self.logger.info(f"Saved {len(saved_sources)} to fritz group {group_id}")
