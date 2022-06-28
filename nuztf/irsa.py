@@ -16,7 +16,7 @@ from ztfquery.lightcurve import LCQuery
 from astropy.table import Table
 from astropy.coordinates import SkyCoord
 from ztfquery.io import LOCALSOURCE
-from nuztf.ampel_api import ampel_api_name
+from nuztf.ampel_api import ampel_api_name, ampel_api_get_coordinates
 
 from nuztf.style import plot_dir, big_fontsize, base_width, base_height, dpi
 from nuztf.utils import cosmo, is_ztf_name, is_tns_name, query_tns_by_name
@@ -64,12 +64,13 @@ def plot_irsa_lightcurve(
     plot_folder: str = plot_dir,
     extra_folder: str = None,
     logger=None,
-    check_obs: bool = True,
+    check_obs: bool = False,
     check_obs_lookback_weeks: float = 4,
     from_cache: bool = False,
     cache_dir: str = os.path.join(LOCALSOURCE, "cache/"),
     expanded_labels: bool = True,
     ylim: tuple = None,
+    use_science_image: bool = False,
 ):
     plot_title = source_name
 
@@ -88,8 +89,7 @@ def plot_irsa_lightcurve(
 
         if is_ztf_name(name=source_name):
             logger.info("Source name is a ZTF name.")
-            res = ampel_api_name(source_name, with_history=False)[0]
-            source_coords = [res["candidate"]["ra"], res["candidate"]["dec"]]
+            source_coords = list(ampel_api_get_coordinates(ztf_name=source_name))
             logger.info(f"Found ZTF coordinates for source {source_name}")
 
         # Try TNS
@@ -196,18 +196,43 @@ def plot_irsa_lightcurve(
     except OSError:
         pass
 
-    cache_path = os.path.join(cache_dir, f'{source_name.replace(" ", "")}.csv')
+    if use_science_image:
 
-    if from_cache:
-        logger.debug(f"Loading from {cache_path}")
-        df = pd.read_csv(cache_path)
+        cache_path = os.path.join(cache_dir, f'{source_name.replace(" ", "")}.csv')
+
+        if from_cache:
+            logger.debug(f"Loading from {cache_path}")
+            df = pd.read_csv(cache_path)
+
+        else:
+
+            df = load_irsa(source_coords[0], source_coords[1], 1.0)
+
+            logger.debug(f"Saving to {cache_path}")
+            df.to_csv(cache_path)
 
     else:
 
-        df = load_irsa(source_coords[0], source_coords[1], 1.0)
+        cache_path = os.path.join(cache_dir, f'{source_name.replace(" ", "")}.txt')
 
-        logger.debug(f"Saving to {cache_path}")
-        df.to_csv(cache_path)
+        print(cache_path)
+
+        df = pd.read_csv(cache_path, comment="#", sep=" ")
+
+        acceptable_proc = [0, 62, 63, 255]
+
+        mask = np.array([x in acceptable_proc for x in df["procstatus"]])
+
+        logger.info(
+            f"Found {np.sum(mask)} entries with procstatus in {acceptable_proc}. "
+            f"Dropping {np.sum(~mask)} other entries."
+        )
+
+        df = df[mask]
+
+        return df
+
+    # raise
 
     data = Table.from_pandas(df)
 
