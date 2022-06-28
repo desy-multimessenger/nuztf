@@ -152,6 +152,8 @@ def get_obs_summary(t_min, t_max=None, max_days: int = None):
     jds = np.arange(int(t_min.jd), int(t_max.jd) + 1)
 
     df = get_coverage(jds)
+    if len(df) == 0:
+        get_obs_summary_skyvision(t_min, t_max, max_days=max_days)
 
     mns = MNS(df)
 
