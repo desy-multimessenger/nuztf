@@ -3,16 +3,15 @@
 
 import os
 import wget
-import logging
 import time
 import json
+import logging
 
 from tqdm import tqdm
 import requests
 from numpy.lib.recfunctions import append_fields
 import lxml.etree
 from lxml import html
-import fitsio
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -20,6 +19,7 @@ from astropy_healpix import HEALPix
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 from astropy.time import Time
+from astropy.io import fits
 
 import healpy as hp
 from ztfquery.io import LOCALSOURCE
@@ -573,21 +573,31 @@ class SkymapScanner(BaseScanner):
 
         self.logger.info(f"Reading file: {self.skymap_path}")
 
-        data, h = fitsio.read(self.skymap_path, header=True)
+        with fits.open(self.skymap_path) as hdul:
+            data = None
+            h = hdul[0].header
 
-        if "DISTMEAN" not in h:
             dist = None
-        else:
-            dist = h["DISTMEAN"]
-        if "DISTSTD" not in h:
             dist_unc = None
-        else:
-            dist_unc = h["DISTSTD"]
+            t_obs = None
+            ordering = None
 
-        if "DATE-OBS" not in h:
-            t_obs = fitsio.read_header(self.skymap_path)["DATE-OBS"]
-        else:
-            t_obs = h["DATE-OBS"]
+            for x in hdul:
+                if data is None:
+                    if x.data is not None:
+                        data = np.array(x.data)
+
+                if "DISTMEAN" in x.header:
+                    dist = x.header["DISTMEAN"]
+
+                if "DISTSTD" in x.header:
+                    dist_unc = x.header["DISTSTD"]
+
+                if "DATE-OBS" in x.header:
+                    t_obs = x.header["DATE-OBS"]
+
+                if "ORDERING" in x.header:
+                    ordering = x.header["ORDERING"]
 
         if "PROB" in data.dtype.names:
             key = "PROB"
@@ -605,12 +615,11 @@ class SkymapScanner(BaseScanner):
                 f"Found the following keys: {data.dtype.names}"
             )
 
-        if h["ORDERING"] == "NUNIQ":
+        if ordering == "NUNIQ":
             self.logger.info("Rasterising skymap to convert to nested format")
             data = data[list(["UNIQ", key])]
             probs = rasterize(data, order=7)
             data = np.array(probs, dtype=np.dtype([("PROB", float)]))
-            h["ORDERING"] = "NESTED"
 
         if not isinstance(data["PROB"][0], float):
             self.logger.info("Flattening skymap")
@@ -624,9 +633,16 @@ class SkymapScanner(BaseScanner):
 
         self.logger.info(f"Summed probability is {100. * np.sum(data['PROB']):.1f}%")
 
-        if h["ORDERING"] == "RING":
+        if ordering == "RING":
             data["PROB"] = hp.pixelfunc.reorder(data["PROB"], inp="RING", out="NESTED")
+
+        if ordering is not None:
             h["ORDERING"] = "NESTED"
+        else:
+            raise Exception(
+                f"Error parsing fits file, no ordering found. "
+                f"Please enter the ordewring (NESTED/RING/NUNIQ)"
+            )
 
         hpm = HEALPix(nside=h["NSIDE"], order=h["ORDERING"], frame="icrs")
 
