@@ -32,7 +32,7 @@ from nuztf.ampel_api import (
     ensure_cutouts,
 )
 from nuztf.cat_match import get_cross_match_info, ampel_api_tns, query_ned_for_z
-from nuztf.observation_log import get_obs_summary
+from nuztf.observations import get_obs_summary
 from nuztf.plot import lightcurve_from_alert
 from nuztf.utils import cosmo
 from nuztf.fritz import save_source_to_group

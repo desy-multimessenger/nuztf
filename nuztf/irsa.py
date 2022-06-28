@@ -20,7 +20,7 @@ from nuztf.ampel_api import ampel_api_name
 
 from nuztf.style import plot_dir, big_fontsize, base_width, base_height, dpi
 from nuztf.utils import cosmo, is_ztf_name, is_tns_name, query_tns_by_name
-from nuztf.observation_log import get_most_recent_obs
+from nuztf.observations import get_most_recent_obs
 from nuztf.parse_nu_gcn import find_gcn_no, parse_gcn_circular
 
 logger = logging.getLogger(__name__)
@@ -38,6 +38,20 @@ def format_date(t, atel=True):
         dt = t.value
 
     return dt
+
+
+def load_irsa(ra_deg: float, dec_deg: float, radius_arcsec: float = 0.5, **kwargs):
+    df = LCQuery.from_position(ra_deg, dec_deg, radius_arcsec, **kwargs).data
+
+    mask = df.catflags > 0
+
+    logger.info(
+        f"Found {len(df)} datapoints, masking {np.sum(mask)} datapoints with bad flags."
+    )
+
+    df = df.drop(df[mask].index)
+
+    return df
 
 
 def plot_irsa_lightcurve(
@@ -190,7 +204,7 @@ def plot_irsa_lightcurve(
 
     else:
 
-        df = LCQuery.from_position(source_coords[0], source_coords[1], 1.0).data
+        df = load_irsa(source_coords[0], source_coords[1], 1.0)
 
         logger.debug(f"Saving to {cache_path}")
         df.to_csv(cache_path)
@@ -278,7 +292,6 @@ def plot_irsa_lightcurve(
             ra=source_coords[0],
             dec=source_coords[1],
             lookback_weeks_max=check_obs_lookback_weeks,
-            logger=logger,
         )
 
         if mro is not None:

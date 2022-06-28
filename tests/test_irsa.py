@@ -3,7 +3,7 @@
 
 import unittest
 import logging
-from nuztf.irsa import plot_irsa_lightcurve
+from nuztf.irsa import plot_irsa_lightcurve, load_irsa
 
 
 class TestIrsa(unittest.TestCase):
@@ -13,6 +13,10 @@ class TestIrsa(unittest.TestCase):
 
     def test_lightcurve(self):
         self.logger.info("\n\n Testing IRSA \n\n")
+
+        res = load_irsa(77.358185, 5.693148, 0.5, TIME=[58204.1, 59678.9])
+
+        self.assertEqual(len(res), 400)
 
         src_names = ["PKS1502+106", "SN2021gpw"]
         nu_names = ["IC190730A", "IC211216B"]
@@ -24,5 +28,4 @@ class TestIrsa(unittest.TestCase):
                 nu_name=nu_names[i],
                 check_obs=True,
                 check_obs_lookback_weeks=1,
-                logger=self.logger,
             )
