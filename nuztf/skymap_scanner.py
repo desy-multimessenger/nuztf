@@ -584,8 +584,8 @@ class SkymapScanner(BaseScanner):
 
             for x in hdul:
                 if data is None:
-                    if hasattr(x, "data"):
-                        data = x.data
+                    if x.data is not None:
+                        data = np.array(x.data)
 
                 if "DISTMEAN" in x.header:
                     dist = x.header["DISTMEAN"]
