@@ -9,9 +9,9 @@ from ztfquery import io
 # Manage ztfquery logins from environment variables
 
 
-def load_credentials(name):
+def load_credentials(name: str, token_based: bool = False):
     """ZTFquery wrapper for loading credentials."""
-    return io._load_id_(name)
+    return io._load_id_(name, token_based=token_based)
 
 
 try:
@@ -67,11 +67,7 @@ except KeyError:
 try:
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=UserWarning)
-        io.set_account(
-            "fritz",
-            token=os.environ["FRITZ_TOKEN"],
-            token_based=True,
-        )
+        io.set_account("fritz", token=os.environ["FRITZ_TOKEN"], token_based=True)
         logging.info('Set up "fritz" credentials')
 
 except KeyError:
