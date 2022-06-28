@@ -2,14 +2,10 @@ import glob
 
 import pyvo.dal
 import time
-import os
-import numpy as np
-from ztfquery.io import LOCALSOURCE
 from nuztf import credentials
 from pyvo.auth import securitymethods, authsession
 import requests
 import pandas as pd
-from astropy.time import Time
 import logging
 from glob import glob
 import backoff
