@@ -13,18 +13,20 @@ from astropy.time import Time
 from astropy import units as u
 from astropy import constants as const
 from astropy.coordinates import SkyCoord
-from astropy.table import Table
 from astroquery.exceptions import RemoteServiceError
 from astroquery.ned import Ned
 
-from ztfquery.io import LOCALSOURCE
 from ztfquery.lightcurve import LCQuery
+from astropy.table import Table
+from ztfquery.io import LOCALSOURCE
 
 from nuztf.ampel_api import ampel_api_name
 from nuztf.style import plot_dir, big_fontsize, base_width, base_height, dpi
 from nuztf.utils import cosmo, is_ztf_name, is_tns_name, query_tns_by_name
 from nuztf.observations import get_most_recent_obs
+from nuztf.utils import cosmo
 from nuztf.parse_nu_gcn import find_gcn_no, parse_gcn_circular
+from nuztf.cat_match import resolve_name
 
 logger = logging.getLogger(__name__)
 
@@ -78,120 +80,12 @@ def plot_irsa_lightcurve(
     ylim: tuple = None,
     radius_arcsec: float = 0.5,
 ):
-    plot_title = source_name
 
-    # If there are no coordinates, try name resolve to get coordinates!
-
-    if source_coords is None:
-
-        # Try ampel to find ZTF coordinates
-
-        if is_ztf_name(name=source_name):
-            logger.info("Source name is a ZTF name.")
-            res = ampel_api_name(source_name, with_history=False)[0]
-            source_coords = [res["candidate"]["ra"], res["candidate"]["dec"]]
-            logger.info(f"Found ZTF coordinates for source {source_name}")
-
-        # Try TNS
-
-        elif is_tns_name(name=source_name):
-            logger.info("Source name is a TNS name.")
-            result_dict = query_tns_by_name(name=source_name)
-
-            if not result_dict:
-                logger.warning(f"{source_name} is not in TNS.")
-
-            if result_dict:
-                logger.info(f"Found {source_name} on TNS.")
-                res = result_dict["data"]["reply"]
-                ra = res["radeg"]
-                dec = res["decdeg"]
-                source_coords = [ra, dec]
-                if np.logical_and("redshift" in res.keys(), source_redshift is None):
-                    source_redshift = res["redshift"]
-
-        # Otherwise try NED
-
-        else:
-            result_table = Ned.query_object(source_name)
-
-            if len(result_table) == 0:
-                logger.warning(
-                    f"Failed to resolve name {source_name} in NED. Trying to be clever instead."
-                )
-
-                querystring = "".join(
-                    [
-                        x
-                        for x in source_name
-                        if x in [str(i) for i in range(10)] + ["+", "-"]
-                    ]
-                )
-
-                result_table = Ned.query_object(
-                    "".join(
-                        [
-                            x
-                            for x in source_name
-                            if x in [str(i) for i in range(10)] + ["+", "-"]
-                        ]
-                    )
-                )
-
-            if len(result_table) == 1:
-                source_coords = [result_table["RA"][0], result_table["DEC"][0]]
-
-                if "ZTF" in plot_title:
-                    plot_title += f' ({result_table["Object Name"][0]})'
-
-                if np.logical_and(
-                    str(result_table["Redshift"][0]) != "--", source_redshift is None
-                ):
-                    source_redshift = result_table["Redshift"]
-
-                logger.info(
-                    f"Using Astropy NED query result for name {source_name} ({source_coords})"
-                )
-
-            if source_coords is None:
-                sc = SkyCoord.from_name(source_name)
-                logger.info(
-                    f"Using Astropy CDS query result for name {source_name} (RA={sc.ra}, Dec={sc.dec})"
-                )
-                source_coords = (sc.ra.value, sc.dec.value)
-
-    # Try to find a catalogue source nearby using coordinates
-
-    if np.logical_and("ZTF" in source_name, source_coords is not None):
-
-        c = SkyCoord(source_coords[0], source_coords[1], unit=u.deg, frame="icrs")
-
-        r = 0.5 * u.arcsecond
-
-        result_table = Ned.query_region(c, radius=r)
-
-        if len(result_table) == 1:
-            if "ZTF" in plot_title:
-                plot_title += f' ({result_table["Object Name"][0]})'
-
-            source_coords = [result_table["RA"][0], result_table["DEC"][0]]
-
-            if np.logical_and(
-                str(result_table["Redshift"][0]) != "--", source_redshift is None
-            ):
-                source_redshift = result_table["Redshift"]
-
-            logger.info(
-                f"Found likely match to {source_name}"
-                f"(type = '{result_table['Type'][0]}'. "
-                f"distance = {result_table['Separation'][0]} arcsec')"
-            )
-        elif len(result_table) > 1:
-            logger.warning(
-                f"Found multiple possible cross-matches: {result_table['Object Name']}"
-            )
-        else:
-            logger.info("No NED crossmatch found.")
+    source_coords, source_redshift, plot_title = resolve_name(
+        source_name=source_name,
+        source_coords=source_coords,
+        source_redshift=source_redshift,
+    )
 
     # Query IRSA, or load from cache
 
