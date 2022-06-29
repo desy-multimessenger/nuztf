@@ -69,6 +69,36 @@ try:
         warnings.filterwarnings("ignore", category=UserWarning)
         io.set_account("fritz", token=os.environ["FRITZ_TOKEN"], token_based=True)
         logging.info('Set up "fritz" credentials')
-
 except KeyError:
     logging.info("No Token for Fritz API found in environment" "Assume they are set.")
+
+try:
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning)
+        io.set_account(
+            "ipac_fp_global",
+            username=os.environ["IPAC_FP_GLOBAL_USER"],
+            password=os.environ["IPAC_FP_GLOBAL_PASSWORD"],
+        )
+        logging.info('Set up "ipac_fp_global" credentials')
+except KeyError:
+    logging.info(
+        "No global IPAC forced photometry account found in environment"
+        "Assume they are set."
+    )
+
+try:
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning)
+        io.set_account(
+            "ipac_fp_personal",
+            username=os.environ["IPAC_FP_PERSONAL_EMAIL"],
+            password=os.environ["IPAC_FP_PERSONAL_PASSWORD"],
+        )
+        logging.info('Set up "tns_api_token" credentials')
+
+except KeyError:
+    logging.info(
+        "No personal IPAC forced photometry account found in environment"
+        "Assume they are set."
+    )
