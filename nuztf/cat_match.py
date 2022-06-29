@@ -6,7 +6,7 @@ from astropy.coordinates import SkyCoord
 from astroquery.ned import Ned
 from astroquery.exceptions import RemoteServiceError
 from astropy import units as u
-from nuztf.ampel_api import ampel_api_catalog, ampel_api_name
+from nuztf.ampel_api import ampel_api_catalog, ampel_api_name, calculate_mean_position
 from nuztf.utils import is_ztf_name, is_tns_name, query_tns_by_name
 
 logger = logging.getLogger(__name__)
@@ -229,7 +229,7 @@ def check_cross_match_info_by_name(name: str, logger=None):
     )
 
 
-def resolve_name(
+def context_from_name(
     source_name: str, source_coords: list = None, source_redshift: float = None
 ):
     plot_title = source_name
@@ -242,8 +242,8 @@ def resolve_name(
 
         if is_ztf_name(name=source_name):
             logger.info("Source name is a ZTF name.")
-            res = ampel_api_name(source_name, with_history=False)[0]
-            source_coords = [res["candidate"]["ra"], res["candidate"]["dec"]]
+            res = ampel_api_name(source_name, with_history=True, with_cutouts=False)
+            ra, dec = calculate_mean_position(res)
             logger.info(f"Found ZTF coordinates for source {source_name}")
 
         # Try TNS
