@@ -333,8 +333,9 @@ def plot_composite_lightcurve(source_name: str, snr_cut: float = 5.0, **kwargs):
 if __name__ == "__main__":
     logging.getLogger("nuztf").setLevel("DEBUG")
     plot_forced_photometry_lightcurve(
-        "WISEA J145820.77+412101.9",
+        "1RXS J145552.7+414026",
         plot_mag=True,
-        use_difference_flux=False,
-        snr_cut=10,
+        nu_name=["IC220624A"],
+        use_difference_flux=True,
+        snr_cut=5.0,
     )
