@@ -73,7 +73,6 @@ def submit_request(
     req_soup = BeautifulSoup(request.text, "html.parser")
 
     # For one pending job (ie: one request), check forced photometry job tables
-
     req_ra = req_dec = req_jds = req_jde = None
 
     # Grab the table section of the HTML
@@ -96,7 +95,6 @@ def submit_request(
     # Check if request is fulfilled using a request status check and parse with beautifulsoup4
     # Note: Requests older than 30 days will not show up here
     # Iterable, as beautifulsoup can parse html columns and output lists
-
     request_completed = False
 
     output_end_time = output_lc_path = ""
@@ -202,31 +200,45 @@ def load_forced_photometry(
 
     df = pd.read_csv(save_path, comment="#", sep=" ")
 
+    raw_count = len(df)
+
     acceptable_proc = ["0", "62", "63", "255"]
     mask = np.array([str(x) in acceptable_proc for x in df["procstatus"]])
 
+    df = df[mask]
+
+    df = df[df["forcediffimflux,"] != "null"]
+    df = df[
+        (df["infobitssci,"] == 0) & (df["scisigpix,"] < 25) & (df["sciinpseeing,"] < 4)
+    ]
+    df = df[df["dnearestrefsrc,"] < 1]
+
     logger.info(
-        f"Found {np.sum(mask)} entries with procstatus in {acceptable_proc}. "
-        f"Dropping {np.sum(~mask)} other entries."
+        f"Found {len(df)} entries passing quality cuts. "
+        f"Dropping {raw_count-len(df)} other entries."
     )
 
-    df = df[mask]
     df["mjd"] = df["jd,"] - 2400000.5
     df["filtercode"] = [f"z{x[-1].lower()}" for x in df["filter,"]]
 
     if not use_difference_flux:
         # Frank's formulae
-        nearestrefflux = 10.0 ** (0.4 * (df["zpdiff,"] - df["nearestrefmag,"]))
-        nearestreffluxunc = df["nearestrefmagunc,"] * nearestrefflux / 1.0857
+        nearest_ref_flux = 10.0 ** (0.4 * (df["zpdiff,"] - df["nearestrefmag,"]))
 
-        Fluxtot = df["forcediffimflux,"] + nearestrefflux
-        Fluxunctot = np.sqrt(df["forcediffimflux,"] ** 2.0 - nearestreffluxunc**2.0)
-        SNRtot = Fluxtot / Fluxunctot
+        nearest_ref_flux_unc = df["nearestrefmagunc,"] * nearest_ref_flux / 1.0857
 
-        df["mag"] = df["zpdiff,"] - 2.5 * np.log10(Fluxtot)
-        df["magerr"] = 1.0857 / SNRtot
+        flux_tot = df["forcediffimflux,"] + nearest_ref_flux
 
-        snr_mask = SNRtot > snr_cut
+        flux_unc_tot = np.sqrt(
+            df["forcediffimfluxunc,"] ** 2.0 + nearest_ref_flux_unc**2.0
+        )
+
+        snr_tot = flux_tot / flux_unc_tot
+
+        df["mag"] = df["zpdiff,"] - 2.5 * np.log10(flux_tot)
+        df["magerr"] = 1.0857 / snr_tot
+
+        snr_mask = snr_tot > snr_cut
         df = df[snr_mask]
 
         logger.info(df)
@@ -328,14 +340,3 @@ def plot_composite_lightcurve(source_name: str, snr_cut: float = 5.0, **kwargs):
 
     data = Table.from_pandas(df)
     lightcurve_from_science_image(source_name=source_name, data=data, **kwargs)
-
-
-if __name__ == "__main__":
-    logging.getLogger("nuztf").setLevel("DEBUG")
-    plot_forced_photometry_lightcurve(
-        "1RXS J145552.7+414026",
-        plot_mag=True,
-        nu_name=["IC220624A"],
-        use_difference_flux=True,
-        snr_cut=5.0,
-    )

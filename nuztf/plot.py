@@ -359,13 +359,13 @@ def lightcurve_from_science_image(
 
     # Start Figure
 
-    plt.figure(figsize=(base_width * 1.1, base_height), dpi=dpi)
+    plt.figure(figsize=(base_width * 1.3, base_height), dpi=dpi)
 
     if expanded_labels:
 
-        ax2 = plt.subplot(111)
+        ax = plt.subplot(111)
 
-        ax = ax2.twiny()
+        ax2 = ax.twiny()
 
     else:
         ax = plt.subplot(111)
@@ -598,7 +598,7 @@ def lightcurve_from_science_image(
         ax2.set_xlim(lmjd, umjd)
 
         if plot_title is not None:
-            ax.set_title(f'ZTF Lightcurve of {plot_title.replace("J", " J")}', y=1.4)
+            ax.set_title(f'ZTF Lightcurve of {plot_title.replace("J", " J")}', y=1.6)
 
         ax2.tick_params(axis="both", which="major", labelsize=big_fontsize)
 
@@ -609,7 +609,7 @@ def lightcurve_from_science_image(
 
     ax.legend(
         loc="upper center",
-        bbox_to_anchor=(0.5, 1.22 + 0.2 * float(expanded_labels)),
+        bbox_to_anchor=(0.5, 1.22 + 0.4 * float(expanded_labels)),
         ncol=3 + len(nu_name),
         fancybox=True,
         fontsize=big_fontsize,
