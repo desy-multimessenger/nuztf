@@ -45,7 +45,7 @@ setuptools.setup(
         "numpy==1.23.0",
         "pandas == 1.3.5",
         "pre_commit == 2.17.0",
-        "python-ligo-lw == 1.7.1",
+        "python-ligo-lw == 1.8.0",
         "pyvo == 1.2.1",
         "requests == 2.26.0",
         "seaborn == 0.11.2",
