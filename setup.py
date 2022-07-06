@@ -27,7 +27,7 @@ setuptools.setup(
         "ampel-core == 0.7.4",
         "ampel-interface == 0.7.1",
         "ampel-photometry == 0.7.1",
-        "ampel-ztf == 0.7.4",
+        "ampel-ztf == 0.7.4.post1",
         "astropy == 5.1",
         "black == 22.1.0",
         "backoff == 1.11.1",
