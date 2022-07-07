@@ -39,7 +39,7 @@ setuptools.setup(
         "jupyter == 1.0.0",
         "ligo-gracedb == 2.7.6",
         "ligo.skymap == 1.0.0",
-        "lxml==4.6.5",
+        "lxml==4.9.1",
         "matplotlib==3.5.1",
         "mocpy==0.11.0",
         "numpy==1.23.0",
