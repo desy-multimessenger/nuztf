@@ -21,8 +21,8 @@ def query_ned_for_z(
         catalog_type="extcats",
         ra_deg=ra_deg,
         dec_deg=dec_deg,
-        searchradius_arcsec=searchradius_arcsec,
-        searchtype="nearest",
+        search_radius_arcsec=searchradius_arcsec,
+        search_type="nearest",
         logger=logger,
     )
 
@@ -63,8 +63,8 @@ def ampel_api_tns(
         catalog_type="extcats",
         ra_deg=ra_deg,
         dec_deg=dec_deg,
-        searchradius_arcsec=searchradius_arcsec,
-        searchtype="nearest",
+        search_radius_arcsec=searchradius_arcsec,
+        search_type="nearest",
         logger=logger,
     )
 
@@ -93,7 +93,7 @@ def get_cross_match_info(raw: dict, logger=None):
         catalog_type="extcats",
         ra_deg=alert["ra"],
         dec_deg=alert["dec"],
-        searchradius_arcsec=5.0,
+        search_radius_arcsec=5.0,
         logger=logger,
     )
     if res is not None:
@@ -108,7 +108,7 @@ def get_cross_match_info(raw: dict, logger=None):
         catalog_type="extcats",
         ra_deg=alert["ra"],
         dec_deg=alert["dec"],
-        searchradius_arcsec=1.5,
+        search_radius_arcsec=1.5,
         logger=logger,
     )
     if res is not None:
@@ -129,7 +129,7 @@ def get_cross_match_info(raw: dict, logger=None):
             catalog_type="catsHTM",
             ra_deg=alert["ra"],
             dec_deg=alert["dec"],
-            searchradius_arcsec=5.0,
+            search_radius_arcsec=5.0,
             logger=logger,
         )
         if res is not None:
@@ -146,7 +146,7 @@ def get_cross_match_info(raw: dict, logger=None):
             catalog_type="catsHTM",
             ra_deg=alert["ra"],
             dec_deg=alert["dec"],
-            searchradius_arcsec=1.5,
+            search_radius_arcsec=1.5,
             logger=logger,
         )
         if res is not None:
@@ -164,7 +164,7 @@ def get_cross_match_info(raw: dict, logger=None):
             catalog_type="extcats",
             ra_deg=alert["ra"],
             dec_deg=alert["dec"],
-            searchradius_arcsec=6.0,
+            search_radius_arcsec=6.0,
             logger=logger,
         )
         if res is not None:

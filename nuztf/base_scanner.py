@@ -195,16 +195,11 @@ class BaseScanner:
     def get_multi_night_summary(self, max_days=None):
         return get_obs_summary(self.t_min, max_days=max_days)
 
-    def scan_area(
+    def query_ampel(
         self,
         t_min=None,
         t_max=None,
     ):
-        """
-        Retrieve alerts for the healpix map from AMPEL API,
-        filter the candidates and create a summary
-        """
-
         if t_max is None:
             t_max = self.default_t_max
 
@@ -247,6 +242,19 @@ class BaseScanner:
         self.logger.info(
             f"Before filtering: Found {len(query_res)} candidates. Commencing filtering now."
         )
+        return query_res
+
+    def scan_area(
+        self,
+        t_min=None,
+        t_max=None,
+    ):
+        """
+        Retrieve alerts for the healpix map from AMPEL API,
+        filter the candidates and create a summary
+        """
+
+        query_res = self.query_ampel(t_min=t_min, t_max=t_max)
 
         ztf_ids_first_stage = []
         for res in tqdm(query_res):

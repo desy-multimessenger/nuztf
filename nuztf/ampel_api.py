@@ -291,7 +291,7 @@ def ampel_api_lightcurve(
     ztf_name: str,
     t_min_jd=Time("2017-01-01T00:00:00.0", format="isot", scale="utc").jd,
     t_max_jd=Time.now().jd,
-    programid: int = None,
+    program_id: int = None,
     logger=None,
 ) -> list:
     """
@@ -303,7 +303,7 @@ def ampel_api_lightcurve(
     if logger is None:
         logger = logging.getLogger(__name__)
 
-    if programid is None:
+    if program_id is None:
         queryurl_lightcurve = (
             API_ZTF_ARCHIVE_URL + f"/object/{ztf_name}/photopoints?jd_start={t_min_jd}&"
             f"jd_end={t_max_jd}"
@@ -311,7 +311,7 @@ def ampel_api_lightcurve(
     else:
         queryurl_lightcurve = (
             API_ZTF_ARCHIVE_URL + f"/object/{ztf_name}/photopoints?jd_start={t_min_jd}&"
-            f"jd_end={t_max_jd}&programid={programid}"
+            f"jd_end={t_max_jd}&programid={program_id}"
         )
 
     logger.debug(queryurl_lightcurve)
@@ -420,8 +420,9 @@ def ampel_api_skymap(
     chunk_size: int = 500,
     resume_token: str = None,
     warn_exceeding_chunk: bool = True,
+    program_id: int = None,
     logger=None,
-) -> list:
+) -> tuple:
     """
     Function to query ampel based on a healpix pixel-index (nside is the pixelization degree)
     """
@@ -454,13 +455,16 @@ def ampel_api_skymap(
             "gt": t_min_jd,
         },
         "latest": "false",
-        "with_history": with_history,
-        "with_cutouts": with_cutouts,
+        "with_history": hist,
+        "with_cutouts": cutouts,
         "chunk_size": chunk_size,
     }
 
     if resume_token:
         query["resume_token"] = resume_token
+
+    if program_id is not None:
+        query["programid"] = program_id
 
     queryurl_skymap = API_ZTF_ARCHIVE_URL + f"/alerts/healpix/skymap"
 
@@ -558,8 +562,8 @@ def ampel_api_catalog(
     catalog_type: str,
     ra_deg: float,
     dec_deg: float,
-    searchradius_arcsec: float = 10,
-    searchtype: str = "all",
+    search_radius_arcsec: float = 10,
+    search_type: str = "all",
     logger=None,
 ):
     """
@@ -571,12 +575,12 @@ def ampel_api_catalog(
 
     """
     assert catalog_type in ["extcats", "catsHTM"]
-    assert searchtype in ["all", "nearest"]
+    assert search_type in ["all", "nearest"]
 
     if logger is None:
         logger = logging.getLogger(__name__)
 
-    queryurl_catalogmatch = API_CATALOGMATCH_URL + "/cone_search/" + searchtype
+    queryurl_catalogmatch = API_CATALOGMATCH_URL + "/cone_search/" + search_type
 
     # First, we create a json body to post
     headers = {"accept": "application/json", "Content-Type": "application/json"}
@@ -584,7 +588,7 @@ def ampel_api_catalog(
         "ra_deg": ra_deg,
         "dec_deg": dec_deg,
         "catalogs": [
-            {"name": catalog, "rs_arcsec": searchradius_arcsec, "use": catalog_type}
+            {"name": catalog, "rs_arcsec": search_radius_arcsec, "use": catalog_type}
         ],
     }
 
