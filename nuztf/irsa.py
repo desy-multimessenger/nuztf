@@ -15,7 +15,7 @@ from astropy import constants as const
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
 from astroquery.exceptions import RemoteServiceError
-from astroquery.ned import Ned
+from astroquery.ipac.ned import Ned
 
 from ztfquery.io import LOCALSOURCE
 from ztfquery.lightcurve import LCQuery
@@ -27,6 +27,7 @@ from nuztf.observations import get_most_recent_obs
 from nuztf.parse_nu_gcn import find_gcn_no, parse_gcn_circular
 
 logger = logging.getLogger(__name__)
+logger.setLevel("DEBUG")
 
 
 def format_date(t, atel=True):
@@ -46,19 +47,25 @@ def format_date(t, atel=True):
 def load_irsa(ra_deg: float, dec_deg: float, radius_arcsec: float = 0.5, **kwargs):
     df = LCQuery.from_position(ra_deg, dec_deg, radius_arcsec, **kwargs).data
 
-    mask = df.catflags > 0
+    print(len(df))
 
-    flags = list(set(df.catflags))
+    if len(df) == 0:
+        return None
 
-    logger.info(
-        f"Found {len(df)} datapoints, masking {np.sum(mask)} datapoints with bad flags."
-    )
+    else:
+        mask = df.catflags > 0
 
-    for flag in sorted(flags):
-        logger.debug(f"{np.sum(df.catflags == flag)} datapoints with flag {flag}")
+        flags = list(set(df.catflags))
 
-    df = df.drop(df[mask].index)
-    return df
+        logger.info(
+            f"Found {len(df)} datapoints, masking {np.sum(mask)} datapoints with bad flags."
+        )
+
+        for flag in sorted(flags):
+            logger.debug(f"{np.sum(df.catflags == flag)} datapoints with flag {flag}")
+
+        df = df.drop(df[mask].index)
+        return df
 
 
 def plot_irsa_lightcurve(
@@ -83,6 +90,9 @@ def plot_irsa_lightcurve(
     # If there are no coordinates, try name resolve to get coordinates!
 
     if source_coords is None:
+
+        logger.info(f"Trying to resolve {source_name} and query for coordinates.")
+        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
 
         # Try ampel to find ZTF coordinates
 
@@ -113,6 +123,9 @@ def plot_irsa_lightcurve(
         # Otherwise try NED
 
         else:
+            logger.info(
+                "Source name is neither as ZTF, nor a TNS name. Querying NED instead."
+            )
             result_table = Ned.query_object(source_name)
 
             if len(result_table) == 0:
@@ -162,12 +175,13 @@ def plot_irsa_lightcurve(
 
     # Try to find a catalogue source nearby using coordinates
 
-    if np.logical_and("ZTF" in source_name, source_coords is not None):
+    if ("ZTF" in source_name) and source_coords:
 
         c = SkyCoord(source_coords[0], source_coords[1], unit=u.deg, frame="icrs")
 
         r = 0.5 * u.arcsecond
 
+        logger.info("Querying NED")
         result_table = Ned.query_region(c, radius=r)
 
         if len(result_table) == 1:
@@ -207,7 +221,7 @@ def plot_irsa_lightcurve(
         df = pd.read_csv(cache_path)
 
     else:
-
+        logger.info("Querying IPAC for a lightcurve")
         df = load_irsa(source_coords[0], source_coords[1], radius_arcsec=radius_arcsec)
 
         logger.debug(f"Saving to {cache_path}")
@@ -296,6 +310,9 @@ def plot_irsa_lightcurve(
 
     if check_obs:
 
+        logger.info(
+            f"Getting most recent ZTF observation, looking back {check_obs_lookback_weeks} weeks."
+        )
         mro = get_most_recent_obs(
             ra=source_coords[0],
             dec=source_coords[1],
