@@ -52,6 +52,6 @@ setuptools.setup(
         "setuptools == 59.6.0",
         "tqdm == 4.62.3",
         "wget == 3.2",
-        "ztfquery == 1.18.0",
+        "ztfquery == 1.18.2",
     ],
 )
