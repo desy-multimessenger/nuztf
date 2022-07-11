@@ -35,7 +35,7 @@ setuptools.setup(
         "geopandas == 0.10.2",
         "gwemopt == 0.0.76",
         "healpy == 1.15.2",
-        "ipykernel == 6.6.0",
+        "ipykernel == 6.15.1",
         "jupyter == 1.0.0",
         "ligo-gracedb == 2.7.6",
         "ligo.skymap == 1.0.0",
