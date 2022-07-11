@@ -29,7 +29,7 @@ setuptools.setup(
         "ampel-photometry == 0.7.1",
         "ampel-ztf == 0.7.4.post1",
         "astropy == 5.1",
-        "black == 22.3.0",
+        "black == 22.6.0",
         "backoff == 1.11.1",
         "coveralls == 3.3.1",
         "geopandas == 0.10.2",
