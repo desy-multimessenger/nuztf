@@ -51,7 +51,11 @@ class TestSkymapScanner(unittest.TestCase):
 
         self.assertEqual(n_retrieved_candidates, n_expected_candidates)
 
+        self.logger.info("Creating overview table")
+
         scanner.create_overview_table()
+
+        self.logger.info("Creating candidate summary")
 
         scanner.create_candidate_summary()
 

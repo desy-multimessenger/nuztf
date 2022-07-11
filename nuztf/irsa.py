@@ -163,13 +163,13 @@ def plot_irsa_lightcurve(
                     source_redshift = result_table["Redshift"]
 
                 logger.info(
-                    f"Using Astropy NED query result for name {source_name} ({source_coords})"
+                    f"Using AStroquery NED query result for name {source_name} ({source_coords})"
                 )
 
             if source_coords is None:
                 sc = SkyCoord.from_name(source_name)
                 logger.info(
-                    f"Using Astropy CDS query result for name {source_name} (RA={sc.ra}, Dec={sc.dec})"
+                    f"Using Astroquery CDS query result for name {source_name} (RA={sc.ra}, Dec={sc.dec})"
                 )
                 source_coords = (sc.ra.value, sc.dec.value)
 
