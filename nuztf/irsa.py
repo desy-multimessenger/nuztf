@@ -323,7 +323,6 @@ def plot_irsa_lightcurve(
             ra=source_coords[0],
             dec=source_coords[1],
             lookback_weeks_max=check_obs_lookback_weeks,
-            query_irsa_for_logs=query_irsa_for_logs,
         )
 
         if mro is not None:

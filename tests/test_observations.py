@@ -5,7 +5,7 @@ import unittest
 import logging
 from astropy.time import Time
 from astropy import units as u
-from nuztf.observations import get_obs_summary, get_obs_summary_skyvision
+from nuztf.observations import get_obs_summary_irsa, get_obs_summary_skyvision
 
 
 class TestCoverage(unittest.TestCase):
@@ -19,7 +19,7 @@ class TestCoverage(unittest.TestCase):
         t_start = Time(2458865.96, format="jd")
         t_end = Time(2458866.96, format="jd")
 
-        res = get_obs_summary(t_start, t_end)
+        res = get_obs_summary_irsa(t_start, t_end)
 
         expected = {
             "obsid": 111223429.0,
