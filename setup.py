@@ -44,7 +44,7 @@ setuptools.setup(
         "mocpy==0.11.0",
         "numpy==1.23.0",
         "pandas == 1.3.5",
-        "pre_commit == 2.17.0",
+        "pre_commit == 2.20.0",
         "python-ligo-lw == 1.8.0",
         "pyvo == 1.2.1",
         "requests == 2.28.1",
