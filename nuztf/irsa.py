@@ -27,7 +27,6 @@ from nuztf.observations import get_most_recent_obs
 from nuztf.parse_nu_gcn import find_gcn_no, parse_gcn_circular
 
 logger = logging.getLogger(__name__)
-logger.setLevel("DEBUG")
 
 
 def format_date(t, atel=True):
@@ -45,11 +44,17 @@ def format_date(t, atel=True):
 
 
 def load_irsa(ra_deg: float, dec_deg: float, radius_arcsec: float = 0.5, **kwargs):
+    """
+    Get lightcuve from IPAC
+    """
+
+    logger.debug("Querying IPAC")
     df = LCQuery.from_position(ra_deg, dec_deg, radius_arcsec, **kwargs).data
 
-    print(len(df))
+    logger.debug(f"Found {len(df)} datapoints")
 
     if len(df) == 0:
+        logger.info("No data found.")
         return None
 
     else:
@@ -84,7 +89,8 @@ def plot_irsa_lightcurve(
     expanded_labels: bool = True,
     ylim: tuple = None,
     radius_arcsec: float = 0.5,
-):
+    query_irsa_for_logs: bool = True,
+) -> None:
     plot_title = source_name
 
     # If there are no coordinates, try name resolve to get coordinates!
@@ -163,13 +169,13 @@ def plot_irsa_lightcurve(
                     source_redshift = result_table["Redshift"]
 
                 logger.info(
-                    f"Using Astropy NED query result for name {source_name} ({source_coords})"
+                    f"Using AStroquery NED query result for name {source_name} ({source_coords})"
                 )
 
             if source_coords is None:
                 sc = SkyCoord.from_name(source_name)
                 logger.info(
-                    f"Using Astropy CDS query result for name {source_name} (RA={sc.ra}, Dec={sc.dec})"
+                    f"Using Astroquery CDS query result for name {source_name} (RA={sc.ra}, Dec={sc.dec})"
                 )
                 source_coords = (sc.ra.value, sc.dec.value)
 
@@ -317,6 +323,7 @@ def plot_irsa_lightcurve(
             ra=source_coords[0],
             dec=source_coords[1],
             lookback_weeks_max=check_obs_lookback_weeks,
+            query_irsa_for_logs=query_irsa_for_logs,
         )
 
         if mro is not None:

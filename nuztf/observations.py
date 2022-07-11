@@ -137,7 +137,7 @@ def get_coverage(jds: [int]) -> pd.DataFrame:
     return df
 
 
-def get_obs_summary(t_min, t_max=None, max_days: int = None):
+def get_obs_summary(t_min, t_max=None, max_days: int = None, query_irsa_for_logs=True):
 
     if t_max is None:
         if max_days is None:
@@ -147,15 +147,22 @@ def get_obs_summary(t_min, t_max=None, max_days: int = None):
 
     jds = np.arange(int(t_min.jd), int(t_max.jd) + 1)
 
-    df = get_coverage(jds)
-    if len(df) == 0:
-        get_obs_summary_skyvision(t_min, t_max, max_days=max_days)
+    if query_irsa_for_logs:
+        logger.debug("Getting coverage")
+        df = get_coverage(jds)
+        mns = MNS(df)
+        mns.data.query(f"obsjd >= {t_min.jd} and obsjd <= {t_max.jd}", inplace=True)
+        mns.data.reset_index(inplace=True)
+        mns.data.drop(columns=["index"], inplace=True)
+        logger.debug("Done")
 
-    mns = MNS(df)
+        if len(df) == 0:
+            logger.debug("Empty observation log, try skyvision instead.")
+            mns = get_obs_summary_skyvision(t_min, t_max, max_days=max_days)
 
-    mns.data.query(f"obsjd >= {t_min.jd} and obsjd <= {t_max.jd}", inplace=True)
-    mns.data.reset_index(inplace=True)
-    mns.data.drop(columns=["index"], inplace=True)
+    else:
+        logger.info("Getting observation log from skyvision.")
+        mns = get_obs_summary_skyvision(t_min, t_max, max_days=max_days)
 
     logger.debug(f"Found {len(mns.data)} observations in total.")
 
@@ -211,7 +218,9 @@ def get_obs_summary_skyvision(t_min, t_max=None, max_days: int = None):
     return mns
 
 
-def get_most_recent_obs(ra: float, dec: float, lookback_weeks_max: int = 12):
+def get_most_recent_obs(
+    ra: float, dec: float, lookback_weeks_max: int = 12, query_irsa_for_logs=True
+):
     """ """
 
     fields = get_fields_containing_target(ra, dec)._data
@@ -240,7 +249,9 @@ def get_most_recent_obs(ra: float, dec: float, lookback_weeks_max: int = 12):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning)
 
-            mns = get_obs_summary(t_min=t_min, t_max=t_max)
+            mns = get_obs_summary(
+                t_min=t_min, t_max=t_max, query_irsa_for_logs=query_irsa_for_logs
+            )
 
         mask = np.array([x in fields for x in mns.data["field"]])
 
