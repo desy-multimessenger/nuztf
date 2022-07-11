@@ -3,14 +3,17 @@
 
 import unittest
 import logging
+import nuztf
 from nuztf.irsa import plot_irsa_lightcurve, load_irsa
 
 
 class TestIrsa(unittest.TestCase):
     def setUp(self):
-        logging.getLogger("irsa").setLevel(logging.INFO)
+        logging.getLogger("nuztf.irsa").setLevel(logging.DEBUG)
+        logging.getLogger("nuztf.observations").setLevel(logging.DEBUG)
+
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.DEBUG)
 
     def test_lightcurve(self):
         self.logger.info("\n\n Testing IRSA \n\n")

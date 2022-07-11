@@ -27,7 +27,6 @@ from nuztf.observations import get_most_recent_obs
 from nuztf.parse_nu_gcn import find_gcn_no, parse_gcn_circular
 
 logger = logging.getLogger(__name__)
-logger.setLevel("DEBUG")
 
 
 def format_date(t, atel=True):
@@ -45,11 +44,17 @@ def format_date(t, atel=True):
 
 
 def load_irsa(ra_deg: float, dec_deg: float, radius_arcsec: float = 0.5, **kwargs):
+    """
+    Get lightcuve from IPAC
+    """
+
+    logger.debug("Querying IPAC")
     df = LCQuery.from_position(ra_deg, dec_deg, radius_arcsec, **kwargs).data
 
-    print(len(df))
+    logger.debug(f"Found {len(df)} datapoints")
 
     if len(df) == 0:
+        logger.info("No data found.")
         return None
 
     else:
