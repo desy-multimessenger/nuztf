@@ -137,7 +137,27 @@ def get_coverage(jds: [int]) -> pd.DataFrame:
     return df
 
 
-def get_obs_summary(t_min, t_max=None, max_days: int = None, query_irsa_for_logs=True):
+def get_obs_summary(t_min, t_max=None, max_days: int = None):
+    """
+    Get observation summary from Skyvision (or IRSA if Skyvision fails)
+    """
+
+    logger.info("Getting observation logs from skyvision.")
+    mns = get_obs_summary_skyvision(t_min, t_max, max_days=max_days)
+
+    if len(mns.data) == 0:
+        logger.debug("Empty observation log, try IRSA instead.")
+        mns = get_obs_summary_irsa(t_min, t_max, max_days=max_days)
+
+    logger.debug(f"Found {len(mns.data)} observations in total.")
+
+    return mns
+
+
+def get_obs_summary_irsa(t_min, t_max=None, max_days: int = None):
+    """
+    Get observation summary from IRSA
+    """
 
     if t_max is None:
         if max_days is None:
@@ -147,30 +167,25 @@ def get_obs_summary(t_min, t_max=None, max_days: int = None, query_irsa_for_logs
 
     jds = np.arange(int(t_min.jd), int(t_max.jd) + 1)
 
-    if query_irsa_for_logs:
-        logger.debug("Getting coverage")
-        df = get_coverage(jds)
-        mns = MNS(df)
-        mns.data.query(f"obsjd >= {t_min.jd} and obsjd <= {t_max.jd}", inplace=True)
-        mns.data.reset_index(inplace=True)
-        mns.data.drop(columns=["index"], inplace=True)
-        logger.debug("Done")
+    logger.debug("Getting coverage")
 
-        if len(df) == 0:
-            logger.debug("Empty observation log, try skyvision instead.")
-            mns = get_obs_summary_skyvision(t_min, t_max, max_days=max_days)
+    df = get_coverage(jds)
 
-    else:
-        logger.info("Getting observation log from skyvision.")
-        mns = get_obs_summary_skyvision(t_min, t_max, max_days=max_days)
+    mns = MNS(df)
 
-    logger.debug(f"Found {len(mns.data)} observations in total.")
+    mns.data.query(f"obsjd >= {t_min.jd} and obsjd <= {t_max.jd}", inplace=True)
+    mns.data.reset_index(inplace=True)
+    mns.data.drop(columns=["index"], inplace=True)
+
+    logger.debug("Done")
 
     return mns
 
 
 def get_obs_summary_skyvision(t_min, t_max=None, max_days: int = None):
-    """ """
+    """
+    Get observation summary from Skyvision
+    """
 
     t_min_jd = t_min.jd
     t_min_date = t_min.to_value("iso", subfmt="date")
@@ -218,9 +233,7 @@ def get_obs_summary_skyvision(t_min, t_max=None, max_days: int = None):
     return mns
 
 
-def get_most_recent_obs(
-    ra: float, dec: float, lookback_weeks_max: int = 12, query_irsa_for_logs=True
-):
+def get_most_recent_obs(ra: float, dec: float, lookback_weeks_max: int = 12):
     """ """
 
     fields = get_fields_containing_target(ra, dec)._data
@@ -249,9 +262,7 @@ def get_most_recent_obs(
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning)
 
-            mns = get_obs_summary(
-                t_min=t_min, t_max=t_max, query_irsa_for_logs=query_irsa_for_logs
-            )
+            mns = get_obs_summary(t_min=t_min, t_max=t_max)
 
         mask = np.array([x in fields for x in mns.data["field"]])
 
