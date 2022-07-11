@@ -2,7 +2,7 @@
 # coding: utf-8
 
 from astropy.coordinates import SkyCoord
-from astroquery.ned import Ned
+from astroquery.ipac.ned import Ned
 from astroquery.exceptions import RemoteServiceError
 from astropy import units as u
 from nuztf.ampel_api import ampel_api_catalog, ampel_api_name
