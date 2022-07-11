@@ -19,10 +19,10 @@ class TestIrsa(unittest.TestCase):
         self.logger.info("\n\n Testing IRSA \n\n")
         self.logger.info("Getting lightcurve from IPAC.")
 
-        res = load_irsa(77.358185, 5.693148, 0.5, TIME=[58204.1, 59678.9])
+        res = load_irsa(77.358185, 5.693148, 0.5, TIME=[59204.1, 59210.9])
 
         res = res[res["programid"] == 1]
-        expected = 374
+        expected = 2
 
         self.logger.info(f"Found {len(res)} entries. Expected: {expected}")
 
@@ -38,4 +38,5 @@ class TestIrsa(unittest.TestCase):
                 nu_name=nu_names[i],
                 check_obs=True,
                 check_obs_lookback_weeks=1,
+                query_irsa_for_logs=False,
             )

@@ -56,5 +56,3 @@ class TestCoverage(unittest.TestCase):
 
         for (name, val) in expected_2.items():
             self.assertEqual(res2.data.iloc[0][name], val)
-
-        # get_obs_summary(Time.now() - 1.0 * u.day, Time.now())

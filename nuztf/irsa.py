@@ -89,7 +89,8 @@ def plot_irsa_lightcurve(
     expanded_labels: bool = True,
     ylim: tuple = None,
     radius_arcsec: float = 0.5,
-):
+    query_irsa_for_logs: bool = True,
+) -> None:
     plot_title = source_name
 
     # If there are no coordinates, try name resolve to get coordinates!
@@ -322,6 +323,7 @@ def plot_irsa_lightcurve(
             ra=source_coords[0],
             dec=source_coords[1],
             lookback_weeks_max=check_obs_lookback_weeks,
+            query_irsa_for_logs=query_irsa_for_logs,
         )
 
         if mro is not None:
