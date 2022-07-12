@@ -1,4 +1,5 @@
 import requests
+import backoff
 import os
 from nuztf.credentials import load_credentials
 
@@ -16,6 +17,11 @@ def fritz_api(method: str, endpoint_extension: str, data: dict = None):
     return response
 
 
+@backoff.on_exception(
+    backoff.expo,
+    requests.exceptions.RequestException,
+    max_time=60,
+)
 def save_source_to_group(object_id: str, group_id: int):
     payload = {
         "objId": object_id,
