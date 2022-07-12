@@ -2,7 +2,7 @@ ampel-alerts==0.7.2
 ampel-core==0.7.4
 ampel-interface==0.7.1
 ampel-photometry==0.7.1
-ampel-ztf==0.7.4
+ampel-ztf==0.7.4.post1
 astropy==5.1
 astroquery==0.4.4
 backoff==1.11.1
