@@ -24,7 +24,7 @@ setuptools.setup(
     python_requires=">=3.8.0,<3.9.0",
     install_requires=[
         "ampel-alerts == 0.7.2",
-        "ampel-core == 0.7.4",
+        "ampel-core == 0.7.5",
         "ampel-interface == 0.7.1",
         "ampel-photometry == 0.7.1",
         "ampel-ztf == 0.7.4.post1",
