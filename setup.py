@@ -37,7 +37,7 @@ setuptools.setup(
         "healpy == 1.15.2",
         "ipykernel == 6.15.1",
         "jupyter == 1.0.0",
-        "ligo-gracedb == 2.7.6",
+        "ligo-gracedb == 2.7.7",
         "ligo.skymap == 1.0.0",
         "lxml==4.9.1",
         "matplotlib==3.5.1",
