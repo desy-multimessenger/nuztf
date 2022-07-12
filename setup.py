@@ -42,7 +42,7 @@ setuptools.setup(
         "lxml==4.9.1",
         "matplotlib==3.5.1",
         "mocpy==0.11.0",
-        "numpy==1.23.0",
+        "numpy==1.23.1",
         "pandas == 1.3.5",
         "pre_commit == 2.20.0",
         "python-ligo-lw == 1.8.0",
