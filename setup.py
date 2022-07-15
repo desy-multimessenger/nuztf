@@ -50,7 +50,7 @@ setuptools.setup(
         "pyvo == 1.3",
         "requests == 2.28.1",
         "seaborn == 0.11.2",
-        "setuptools == 63.1.0",
+        "setuptools == 63.2.0",
         "tqdm == 4.64.0",
         "wget == 3.2",
         "ztfquery == 1.18.4",
