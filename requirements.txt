@@ -10,7 +10,7 @@ backoff==1.11.1
 coveralls==3.3.1
 geopandas==0.11.0
 gwemopt==0.0.76
-healpy==1.15.2
+healpy==1.16.0
 ipykernel==6.15.1
 jupyter==1.0.0
 ligo-gracedb==2.7.7
