@@ -603,9 +603,6 @@ class SkymapScanner(BaseScanner):
                 if "ORDERING" in x.header:
                     ordering = x.header["ORDERING"]
 
-        print(x.header)
-        quit()
-
         if "PROB" in data.dtype.names:
             key = "PROB"
         elif "PROBABILITY" in data.dtype.names:
