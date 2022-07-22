@@ -45,9 +45,9 @@ jobs:
           python -m pip install --upgrade poetry coveralls
 
      # Setting up dependencies
-      - name: Install dependencies (with all extras)
+      - name: Install dependencies
         run: |
-          poetry install --extras "slack"
+          poetry install
 
       # Runs all tests in the 'tests' directory and gets coverage
       - name: Test the code
@@ -72,18 +72,18 @@ jobs:
         run: coveralls
 
       - name: Echo tag name
-        run: echo "Tag is ${{ github.ref }}, Tagged is ${{ startsWith(github.ref, 'refs/tags/')}}, Python Check is ${{matrix.python-version == 3.10}},  Deploy is ${{ startsWith(github.ref, 'refs/tags/') && matrix.python-version == 3.10}}"
+        run: echo "Tag is ${{ github.ref }}, Tagged is ${{ startsWith(github.ref, 'refs/tags/')}}, Python Check is ${{matrix.python-version == 3.9}},  Deploy is ${{ startsWith(github.ref, 'refs/tags/') && matrix.python-version == 3.9}}"
 
       # Build a tarball and push to Pypi if tagged with new version
       - name: Build and publish
-        if: ${{ startsWith(github.ref, 'refs/tags/') && success() && matrix.python-version == 3.10}}
+        if: ${{ startsWith(github.ref, 'refs/tags/') && success() && matrix.python-version == 3.9}}
         run: |
           poetry publish -n --build
         env:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_API_TOKEN }}
 
       - name: Merge pull request if from Dependabot
-        if: ${{success() && matrix.python-version == 3.10 && github.actor == 'dependabot[bot]'}}
+        if: ${{success() && matrix.python-version == 3.9 && github.actor == 'dependabot[bot]'}}
         run: gh pr merge --auto --merge "$PR_URL"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
