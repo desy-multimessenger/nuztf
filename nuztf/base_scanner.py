@@ -1123,3 +1123,13 @@ class BaseScanner:
                 saved_sources.append(source)
 
         self.logger.info(f"Saved {len(saved_sources)} to fritz group {group_id}")
+
+    def export_cache_to_pickle(self, output_path: str):
+        with open(output_path, "wb") as f:
+            self.logger.info(f"Saving to {output_path}")
+            pickle.dump(self.cache, f)
+
+    def load_cache_from_pickle(self, input_path: str):
+        with open(input_path, "rb") as f:
+            self.logger.info(f"Loading from {input_path}")
+            self.cache = pickle.load(f)
