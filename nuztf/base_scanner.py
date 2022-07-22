@@ -1018,7 +1018,6 @@ class BaseScanner:
         """
         Generate and save the fields-healpix lookup table
         """
-        import pickle
         from ztfquery.fields import FIELD_DATAFRAME
 
         self.logger.info(
