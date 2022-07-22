@@ -68,10 +68,10 @@ class NeutrinoScanner(BaseScanner):
         if manual_args is None:
 
             if nu_name is not None:
-                gcn_no = find_gcn_no(nu_name, logger=self.logger)
+                gcn_no = find_gcn_no(nu_name)
 
             elif gcn_no is None:
-                gcn_no = get_latest_gcn(logger=self.logger)
+                gcn_no = get_latest_gcn()
 
             gcn_info = parse_gcn_circular(gcn_no)
 
