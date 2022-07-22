@@ -2,6 +2,7 @@ import glob
 
 import pyvo.dal
 import time
+from typing import Optional
 from nuztf import credentials
 from pyvo.auth import securitymethods, authsession
 import requests
@@ -99,7 +100,7 @@ def write_coverage(jds: [int]):
             time.sleep(1)
 
 
-def get_coverage(jds: [int]) -> pd.DataFrame:
+def get_coverage(jds: [int]) -> Optional[pd.DataFrame]:
 
     # Clear any logs flagged as partial/incomplete
 
@@ -128,13 +129,17 @@ def get_coverage(jds: [int]) -> pd.DataFrame:
 
     # Load logs from cache
 
-    df = pd.DataFrame()
+    results = []
 
     for jd in jds:
         res = pd.read_csv(coverage_path(jd))
-        df = df.append(res)
+        results.append(res)
 
-    return df
+    if results:
+        result_df = pd.concat(results)
+        return result_df
+    else:
+        return None
 
 
 def get_obs_summary(t_min, t_max=None, max_days: int = None):

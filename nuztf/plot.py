@@ -26,26 +26,25 @@ def alert_to_pandas(alert):
 
     candidate = alert[0]["candidate"]
     prv_candid = alert[0]["prv_candidates"]
+    combined = [candidate]
+    combined.extend(prv_candid)
 
-    df = pd.DataFrame(candidate, index=[0])
-    df_ulims = pd.DataFrame()
+    df_detections_list = []
+    df_ulims_list = []
 
-    # Filter out images with negative difference flux
-    i = 0
-    for prv in prv_candid:
-        # Go through the alert history
-        if "magpsf" in prv.keys() and "isdiffpos" in prv.keys():
-            i += 1
-            ser = pd.Series(prv, name=i)
-            df = df.append(ser)
+    for cand in combined:
+        _df = pd.DataFrame().from_dict(cand, orient="index").transpose()
+        _df["mjd"] = _df["jd"] - 2400000.5
+        if "magpsf" in cand.keys() and "isdiffpos" in cand.keys():
+            df_detections_list.append(_df)
+
         else:
-            df_ulims = df_ulims.append(prv, ignore_index=True)
-            i += 1
+            df_ulims_list.append(_df)
 
-    df["mjd"] = df["jd"] - 2400000.5
-    df_ulims["mjd"] = df_ulims["jd"] - 2400000.5
+    df_detections = pd.concat(df_detections_list)
+    df_ulims = pd.concat(df_ulims_list)
 
-    return df, df_ulims
+    return df_detections, df_ulims
 
 
 def lightcurve_from_alert(
