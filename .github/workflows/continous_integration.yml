@@ -26,7 +26,7 @@ jobs:
     # Specify the python versions to test
     strategy:
       matrix:
-        python-version: [3.8]
+        python-version: ["3.10"]
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -39,61 +39,49 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-     # Setting up dependencies
-      - name: Install dependencies
-        run: |
-          pip install wheel
-          pip install -e .
+      # Install poetry
+      - name: Install poetry and coveralls
+        run: >-
+          python -m pip install --upgrade poetry coveralls
 
-      # Runs a set of commands using the runners shell
+     # Setting up dependencies
+      - name: Install dependencies (with all extras)
+        run: |
+          poetry install --extras "slack"
+
+      # Runs all tests in the 'tests' directory and gets coverage
       - name: Test the code
         env:
-          AMPEL_API_ARCHIVE_TOKEN_USER: ${{ secrets.ampel_api_archive_token_user }}
-          AMPEL_API_ARCHIVE_TOKEN_PASSWORD: ${{ secrets.ampel_api_archive_token_password }}
-          TNS_API_TOKEN: ${{ secrets.tns_api_token }}
+          KOWALSKI_HOST: ${{ secrets.kowalski_host }}
+          KOWALSKI_API_TOKEN: ${{ secrets.kowalski_api_token }}
           IRSA_USER: ${{ secrets.irsa_user }}
           IRSA_PASSWORD: ${{ secrets.irsa_password }}
-          SKYVISION_USER: ${{ secrets.skyvision_user }}
-          SKYVISION_PASSWORD: ${{ secrets.skyvision_password }}
+          PYPI_API_TOKEN: ${{ secrets.pypi_api_token }}
           FRITZ_TOKEN: ${{ secrets.fritz_token }}
           ZTFDATA: ./
         run: |
-          coverage run --concurrency=multiprocessing -m unittest discover tests/
-          coverage combine
+          poetry run coverage run -m pytest -v 
 
+      # Push the coverage result to coveralls.io
       - name: Run Coveralls
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ success() }}
         run: coveralls
 
       - name: Echo tag name
-        run: echo "Tag is ${{ github.ref }}, Tagged is ${{ startsWith(github.ref, 'refs/tags/')}}, Python Check is ${{matrix.python-version == 3.8}},  Deploy is ${{ startsWith(github.ref, 'refs/tags/') && matrix.python-version == 3.8}}"
+        run: echo "Tag is ${{ github.ref }}, Tagged is ${{ startsWith(github.ref, 'refs/tags/')}}, Python Check is ${{matrix.python-version == 3.10}},  Deploy is ${{ startsWith(github.ref, 'refs/tags/') && matrix.python-version == 3.10}}"
 
-      - name: Install pypa/build
-        run: >-
-          python -m
-          pip install
-          build
-          --user
-      - name: Build a binary wheel and a source tarball
-        run: >-
-          python -m
-          build
-          --sdist
-          --wheel
-          --outdir dist/
-          .
-
-      - name: Publish distribution 📦 to PyPI
-        if: ${{ startsWith(github.ref, 'refs/tags/') && success() && matrix.python-version == 3.8}}
-        uses: pypa/gh-action-pypi-publish@master
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
+      # Build a tarball and push to Pypi if tagged with new version
+      - name: Build and publish
+        if: ${{ startsWith(github.ref, 'refs/tags/') && success() && matrix.python-version == 3.10}}
+        run: |
+          poetry publish -n --build
+        env:
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_API_TOKEN }}
 
       - name: Merge pull request if from Dependabot
-        if: ${{success() && matrix.python-version == 3.8 && github.actor == 'dependabot[bot]'}}
+        if: ${{success() && matrix.python-version == 3.10 && github.actor == 'dependabot[bot]'}}
         run: gh pr merge --auto --merge "$PR_URL"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
