@@ -596,6 +596,10 @@ class SkymapScanner(BaseScanner):
                 if "DATE-OBS" in x.header:
                     t_obs = x.header["DATE-OBS"]
 
+                elif "EVENTMJD" in x.header:
+                    t_obs_mjd = x.header["EVENTMJD"]
+                    t_obs = Time(t_obs_mjd, format="mjd").isot
+
                 if "ORDERING" in x.header:
                     ordering = x.header["ORDERING"]
 
@@ -608,6 +612,10 @@ class SkymapScanner(BaseScanner):
         elif "PROBDENSITY" in data.dtype.names:
             key = "PROB"
             prob = np.array(data["PROBDENSITY"])
+            data = append_fields(data, "PROB", prob)
+        elif "T" in data.dtype.names:  # weird IceCube format
+            key = "PROB"
+            prob = np.array(data["T"]).flatten()
             data = append_fields(data, "PROB", prob)
         else:
             raise Exception(
