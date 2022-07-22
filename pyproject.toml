@@ -1,17 +1,17 @@
 [tool.poetry]
 name = "nuztf"
-version = "2.5.0"
+version = "2.6.0"
 description = "Package for multi-messenger correlation searches with ZTF"
-authors = ["Robert Stein, Simeon Reusch, Jannis Necker"]
+authors = ["Robert Stein <rdstein@caltech.edu>, Simeon Reusch <simeon.reusch@desy.de>, Jannis Necker <jannis.necker@desy.de>"]
+repository = "https://github.com/desy-multimessenger/nuztf"
 license = "MIT"
+readme = "README.md"
+classifiers = [
+        "Operating System :: OS Independent",
+]
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.10"
-# ampel-alerts = "^0.7.2"
-# ampel-core = "^0.7.5"
-# ampel-interface = "^0.7.1"
-# ampel-photometry = "^0.7.1"
-# ampel-ztf = "^0.7.4"
 ampel = "^0.8.2-alpha.0"
 ampel-ztf = { git = "https://github.com/AmpelProject/Ampel-ZTF.git", branch = "dev/v0.8.2" }
 astropy = "^5.1"
