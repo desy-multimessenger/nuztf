@@ -17,18 +17,26 @@ cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 # test
 
 
-def is_ztf_name(name: str):
+def is_ztf_name(name: str) -> bool:
     """
     Checks if a string adheres to the ZTF naming scheme
     """
-    return re.match("^ZTF[1-2]\d[a-z]{7}$", name)
+    if re.match(r"^ZTF[1-2]\d[a-z]{7}$", name):
+        matches = True
+    else:
+        matches = False
+    return matches
 
 
-def is_tns_name(name: str):
+def is_tns_name(name: str) -> bool:
     """
     Checks if a string adheres to the TNS naming scheme
     """
-    return re.match("^AT|SN(19|20)\d\d[a-z]{3,4}$", name)
+    if re.match(r"^AT|SN(19|20)\d\d[a-z]{3,4}$", name):
+        matches = True
+    else:
+        matches = False
+    return matches
 
 
 def query_tns_by_name(name, logger=None):
