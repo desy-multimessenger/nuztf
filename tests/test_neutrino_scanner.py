@@ -91,7 +91,7 @@ class TestNeutrinoScanner(unittest.TestCase):
                 catalog_type="extcats",
                 ra_deg=res["candidate"]["ra"],
                 dec_deg=res["candidate"]["dec"],
-                searchradius_arcsec=1.5,
+                search_radius_arcsec=1.5,
                 logger=self.logger,
             )
 
