@@ -20,6 +20,10 @@ Alternatively, the latest Github version of the code can be installed via pip:
 
 ```pip install -e nuztf```
 
+In case you encounter problems with an ARM-based Mac, use conda and issue:
+```conda install -c conda-forge python-confluent-kafka fiona pyproj lalsuite ligo.skymap -y```
+This should take care of all packages that have not yet been ported.
+
 You will need the [IRSA login details](https://irsa.ipac.caltech.edu/account/signon/logout.do) with a ZTF-enabled account to fully utilise all features.
 
 Additionally, you need an AMPEL API token. This can be obtained [here](https://ampel.zeuthen.desy.de/live/dashboard/tokens).

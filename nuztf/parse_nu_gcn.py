@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # License: BSD-3-Clause
 
-import re
-import logging
+import re, json, logging
 
 import requests
 import numpy as np
@@ -22,25 +21,7 @@ class ParsingError(Exception):
     pass
 
 
-def parse_gcn_archive():
-    """ """
-    page = requests.get(f"{BASE_GCN_URL}_archive.html")
-
-    nu_circulars = []
-
-    for line in page.text.splitlines():
-        if "IceCube observation of a high-energy neutrino" in line:
-            res = line.split(">")
-            gcn_no = "".join([x for x in res[2] if x.isdigit()])
-            name = res[3].split(" - ")[0]
-            nu_circulars.append((name, gcn_no))
-
-    return nu_circulars
-
-
-def parse_gcn_for_no(
-    base_nu_name: str, url: str = f"{BASE_GCN_URL}_archive.html", logger=None
-):
+def parse_gcn_for_no(base_nu_name: str, url: str = f"{BASE_GCN_URL}_archive.html"):
     """ """
     if logger:
         logger.info(f"Checking for GCN on {url}")
@@ -76,39 +57,103 @@ def parse_gcn_for_no(
     return gcn_no, name, latest_archive_no
 
 
-def find_gcn_no(base_nu_name: str, logger=None):
-    """ """
-    gcn_no, name, latest_archive_no = parse_gcn_for_no(base_nu_name, logger=logger)
+def find_gcn_no(base_nu_name: str):
+    """
+    Trick the webpage into giving us results
+    """
+    endpoint = (
+        "https://heasarc.gsfc.nasa.gov/wsgi-scripts/tach/gcn_v2/tach.wsgi/graphql_fast"
+    )
 
-    if gcn_no is None:
-        logging.info(
-            f"No GCN found for {base_nu_name} on GCN page, checking archive instead. "
-            f"The latest page is {latest_archive_no}"
+    querystr = (
+        '{ allEventCard( name: "'
+        + base_nu_name
+        + '" ) {edges {node { id_ event } } } }'
+    )
+    r = requests.post(
+        endpoint,
+        data={
+            "query": querystr,
+            "Content-Type": "application/json",
+        },
+    )
+    res = json.loads(r.text)
+
+    if res["data"]["allEventCard"]["edges"]:
+
+        event_id = res["data"]["allEventCard"]["edges"][0]["node"]["id_"]
+
+        querystr = (
+            "{ allCirculars ( evtid:"
+            + event_id
+            + " ) { totalCount edges { node { id id_ received subject evtidCircular{ event } cid evtid oidCircular{ telescope detector oidEvent{ wavelength messenger } } } } } }"
         )
 
-        while np.logical_and(latest_archive_no > 0, gcn_no is None):
-            gcn_no, name, _ = parse_gcn_for_no(
-                base_nu_name,
-                url=f"{BASE_GCN_URL}_arch_old{latest_archive_no}.html",
-            )
-            latest_archive_no -= 1
+        r = requests.post(
+            endpoint,
+            data={
+                "query": querystr,
+                "Content-Type": "application/json",
+            },
+        )
+        result = json.loads(r.text)
 
-    # while
+        received_date = []
+        circular_nr = []
 
-    if name is None:
-        raise ParsingError("No GCN match found for {0}".format(base_nu_name))
+        for entry in result["data"]["allCirculars"]["edges"]:
+            received_date.append(entry["node"]["received"])
+            circular_nr.append(entry["node"]["cid"])
 
-    logging.info(f"Match is {name} (GCN #{gcn_no})")
+        """
+        I don't trust this webserver, let's go with the
+        earliest GCN, not the last in the list
+        """
+        gcn_no = circular_nr[
+            np.argmin([Time(i, format="isot").mjd for i in received_date])
+        ]
+        logging.info(f"GCN found ({gcn_no})")
 
-    return gcn_no
+        return gcn_no
+
+    else:
+        logging.warning(f"No GCN found for {base_nu_name}")
+
+        return None
 
 
-def get_latest_gcn(logger=None):
-    """ """
-    latest = parse_gcn_archive()[0]
-    if logger:
-        logger.info(f"Latest GCN is {latest[0]} (GCN #{latest[1]})")
-    return latest[1]
+def get_latest_gcn():
+    """
+    Get the last circular
+    """
+    endpoint = (
+        "https://heasarc.gsfc.nasa.gov/wsgi-scripts/tach/gcn_v2/tach.wsgi/graphql_fast"
+    )
+    querystr = '{ allCirculars ( first:50after:"" ) { totalCount pageInfo{ hasNextPage hasPreviousPage startCursor endCursor } edges { node { id id_ received subject evtidCircular{ event } cid evtid oidCircular{ telescope detector oidEvent{ wavelength messenger } } } } } }'
+
+    r = requests.post(
+        endpoint,
+        data={
+            "query": querystr,
+            "Content-Type": "application/json",
+        },
+    )
+    result = json.loads(r.text)
+
+    received_date = []
+    circular_nr = []
+
+    for entry in result["data"]["allCirculars"]["edges"]:
+        received_date.append(entry["node"]["received"])
+        circular_nr.append(entry["node"]["cid"])
+
+    latest_gcn_no = circular_nr[
+        np.argmin([Time(i, format="isot").mjd for i in received_date])
+    ]
+
+    logging.info(f"Most recent GCN is {latest_gcn_no}")
+
+    return latest_gcn_no
 
 
 def parse_radec(string: str):

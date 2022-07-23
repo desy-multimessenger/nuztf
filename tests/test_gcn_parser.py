@@ -3,7 +3,7 @@
 
 import unittest, logging
 
-from nuztf.parse_nu_gcn import get_latest_gcn, gcn_url, find_gcn_no, ParsingError
+from nuztf.parse_nu_gcn import get_latest_gcn, gcn_url, find_gcn_no
 
 
 class TestNeutrinoScanner(unittest.TestCase):
@@ -16,7 +16,7 @@ class TestNeutrinoScanner(unittest.TestCase):
 
     def test_latest(self):
         self.logger.info("\n\n Testing parsing of GCNs \n\n")
-        no = get_latest_gcn(logger=self.logger)
+        no = get_latest_gcn()
         self.logger.info(f"Latest alert is {no}")
         url = gcn_url(gcn_number=no)
         self.logger.info(f"URL is {url}")
@@ -25,7 +25,7 @@ class TestNeutrinoScanner(unittest.TestCase):
 
         name = "IC200620A"
 
-        num = int(find_gcn_no(base_nu_name=name, logger=self.logger))
+        num = int(find_gcn_no(base_nu_name=name))
 
         ref = 27997
 
@@ -38,12 +38,12 @@ class TestNeutrinoScanner(unittest.TestCase):
 
         self.logger.info(f"Searching for fictional alert {fakename}")
 
-        try:
-            no = find_gcn_no(base_nu_name=fakename, logger=self.logger)
+        gcn_nr = find_gcn_no(base_nu_name=fakename)
+
+        if gcn_nr:
             raise Exception(
-                f"Somehow found a GCN ({no}) matching "
+                f"Somehow found a GCN ({gcn_nr}) matching "
                 f"fictional neutrino alert {fakename}"
             )
-        except ParsingError:
+        else:
             self.logger.info("No GCN found, as expected.")
-            pass

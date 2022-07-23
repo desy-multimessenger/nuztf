@@ -21,8 +21,9 @@ from ztfquery import fields as ztfquery_fields
 from ztfquery.fields import FIELD_DATAFRAME
 from gwemopt.ztf_tiling import get_quadrant_ipix
 from ampel.ztf.t0.DecentFilter import DecentFilter
-from ampel.ztf.dev.DevAlertProcessor import DevAlertProcessor
-from ampel.alert.PhotoAlert import PhotoAlert
+from ampel.ztf.dev.DevAlertConsumer import DevAlertConsumer
+from ampel.ztf.alert.ZiAlertSupplier import ZiAlertSupplier
+from ampel.ztf.dev.ZTFAlert import ZTFAlert
 
 from nuztf.ampel_api import (
     ampel_api_cone,
@@ -89,8 +90,9 @@ class BaseScanner:
         self.ampel_filter_class = filter_class(
             logger=logger_ampel, resource=resource, **run_config
         )
+        self.ampel_filter_class.post_init()
 
-        self.dap = DevAlertProcessor(self.ampel_filter_class)
+        self.dac = DevAlertConsumer(self.ampel_filter_class)
 
         self.scanned_pixels = []
 
@@ -135,15 +137,15 @@ class BaseScanner:
         raise NotImplementedError
 
     def filter_ampel(self, res):
-        return (
-            self.ampel_filter_class.apply(
-                PhotoAlert(res["objectId"], res["objectId"], *self.dap._shape(res))
-            )
-            is not None
-        )
+        self.logger.debug("Running AMPEL filter")
 
-    # @sleep_and_retry
-    # @limits(calls=RATELIMIT_CALLS, period=RATELIMIT_PERIOD)
+        shaped_alert = ZiAlertSupplier.shape_alert_dict(res, ["FilterTest"])
+        filterres = self.ampel_filter_class.process(alert=shaped_alert)
+        if filterres:
+            return True
+        else:
+            return False
+
     @backoff.on_exception(
         backoff.expo,
         requests.exceptions.RequestException,
