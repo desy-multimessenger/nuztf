@@ -13,7 +13,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = ">=3.9,<3.10"
 ampel = "^0.8.2-alpha.0"
-ampel-ztf = { git = "https://github.com/AmpelProject/Ampel-ZTF.git", branch = "dev/v0.8.2" }
+ampel-ztf = "==0.8.2a7"
 astropy = "^5.1"
 astropy-healpix = "^0.6"
 astroquery = "^0.4.6"
