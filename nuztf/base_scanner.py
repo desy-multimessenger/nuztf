@@ -419,6 +419,7 @@ class BaseScanner:
         )
         if self.dist:
             text += "Alert filtering and follow-up coordination is being undertaken by the Fritz marshal system (FIXME CITATION NEEDED)."
+
         return text
 
     @staticmethod
