@@ -143,7 +143,7 @@ class NeutrinoScanner(BaseScanner):
     def get_overlap_line(self):
         """ """
         return (
-            f"We covered {self.healpix_area:.1f} sq deg, corresponding to {self.overlap_prob:.1f}% of the reported localization region. "
+            f"We covered {self.overlap_prob:.1f}% ({self.healpix_area:.1f} sq deg) of the reported localization region. "
             "This estimate accounts for chip gaps. "
         )
 

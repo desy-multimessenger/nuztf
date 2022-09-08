@@ -385,10 +385,10 @@ class BaseScanner:
         pretty_time = first_obs_dt.strftime("%H:%M")
 
         text = (
-            f"Astronomer Name (Institute of Somewhere), ............. report,\n"
-            f"On behalf of the Zwicky Transient Facility (ZTF) and Global Relay of Observatories Watching Transients Happen (GROWTH) collaborations: \n"
-            f"We observed the localization region of the {self.get_full_name()} with the Palomar 48-inch telescope, equipped with the 47 square degree ZTF camera (Bellm et al. 2019, Graham et al. 2019). {self.get_tiling_line()}"
-            f"We started observations in the g-band and r-band beginning at {pretty_date} {pretty_time} UTC, "
+            f"Astronomer Name (Institute of Somewhere), ............. report,\n\n"
+            f"On behalf of the Zwicky Transient Facility (ZTF) and Global Relay of Observatories Watching Transients Happen (GROWTH) collaborations: \n\n"
+            f"As part of the ZTF neutrino follow up program (Stein et al. 2022), we observed the localization region of the {self.get_full_name()} with the Palomar 48-inch telescope, equipped with the 47 square degree ZTF camera (Bellm et al. 2019, Graham et al. 2019). {self.get_tiling_line()}"
+            f"We started observations in the g- and r-band beginning at {pretty_date} {pretty_time} UTC, "
             f"approximately {(self.first_obs.jd - self.t_min.jd) * 24.0:.1f} hours after event time. {self.get_overlap_line()}"
             f"{self.get_obs_line()} \n \n"
             "The images were processed in real-time through the ZTF reduction and image subtraction pipelines at IPAC to search for potential counterparts (Masci et al. 2019). "
@@ -408,7 +408,7 @@ class BaseScanner:
         else:
             pass
 
-        text += f"Amongst our candidates, \n{self.text_summary()}\n\n"
+        text += f"Amongst our candidates, \n\n{self.text_summary()}\n\n"
 
         text += (
             "ZTF and GROWTH are worldwide collaborations comprising Caltech, USA; IPAC, USA; WIS, Israel; OKC, Sweden; JSI/UMd, USA; DESY, Germany; TANGO, Taiwan; UW Milwaukee, USA; LANL, USA; TCD, Ireland; IN2P3, France.\n\n"
