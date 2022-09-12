@@ -208,11 +208,11 @@ class NeutrinoScanner(BaseScanner):
         )
 
         if n_detections < 1:
-            self.logger.debug(f"{ztf_id}: Has insufficient detection")
+            self.logger.info(f"{ztf_id}: Has insufficient detections")
             return False
 
         if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
-            self.logger.debug(f"{ztf_id}: Not in contour")
+            self.logger.info(f"{ztf_id}: Not in contour")
             return False
 
         return True
