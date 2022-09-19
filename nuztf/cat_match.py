@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import logging
+
 from astropy.coordinates import SkyCoord
 from astroquery.ipac.ned import Ned
 from astroquery.exceptions import RemoteServiceError
@@ -85,6 +87,9 @@ def get_cross_match_info(raw: dict, logger=None):
     alert = raw["candidate"]
 
     label = ""
+
+    if logger is None:
+        logger = logging.getLogger()
 
     # Check if known variable star (https://arxiv.org/pdf/1405.4290.pdf)
 
