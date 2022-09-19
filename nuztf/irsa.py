@@ -231,8 +231,11 @@ def plot_irsa_lightcurve(
         df = load_irsa(source_coords[0], source_coords[1], radius_arcsec=radius_arcsec)
 
         logger.debug(f"Saving to {cache_path}")
-        df.to_csv(cache_path)
+        if df is not None:
+            df.to_csv(cache_path)
 
+    if df is None:
+        raise ValueError("No data retrieved from IPAC")
     data = Table.from_pandas(df)
 
     logger.info(f"There are a total of {len(data)} detections for {source_name}")
