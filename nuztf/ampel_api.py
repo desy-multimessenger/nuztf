@@ -260,7 +260,6 @@ def ampel_api_name(
         API_ZTF_ARCHIVE_URL
         + f"/object/{ztf_name}/alerts?with_history={hist}&with_cutouts={cutouts}&limit={limit}"
     )
-    print(queryurl_ztf_name)
 
     logger.debug(queryurl_ztf_name)
 
