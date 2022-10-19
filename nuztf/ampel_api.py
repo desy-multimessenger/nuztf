@@ -16,9 +16,9 @@ from nuztf.credentials import load_credentials
 # AMPEL API URLs
 
 API_BASEURL = "https://ampel.zeuthen.desy.de"
-API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive/v2"
+API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive/v3"
 API_CATALOGMATCH_URL = API_BASEURL + "/api/catalogmatch"
-API_CUTOUT_URL = API_BASEURL + "/api/ztf/archive/v2/cutouts"
+API_CUTOUT_URL = API_BASEURL + "/api/ztf/archive/v3/cutouts"
 
 _, ampel_api_archive_token = load_credentials("ampel_api_archive_token")
 
@@ -236,10 +236,13 @@ def ensure_cutouts(alert: list, logger=None):
     max_time=600,
 )
 def ampel_api_name(
-    ztf_name: str, with_history: bool = True, with_cutouts: bool = False, logger=None
+    ztf_name: str,
+    with_history: bool = True,
+    with_cutouts: bool = False,
+    limit: int = 999999,
+    logger=None,
 ) -> list:
     """Function to query ampel via name"""
-
     if logger is None:
         logger = logging.getLogger(__name__)
 
@@ -255,8 +258,9 @@ def ampel_api_name(
 
     queryurl_ztf_name = (
         API_ZTF_ARCHIVE_URL
-        + f"/object/{ztf_name}/alerts?with_history={hist}&with_cutouts={cutouts}"
+        + f"/object/{ztf_name}/alerts?with_history={hist}&with_cutouts={cutouts}&limit={limit}"
     )
+    print(queryurl_ztf_name)
 
     logger.debug(queryurl_ztf_name)
 

@@ -55,7 +55,7 @@ def load_irsa(ra_deg: float, dec_deg: float, radius_arcsec: float = 0.5, **kwarg
 
     if len(df) == 0:
         logger.info("No data found.")
-        return None
+        return df
 
     else:
         mask = df.catflags > 0
