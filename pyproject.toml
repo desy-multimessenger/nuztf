@@ -13,7 +13,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = ">=3.10,<3.11"
 ampel = { version = "^0.8.3a0", allow-prereleases = true}
-ampel-ztf = { version = "^0.8.3a2", allow-prereleases = true}
+ampel-ztf = {extras = ["archive"], version = "^0.8.3a2", allow-prereleases = true}
 astropy = "^5.1"
 astropy-healpix = "^0.6"
 astroquery = "^0.4.6"
@@ -43,7 +43,6 @@ setuptools = "^65.3.0"
 tqdm = "^4.64.0"
 wget = "^3.2"
 ztfquery = "^1.18.4"
-
 
 [tool.poetry.dev-dependencies]
 coveralls = "^3.3.1"
