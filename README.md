@@ -18,7 +18,9 @@ Alternatively, the latest Github version of the code can be installed via pip:
 
 ```git clone https://github.com/desy-multimessenger/nuztf.git```
 
-```pip install -e nuztf```
+```cd nuztf```
+
+```poetry install```
 
 In case you encounter problems with an ARM-based Mac, use conda and issue:
 ```conda install -c conda-forge python-confluent-kafka fiona pyproj lalsuite ligo.skymap -y```
