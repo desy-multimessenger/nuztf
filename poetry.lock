@@ -787,7 +787,7 @@ python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 
 [[package]]
 name = "geopandas"
-version = "0.11.1"
+version = "0.12.1"
 description = "Geographic pandas extensions"
 category = "main"
 optional = false
@@ -798,7 +798,7 @@ fiona = ">=1.8"
 packaging = "*"
 pandas = ">=1.0.0"
 pyproj = ">=2.6.1.post1"
-shapely = ">=1.7,<2"
+shapely = ">=1.7"
 
 [[package]]
 name = "gwemopt"
@@ -2633,7 +2633,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.10,<3.11"
-content-hash = "082c6535a1c30e73d3d5d131e54a2eb2894258b197f96dae67f61cccd43ffdd1"
+content-hash = "7cf72d0a5754136d5f623d60368137de0f6a1d97bd716654500cf0be14bda3f3"
 
 [metadata.files]
 aiohttp = [
@@ -3442,8 +3442,8 @@ future = [
     {file = "future-0.18.2.tar.gz", hash = "sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d"},
 ]
 geopandas = [
-    {file = "geopandas-0.11.1-py3-none-any.whl", hash = "sha256:f3344937f3866e52996c7e505d56dae78be117dc840cd1c23507da0b33c0af71"},
-    {file = "geopandas-0.11.1.tar.gz", hash = "sha256:f0f0c8d0423d30cf81de2056d853145c4362739350a7f8f2d72cc7409ef1eca1"},
+    {file = "geopandas-0.12.1-py3-none-any.whl", hash = "sha256:0cf7f59a7b962bdbee09c1848b1715d1c445d5d27302f219f7f88b4484adef1c"},
+    {file = "geopandas-0.12.1.tar.gz", hash = "sha256:917655f25ee3022809114d833d45969d38afe9f7e5ff2a3b875a85f9bf686819"},
 ]
 gwemopt = [
     {file = "gwemopt-0.0.76-py2.py3-none-any.whl", hash = "sha256:a76ca505ae9c5344e7a30f7c7e1e9c724d5b8824aae0f1289f6535cbb86a6f9e"},
