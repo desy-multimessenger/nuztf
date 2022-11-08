@@ -1227,7 +1227,7 @@ python-versions = ">=3.7"
 
 [[package]]
 name = "lalsuite"
-version = "7.10"
+version = "7.11"
 description = "LIGO Scientific Collaboration Algorithm Library - minimal Python package"
 category = "main"
 optional = false
@@ -2633,7 +2633,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.10,<3.11"
-content-hash = "082c6535a1c30e73d3d5d131e54a2eb2894258b197f96dae67f61cccd43ffdd1"
+content-hash = "7cf72d0a5754136d5f623d60368137de0f6a1d97bd716654500cf0be14bda3f3"
 
 [metadata.files]
 aiohttp = [
@@ -2935,12 +2935,14 @@ cdshealpix = [
     {file = "cdshealpix-0.6.3-cp310-cp310-musllinux_1_2_i686.whl", hash = "sha256:726242ff8f862143e459a52267a498772da65340097f58c830eda1c9484cd15e"},
     {file = "cdshealpix-0.6.3-cp310-cp310-musllinux_1_2_x86_64.whl", hash = "sha256:5d966787b937b46e249af529c53dcda782adb48b023a419190867a3254cc49e9"},
     {file = "cdshealpix-0.6.3-cp310-none-win_amd64.whl", hash = "sha256:7ddc3791d4807867b3cd5c3b418d07cb726e37e8e3a5d08d8d96861f94320543"},
+    {file = "cdshealpix-0.6.3-cp311-cp311-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:ac47c90aa48f0c9a7ee401a92bbb49f790ceb3cc86aba96fcfda69b4413eb09d"},
     {file = "cdshealpix-0.6.3-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:6b5da95d22437c678c7acf9148f55c5767d5065a7240a39664277c168e166866"},
     {file = "cdshealpix-0.6.3-cp311-cp311-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:5238f47dc8508879ec06e49c3bef24c0d19db4fc730e6c5638939a0f1bd12570"},
     {file = "cdshealpix-0.6.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4919c209ba5c15fc061b68b03c3f469d12ef579431ad9a6d6f539a6159f57d1e"},
     {file = "cdshealpix-0.6.3-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:46835f897c37f1057665cc25793b8d6d4550eda909c8158ef6a99d872b97fe5e"},
     {file = "cdshealpix-0.6.3-cp311-cp311-musllinux_1_2_i686.whl", hash = "sha256:c6086894dbe801724462059eacb81c9f80db0d08c0401057313f679627e1d6fa"},
     {file = "cdshealpix-0.6.3-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:b27fa5199d1937dc6e89a2e4ca6f26b4c64dcf782393408c873130239c5ff669"},
+    {file = "cdshealpix-0.6.3-cp311-none-win_amd64.whl", hash = "sha256:5875c72932aa72126d5cb9b6758ba270ba469a06a84437f5fe7d3a892120664b"},
     {file = "cdshealpix-0.6.3-cp37-cp37m-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:7f461857504dca436c049901e2cac6d68579e060062c3d0734a5faf6518a23e9"},
     {file = "cdshealpix-0.6.3-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:05b8e476f10b8ac8e79bda35a30862be5b42a2248627b377f5c1beb1789bfa1f"},
     {file = "cdshealpix-0.6.3-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6a9302dcbffc7900c1f41b62e74f55d3fd22d61de1abb0a567d27e204b43f7c7"},
@@ -3647,15 +3649,18 @@ kiwisolver = [
     {file = "kiwisolver-1.4.4.tar.gz", hash = "sha256:d41997519fcba4a1e46eb4a2fe31bc12f0ff957b2b81bac28db24744f333e955"},
 ]
 lalsuite = [
-    {file = "lalsuite-7.10-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:e2cb124b30286e53ff3a0a9b04e170b06b8cae5538cfa7b050bf906caa4ec9ca"},
-    {file = "lalsuite-7.10-cp310-cp310-macosx_12_0_arm64.whl", hash = "sha256:72ead83257f4ffc3658e378803fdddcbaa48cffe89e411c9f4df93584f84c031"},
-    {file = "lalsuite-7.10-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:efa3531ac3f7e641868f6ba7f3d35a5025d7e410a89acf2f7f4942d5efdbbd9d"},
-    {file = "lalsuite-7.10-cp38-cp38-macosx_10_15_x86_64.whl", hash = "sha256:02cb9b524514685f2d1a24dac958e60c905b62fcff0dc647613b2965b0678f79"},
-    {file = "lalsuite-7.10-cp38-cp38-macosx_12_0_arm64.whl", hash = "sha256:80bea8419e94527e34bd1a67c3a03a490c52eb144c4f61bd62729b022cf805cd"},
-    {file = "lalsuite-7.10-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2df22ac30b65c25d09b62c63dd892a03985618d1ca0129d0ac29de6af23a765d"},
-    {file = "lalsuite-7.10-cp39-cp39-macosx_10_15_x86_64.whl", hash = "sha256:c082dd0407fdd99e634b836019c9e1d8386520acf72d28a07ea6d6671ab1ef45"},
-    {file = "lalsuite-7.10-cp39-cp39-macosx_12_0_arm64.whl", hash = "sha256:407032bfebe000544ae5d61b57adc76ae281f1757870314e7b541868e560ff86"},
-    {file = "lalsuite-7.10-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a28cfe32bdd1b652d2679a901cb48fbf889f02d49263f5dcab90e75dd3b288b2"},
+    {file = "lalsuite-7.11-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:d8c43fa333788ba410998213d0ca0c62ad35f0ff3526a2f1e6164557d511f428"},
+    {file = "lalsuite-7.11-cp310-cp310-macosx_12_0_arm64.whl", hash = "sha256:8ceac066d5e5eb4acee2944154d141cfcd6b11e2f2f73a622bbc6e12031dbadf"},
+    {file = "lalsuite-7.11-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:970d15adadbf9b207162594e6fe2b3264566af58c9c2c4201ede795a0db86c11"},
+    {file = "lalsuite-7.11-cp311-cp311-macosx_10_15_x86_64.whl", hash = "sha256:51445d2f1293732e85e833d32eb9f6f36dd1155401b3058637609129dc7b1123"},
+    {file = "lalsuite-7.11-cp311-cp311-macosx_12_0_arm64.whl", hash = "sha256:f9e61735ec8ca33ff46b94dc1d3014022258ba209b2160f8fb556b989977a280"},
+    {file = "lalsuite-7.11-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a33ab165d019b427d60e972919568b88a8c5a50cb97fcaeaf17fc37ba4405587"},
+    {file = "lalsuite-7.11-cp38-cp38-macosx_10_15_x86_64.whl", hash = "sha256:2101469c3ead1dbc63e61825a119deae3e1f4f4bfd89a07a2170ff21e8cd8a5a"},
+    {file = "lalsuite-7.11-cp38-cp38-macosx_12_0_arm64.whl", hash = "sha256:fc3ad08423770124cdb835d461dc7361a96c653051172b99e993a1ade875ae55"},
+    {file = "lalsuite-7.11-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:51330905107da189804e4b7ee23a31bb5936910c4202b3f8e56886682212911b"},
+    {file = "lalsuite-7.11-cp39-cp39-macosx_10_15_x86_64.whl", hash = "sha256:5a4ed718f681e4acd6d8ab1df7318ee5eb450ea4eaff341601290a35fce8731d"},
+    {file = "lalsuite-7.11-cp39-cp39-macosx_12_0_arm64.whl", hash = "sha256:b83d2827f43431ce57d0869df41dfede1ab9c63915c83ac4851368b7bd440122"},
+    {file = "lalsuite-7.11-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:22360fc6cadfc6bceb4d330e2c6a8f4d65eee8e5bda1121fcc0a17bee5ef73ed"},
 ]
 lark-parser = [
     {file = "lark-parser-0.12.0.tar.gz", hash = "sha256:15967db1f1214013dca65b1180745047b9be457d73da224fcda3d9dd4e96a138"},
@@ -3667,6 +3672,12 @@ ligo-gracedb = [
 ]
 ligo-segments = [
     {file = "ligo-segments-1.4.0.tar.gz", hash = "sha256:e072a844713c5b02efdcaf5bfe4c3a8cd9ef225b08cfd3202a4e185e0f71f5dc"},
+    {file = "ligo_segments-1.4.0-cp310-cp310-win_amd64.whl", hash = "sha256:f8a0fb3ec6bef7effb80fb2f4f4ffaac02afa77db41a0c42fce5e969201e621b"},
+    {file = "ligo_segments-1.4.0-cp311-cp311-win_amd64.whl", hash = "sha256:da82ae2b839bad0027e0a492b3673344e62360747d41194a265563e6c2903c7d"},
+    {file = "ligo_segments-1.4.0-cp36-cp36m-win_amd64.whl", hash = "sha256:cde0aa9a6cf9d1b66b00d64623a026ed9d37dbc028a9769492c635cfa726fdb9"},
+    {file = "ligo_segments-1.4.0-cp37-cp37m-win_amd64.whl", hash = "sha256:5ce03d6c0d07a14cde9e3a47ecc44bd0efa07a7d58e75a8899be8d35a437b254"},
+    {file = "ligo_segments-1.4.0-cp38-cp38-win_amd64.whl", hash = "sha256:1ec7b6dae3e7dbe2e96dc7dba39a843aab9a4df202ad6b80ce708d7439b7480e"},
+    {file = "ligo_segments-1.4.0-cp39-cp39-win_amd64.whl", hash = "sha256:f66dc8eff12bed2c66fff956150fc6039c16f9a2e63337861cdd3070ced0468d"},
 ]
 ligo-skymap = [
     {file = "ligo.skymap-1.0.3-cp38-abi3-macosx_10_15_x86_64.whl", hash = "sha256:7d9aa0f1e21fe0f614636389b4cd69b449ce229a86055e82bc2c5b80a036675a"},
@@ -4062,6 +4073,8 @@ pickleshare = [
     {file = "pickleshare-0.7.5.tar.gz", hash = "sha256:87683d47965c1da65cdacaf31c8441d12b8044cdec9aca500cd78fc2c683afca"},
 ]
 pillow = [
+    {file = "Pillow-9.3.0-1-cp37-cp37m-win32.whl", hash = "sha256:e6ea6b856a74d560d9326c0f5895ef8050126acfdc7ca08ad703eb0081e82b74"},
+    {file = "Pillow-9.3.0-1-cp37-cp37m-win_amd64.whl", hash = "sha256:32a44128c4bdca7f31de5be641187367fe2a450ad83b833ef78910397db491aa"},
     {file = "Pillow-9.3.0-cp310-cp310-macosx_10_10_x86_64.whl", hash = "sha256:0b7257127d646ff8676ec8a15520013a698d1fdc48bc2a79ba4e53df792526f2"},
     {file = "Pillow-9.3.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:b90f7616ea170e92820775ed47e136208e04c967271c9ef615b6fbd08d9af0e3"},
     {file = "Pillow-9.3.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:68943d632f1f9e3dce98908e873b3a090f6cba1cbb1b892a9e8d97c938871fbe"},
@@ -4183,6 +4196,8 @@ psutil = [
 psycopg2 = [
     {file = "psycopg2-2.9.5-cp310-cp310-win32.whl", hash = "sha256:d3ef67e630b0de0779c42912fe2cbae3805ebaba30cda27fea2a3de650a9414f"},
     {file = "psycopg2-2.9.5-cp310-cp310-win_amd64.whl", hash = "sha256:4cb9936316d88bfab614666eb9e32995e794ed0f8f6b3b718666c22819c1d7ee"},
+    {file = "psycopg2-2.9.5-cp311-cp311-win32.whl", hash = "sha256:093e3894d2d3c592ab0945d9eba9d139c139664dcf83a1c440b8a7aa9bb21955"},
+    {file = "psycopg2-2.9.5-cp311-cp311-win_amd64.whl", hash = "sha256:920bf418000dd17669d2904472efeab2b20546efd0548139618f8fa305d1d7ad"},
     {file = "psycopg2-2.9.5-cp36-cp36m-win32.whl", hash = "sha256:b9ac1b0d8ecc49e05e4e182694f418d27f3aedcfca854ebd6c05bb1cffa10d6d"},
     {file = "psycopg2-2.9.5-cp36-cp36m-win_amd64.whl", hash = "sha256:fc04dd5189b90d825509caa510f20d1d504761e78b8dfb95a0ede180f71d50e5"},
     {file = "psycopg2-2.9.5-cp37-cp37m-win32.whl", hash = "sha256:922cc5f0b98a5f2b1ff481f5551b95cd04580fd6f0c72d9b22e6c0145a4840e0"},
