@@ -920,11 +920,11 @@ python-versions = "*"
 
 [[package]]
 name = "ipykernel"
-version = "6.16.2"
+version = "6.17.1"
 description = "IPython Kernel for Jupyter"
 category = "main"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 
 [package.dependencies]
 appnope = {version = "*", markers = "platform_system == \"Darwin\""}
@@ -2633,7 +2633,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.10,<3.11"
-content-hash = "082c6535a1c30e73d3d5d131e54a2eb2894258b197f96dae67f61cccd43ffdd1"
+content-hash = "7cf72d0a5754136d5f623d60368137de0f6a1d97bd716654500cf0be14bda3f3"
 
 [metadata.files]
 aiohttp = [
@@ -2935,12 +2935,14 @@ cdshealpix = [
     {file = "cdshealpix-0.6.3-cp310-cp310-musllinux_1_2_i686.whl", hash = "sha256:726242ff8f862143e459a52267a498772da65340097f58c830eda1c9484cd15e"},
     {file = "cdshealpix-0.6.3-cp310-cp310-musllinux_1_2_x86_64.whl", hash = "sha256:5d966787b937b46e249af529c53dcda782adb48b023a419190867a3254cc49e9"},
     {file = "cdshealpix-0.6.3-cp310-none-win_amd64.whl", hash = "sha256:7ddc3791d4807867b3cd5c3b418d07cb726e37e8e3a5d08d8d96861f94320543"},
+    {file = "cdshealpix-0.6.3-cp311-cp311-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:ac47c90aa48f0c9a7ee401a92bbb49f790ceb3cc86aba96fcfda69b4413eb09d"},
     {file = "cdshealpix-0.6.3-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:6b5da95d22437c678c7acf9148f55c5767d5065a7240a39664277c168e166866"},
     {file = "cdshealpix-0.6.3-cp311-cp311-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:5238f47dc8508879ec06e49c3bef24c0d19db4fc730e6c5638939a0f1bd12570"},
     {file = "cdshealpix-0.6.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4919c209ba5c15fc061b68b03c3f469d12ef579431ad9a6d6f539a6159f57d1e"},
     {file = "cdshealpix-0.6.3-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:46835f897c37f1057665cc25793b8d6d4550eda909c8158ef6a99d872b97fe5e"},
     {file = "cdshealpix-0.6.3-cp311-cp311-musllinux_1_2_i686.whl", hash = "sha256:c6086894dbe801724462059eacb81c9f80db0d08c0401057313f679627e1d6fa"},
     {file = "cdshealpix-0.6.3-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:b27fa5199d1937dc6e89a2e4ca6f26b4c64dcf782393408c873130239c5ff669"},
+    {file = "cdshealpix-0.6.3-cp311-none-win_amd64.whl", hash = "sha256:5875c72932aa72126d5cb9b6758ba270ba469a06a84437f5fe7d3a892120664b"},
     {file = "cdshealpix-0.6.3-cp37-cp37m-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:7f461857504dca436c049901e2cac6d68579e060062c3d0734a5faf6518a23e9"},
     {file = "cdshealpix-0.6.3-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:05b8e476f10b8ac8e79bda35a30862be5b42a2248627b377f5c1beb1789bfa1f"},
     {file = "cdshealpix-0.6.3-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6a9302dcbffc7900c1f41b62e74f55d3fd22d61de1abb0a567d27e204b43f7c7"},
@@ -3504,8 +3506,8 @@ iniconfig = [
     {file = "iniconfig-1.1.1.tar.gz", hash = "sha256:bc3af051d7d14b2ee5ef9969666def0cd1a000e121eaea580d4a313df4b37f32"},
 ]
 ipykernel = [
-    {file = "ipykernel-6.16.2-py3-none-any.whl", hash = "sha256:67daf93e5b52456cd8eea87a8b59405d2bb80ae411864a1ea206c3631d8179af"},
-    {file = "ipykernel-6.16.2.tar.gz", hash = "sha256:463f3d87a92e99969b1605cb7a5b4d7b36b7145a0e72d06e65918a6ddefbe630"},
+    {file = "ipykernel-6.17.1-py3-none-any.whl", hash = "sha256:3a9a1b2ad6dbbd5879855aabb4557f08e63fa2208bffed897f03070e2bb436f6"},
+    {file = "ipykernel-6.17.1.tar.gz", hash = "sha256:e178c1788399f93a459c241fe07c3b810771c607b1fb064a99d2c5d40c90c5d4"},
 ]
 ipython = [
     {file = "ipython-8.5.0-py3-none-any.whl", hash = "sha256:6f090e29ab8ef8643e521763a4f1f39dc3914db643122b1e9d3328ff2e43ada2"},
@@ -3667,6 +3669,12 @@ ligo-gracedb = [
 ]
 ligo-segments = [
     {file = "ligo-segments-1.4.0.tar.gz", hash = "sha256:e072a844713c5b02efdcaf5bfe4c3a8cd9ef225b08cfd3202a4e185e0f71f5dc"},
+    {file = "ligo_segments-1.4.0-cp310-cp310-win_amd64.whl", hash = "sha256:f8a0fb3ec6bef7effb80fb2f4f4ffaac02afa77db41a0c42fce5e969201e621b"},
+    {file = "ligo_segments-1.4.0-cp311-cp311-win_amd64.whl", hash = "sha256:da82ae2b839bad0027e0a492b3673344e62360747d41194a265563e6c2903c7d"},
+    {file = "ligo_segments-1.4.0-cp36-cp36m-win_amd64.whl", hash = "sha256:cde0aa9a6cf9d1b66b00d64623a026ed9d37dbc028a9769492c635cfa726fdb9"},
+    {file = "ligo_segments-1.4.0-cp37-cp37m-win_amd64.whl", hash = "sha256:5ce03d6c0d07a14cde9e3a47ecc44bd0efa07a7d58e75a8899be8d35a437b254"},
+    {file = "ligo_segments-1.4.0-cp38-cp38-win_amd64.whl", hash = "sha256:1ec7b6dae3e7dbe2e96dc7dba39a843aab9a4df202ad6b80ce708d7439b7480e"},
+    {file = "ligo_segments-1.4.0-cp39-cp39-win_amd64.whl", hash = "sha256:f66dc8eff12bed2c66fff956150fc6039c16f9a2e63337861cdd3070ced0468d"},
 ]
 ligo-skymap = [
     {file = "ligo.skymap-1.0.3-cp38-abi3-macosx_10_15_x86_64.whl", hash = "sha256:7d9aa0f1e21fe0f614636389b4cd69b449ce229a86055e82bc2c5b80a036675a"},
@@ -4062,6 +4070,8 @@ pickleshare = [
     {file = "pickleshare-0.7.5.tar.gz", hash = "sha256:87683d47965c1da65cdacaf31c8441d12b8044cdec9aca500cd78fc2c683afca"},
 ]
 pillow = [
+    {file = "Pillow-9.3.0-1-cp37-cp37m-win32.whl", hash = "sha256:e6ea6b856a74d560d9326c0f5895ef8050126acfdc7ca08ad703eb0081e82b74"},
+    {file = "Pillow-9.3.0-1-cp37-cp37m-win_amd64.whl", hash = "sha256:32a44128c4bdca7f31de5be641187367fe2a450ad83b833ef78910397db491aa"},
     {file = "Pillow-9.3.0-cp310-cp310-macosx_10_10_x86_64.whl", hash = "sha256:0b7257127d646ff8676ec8a15520013a698d1fdc48bc2a79ba4e53df792526f2"},
     {file = "Pillow-9.3.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:b90f7616ea170e92820775ed47e136208e04c967271c9ef615b6fbd08d9af0e3"},
     {file = "Pillow-9.3.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:68943d632f1f9e3dce98908e873b3a090f6cba1cbb1b892a9e8d97c938871fbe"},
@@ -4183,6 +4193,8 @@ psutil = [
 psycopg2 = [
     {file = "psycopg2-2.9.5-cp310-cp310-win32.whl", hash = "sha256:d3ef67e630b0de0779c42912fe2cbae3805ebaba30cda27fea2a3de650a9414f"},
     {file = "psycopg2-2.9.5-cp310-cp310-win_amd64.whl", hash = "sha256:4cb9936316d88bfab614666eb9e32995e794ed0f8f6b3b718666c22819c1d7ee"},
+    {file = "psycopg2-2.9.5-cp311-cp311-win32.whl", hash = "sha256:093e3894d2d3c592ab0945d9eba9d139c139664dcf83a1c440b8a7aa9bb21955"},
+    {file = "psycopg2-2.9.5-cp311-cp311-win_amd64.whl", hash = "sha256:920bf418000dd17669d2904472efeab2b20546efd0548139618f8fa305d1d7ad"},
     {file = "psycopg2-2.9.5-cp36-cp36m-win32.whl", hash = "sha256:b9ac1b0d8ecc49e05e4e182694f418d27f3aedcfca854ebd6c05bb1cffa10d6d"},
     {file = "psycopg2-2.9.5-cp36-cp36m-win_amd64.whl", hash = "sha256:fc04dd5189b90d825509caa510f20d1d504761e78b8dfb95a0ede180f71d50e5"},
     {file = "psycopg2-2.9.5-cp37-cp37m-win32.whl", hash = "sha256:922cc5f0b98a5f2b1ff481f5551b95cd04580fd6f0c72d9b22e6c0145a4840e0"},
