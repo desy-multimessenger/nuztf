@@ -42,7 +42,10 @@ def alert_to_pandas(alert):
             df_ulims_list.append(_df)
 
     df_detections = pd.concat(df_detections_list)
-    df_ulims = pd.concat(df_ulims_list)
+    if len(df_ulims_list) > 0:
+        df_ulims = pd.concat(df_ulims_list)
+    else:
+        df_ulims = None
 
     return df_detections, df_ulims
 
@@ -190,16 +193,17 @@ def lightcurve_from_alert(
         )
 
         # Plot upper limits
-        if include_ulims:
-            df_temp2 = df_ulims.query("fid == @fid")
-            lc_ax1.scatter(
-                df_temp2["mjd"],
-                df_temp2["diffmaglim"],
-                c=BAND_COLORS[fid],
-                marker="v",
-                s=1.3,
-                alpha=0.5,
-            )
+        if df_ulims is not None:
+            if include_ulims:
+                df_temp2 = df_ulims.query("fid == @fid")
+                lc_ax1.scatter(
+                    df_temp2["mjd"],
+                    df_temp2["diffmaglim"],
+                    c=BAND_COLORS[fid],
+                    marker="v",
+                    s=1.3,
+                    alpha=0.5,
+                )
 
     # Plot datapoint from alert
     df_temp = df.iloc[0]
