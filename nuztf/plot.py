@@ -62,6 +62,7 @@ def lightcurve_from_alert(
     z: float = None,
     legend: bool = False,
     grid_interval: int = None,
+    t_0_mjd: float = None,
     logger=None,
 ):
     """plot AMPEL alerts as lightcurve"""
@@ -261,9 +262,17 @@ def lightcurve_from_alert(
             alpha=0.5,
         )
 
+    if t_0_mjd is not None:
+        lc_ax1.axvline(t_0_mjd, linestyle=":")
+    else:
+        t_0_mjd = np.mean(df.mjd.values)
+
     # Ugly hack because secondary_axis does not work with astropy.time.Time datetime conversion
-    mjd_min = np.min(df.mjd.values)
-    mjd_max = np.max(df.mjd.values)
+    mjd_min = min(np.min(df.mjd.values), t_0_mjd)
+
+    print(mjd_min, t_0_mjd)
+
+    mjd_max = max(np.max(df.mjd.values), t_0_mjd)
     length = mjd_max - mjd_min
 
     lc_ax1.set_xlim([mjd_min - (length / 20), mjd_max + (length / 20)])
