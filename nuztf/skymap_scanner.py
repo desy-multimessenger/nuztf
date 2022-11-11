@@ -763,11 +763,24 @@ class SkymapScanner(BaseScanner):
 
         return fig
 
-    def plot_coverage(self):
+    def plot_coverage(self, plot_candidates: bool = True):
         """Plot ZTF coverage of skymap region"""
         fig, message = self.plot_overlap_with_observations(
             first_det_window_days=self.n_days
         )
+
+        if plot_candidates:
+            for candidate, res in self.cache.items():
+
+                ra = np.deg2rad(
+                    self.wrap_around_180(np.array([res["candidate"]["ra"]]))
+                )
+                dec = np.deg2rad(res["candidate"]["dec"])
+
+                plt.scatter(
+                    ra, dec, color="white", marker="*", s=50.0, edgecolor="black"
+                )
+
         plt.tight_layout()
 
         outpath = os.path.join(

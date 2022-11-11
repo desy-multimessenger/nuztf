@@ -453,8 +453,12 @@ class BaseScanner:
             for (name, alert) in tqdm(sorted(self.cache.items())):
 
                 fig, _ = lightcurve_from_alert(
-                    [alert], include_cutouts=True, logger=self.logger
+                    [alert],
+                    include_cutouts=True,
+                    logger=self.logger,
+                    t_0_mjd=self.t_min.mjd,
                 )
+
                 pdf.savefig()
                 plt.close()
 

@@ -42,7 +42,10 @@ def alert_to_pandas(alert):
             df_ulims_list.append(_df)
 
     df_detections = pd.concat(df_detections_list)
-    df_ulims = pd.concat(df_ulims_list)
+    if len(df_ulims_list) > 0:
+        df_ulims = pd.concat(df_ulims_list)
+    else:
+        df_ulims = None
 
     return df_detections, df_ulims
 
@@ -59,6 +62,7 @@ def lightcurve_from_alert(
     z: float = None,
     legend: bool = False,
     grid_interval: int = None,
+    t_0_mjd: float = None,
     logger=None,
 ):
     """plot AMPEL alerts as lightcurve"""
@@ -190,16 +194,17 @@ def lightcurve_from_alert(
         )
 
         # Plot upper limits
-        if include_ulims:
-            df_temp2 = df_ulims.query("fid == @fid")
-            lc_ax1.scatter(
-                df_temp2["mjd"],
-                df_temp2["diffmaglim"],
-                c=BAND_COLORS[fid],
-                marker="v",
-                s=1.3,
-                alpha=0.5,
-            )
+        if df_ulims is not None:
+            if include_ulims:
+                df_temp2 = df_ulims.query("fid == @fid")
+                lc_ax1.scatter(
+                    df_temp2["mjd"],
+                    df_temp2["diffmaglim"],
+                    c=BAND_COLORS[fid],
+                    marker="v",
+                    s=1.3,
+                    alpha=0.5,
+                )
 
     # Plot datapoint from alert
     df_temp = df.iloc[0]
@@ -257,9 +262,17 @@ def lightcurve_from_alert(
             alpha=0.5,
         )
 
+    if t_0_mjd is not None:
+        lc_ax1.axvline(t_0_mjd, linestyle=":")
+    else:
+        t_0_mjd = np.mean(df.mjd.values)
+
     # Ugly hack because secondary_axis does not work with astropy.time.Time datetime conversion
-    mjd_min = np.min(df.mjd.values)
-    mjd_max = np.max(df.mjd.values)
+    mjd_min = min(np.min(df.mjd.values), t_0_mjd)
+
+    print(mjd_min, t_0_mjd)
+
+    mjd_max = max(np.max(df.mjd.values), t_0_mjd)
     length = mjd_max - mjd_min
 
     lc_ax1.set_xlim([mjd_min - (length / 20), mjd_max + (length / 20)])
