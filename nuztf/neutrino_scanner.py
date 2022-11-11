@@ -123,14 +123,6 @@ class NeutrinoScanner(BaseScanner):
             * abs(np.cos(np.radians(dec[0])))
         )
         self.logger.info(f"Projected Area: {self.rectangular_area:.3f} sq. deg.")
-        (
-            self.map_coords,
-            self.pixel_nos,
-            self.nside,
-            self.map_probs,
-            self.data,
-            self.key,
-        ) = self.unpack_map()
 
     def get_name(self):
         """ """
@@ -246,9 +238,8 @@ class NeutrinoScanner(BaseScanner):
 
         return np.logical_and(in_ra, in_dec)
 
-    def unpack_map(self):
+    def unpack_skymap(self):
         """ """
-        # nside = self.cone_nside
         nside = 1024
         map_coords = []
         pixel_nos = []

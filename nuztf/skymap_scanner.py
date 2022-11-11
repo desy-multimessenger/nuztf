@@ -142,13 +142,6 @@ class SkymapScanner(BaseScanner):
         self.logger.info("Reading map")
 
         self.pixel_threshold = self.find_pixel_threshold(self.data[self.key])
-        (
-            self.map_coords,
-            self.pixel_nos,
-            self.map_probs,
-            self.nside,
-            self.pixel_area,
-        ) = self.unpack_skymap()
 
         BaseScanner.__init__(
             self,
