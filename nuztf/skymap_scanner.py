@@ -168,6 +168,12 @@ class SkymapScanner(BaseScanner):
         if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir)
 
+    def get_full_name(self):
+        if self.event_name is not None:
+            return self.event_name
+        else:
+            return "?????"
+
     def get_alerts(self):
         """Scan the skymap area and get ZTF transients"""
         self.logger.info("Commencing skymap scan")
@@ -319,16 +325,6 @@ class SkymapScanner(BaseScanner):
     def get_obs_line(self):
         """ """
         return "Each exposure was 30s with a typical depth of 20.5 mag."
-
-    def get_overlap_line(self):
-        """ """
-        return (
-            "We covered {0:.1f}% of the enclosed probability "
-            "based on the map in {1:.1f} sq deg. "
-            "This estimate accounts for chip gaps. ".format(
-                self.overlap_prob, self.area
-            )
-        )
 
     @staticmethod
     def remove_variability_line():

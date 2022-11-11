@@ -140,13 +140,6 @@ class NeutrinoScanner(BaseScanner):
         """ """
         return f"neutrino event {self.get_name()} ({self.author} et. al, GCN {self.gcn_no})"
 
-    def get_overlap_line(self):
-        """ """
-        return (
-            f"We covered {self.overlap_prob:.1f}% ({self.healpix_area:.1f} sq deg) of the reported localization region. "
-            "This estimate accounts for chip gaps. "
-        )
-
     def candidate_text(
         self, ztf_id: str, first_detection: float, lul_lim: float, lul_jd: float
     ):

@@ -134,7 +134,12 @@ class BaseScanner:
         raise NotImplementedError
 
     def get_overlap_line(self):
-        raise NotImplementedError
+        """ """
+        return (
+            f"We covered {self.overlap_prob:.1f}% ({self.double_extragalactic_area:.1f} sq deg) "
+            f"of the reported localization region. "
+            "This estimate accounts for chip gaps. "
+        )
 
     def filter_ampel(self, res):
         self.logger.debug("Running AMPEL filter")
@@ -415,7 +420,7 @@ class BaseScanner:
             "GROWTH acknowledges generous support of the NSF under PIRE Grant No 1545949.\n"
             "Alert distribution service provided by DIRAC@UW (Patterson et al. 2019).\n"
             "Alert database searches are done by AMPEL (Nordin et al. 2019).\n"
-            "Alert filtering is performed with the AMPEL Follow-up Pipeline (Stein et al. 2021).\n"
+            "Alert filtering is performed with the nuztf (Stein et al. 2021, https://github.com/desy-multimessenger/nuztf).\n"
         )
         if self.dist:
             text += "Alert filtering and follow-up coordination is being undertaken by the Fritz marshal system (FIXME CITATION NEEDED)."
