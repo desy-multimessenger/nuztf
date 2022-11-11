@@ -61,6 +61,15 @@ class BaseScanner:
         self.cone_nside = cone_nside
         self.t_min = t_min
 
+        (
+            self.map_coords,
+            self.pixel_nos,
+            self.nside,
+            self.map_probs,
+            self.pixel_area,
+            self.key,
+        ) = self.unpack_skymap()
+
         if not hasattr(self, "prob_threshold"):
             self.prob_threshold = None
 
@@ -114,15 +123,6 @@ class BaseScanner:
 
         if not hasattr(self, "dist"):
             self.dist = None
-
-        (
-            self.map_coords,
-            self.pixel_nos,
-            self.nside,
-            self.map_probs,
-            self.data,
-            self.key,
-        ) = self.unpack_skymap()
 
     def get_name(self):
         raise NotImplementedError

@@ -691,7 +691,14 @@ class SkymapScanner(BaseScanner):
             map_coords, dtype=np.dtype([("ra", float), ("dec", float)])
         )
 
-        return map_coords, pixel_nos, self.data[self.key][mask], nside, pixel_area
+        return (
+            map_coords,
+            pixel_nos,
+            nside,
+            self.data[self.key][mask],
+            pixel_area,
+            self.key,
+        )
 
     def find_cone_coords(self):
         """ """
