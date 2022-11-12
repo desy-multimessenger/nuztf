@@ -696,6 +696,7 @@ class SkymapScanner(BaseScanner):
             pixel_nos,
             nside,
             self.data[self.key][mask],
+            self.data,
             pixel_area,
             self.key,
         )

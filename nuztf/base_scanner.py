@@ -66,6 +66,7 @@ class BaseScanner:
             self.pixel_nos,
             self.nside,
             self.map_probs,
+            self.data,
             self.pixel_area,
             self.key,
         ) = self.unpack_skymap()
