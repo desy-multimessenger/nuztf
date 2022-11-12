@@ -269,9 +269,6 @@ def lightcurve_from_alert(
 
     # Ugly hack because secondary_axis does not work with astropy.time.Time datetime conversion
     mjd_min = min(np.min(df.mjd.values), t_0_mjd)
-
-    print(mjd_min, t_0_mjd)
-
     mjd_max = max(np.max(df.mjd.values), t_0_mjd)
     length = mjd_max - mjd_min
 

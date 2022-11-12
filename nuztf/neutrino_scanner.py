@@ -123,14 +123,6 @@ class NeutrinoScanner(BaseScanner):
             * abs(np.cos(np.radians(dec[0])))
         )
         self.logger.info(f"Projected Area: {self.rectangular_area:.3f} sq. deg.")
-        (
-            self.map_coords,
-            self.pixel_nos,
-            self.nside,
-            self.map_probs,
-            self.data,
-            self.key,
-        ) = self.unpack_map()
 
     def get_name(self):
         """ """
@@ -139,13 +131,6 @@ class NeutrinoScanner(BaseScanner):
     def get_full_name(self):
         """ """
         return f"neutrino event {self.get_name()} ({self.author} et. al, GCN {self.gcn_no})"
-
-    def get_overlap_line(self):
-        """ """
-        return (
-            f"We covered {self.overlap_prob:.1f}% ({self.healpix_area:.1f} sq deg) of the reported localization region. "
-            "This estimate accounts for chip gaps. "
-        )
 
     def candidate_text(
         self, ztf_id: str, first_detection: float, lul_lim: float, lul_jd: float
@@ -253,9 +238,8 @@ class NeutrinoScanner(BaseScanner):
 
         return np.logical_and(in_ra, in_dec)
 
-    def unpack_map(self):
+    def unpack_skymap(self):
         """ """
-        # nside = self.cone_nside
         nside = 1024
         map_coords = []
         pixel_nos = []
@@ -290,4 +274,6 @@ class NeutrinoScanner(BaseScanner):
         data = np.zeros(hp.nside2npix(nside), dtype=np.dtype([(key, float)]))
         data[np.array(pixel_nos)] = map_probs
 
-        return map_coords, pixel_nos, nside, map_probs, data, key
+        pixel_area = hp.nside2pixarea(nside, degrees=True) * float(len(map_coords))
+
+        return map_coords, pixel_nos, nside, map_probs, data, pixel_area, key

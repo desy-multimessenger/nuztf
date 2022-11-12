@@ -18,7 +18,6 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord, Distance
 from astropy.cosmology import FlatLambdaCDM
 from ztfquery import fields as ztfquery_fields
-from ztfquery.fields import FIELD_DATAFRAME
 from gwemopt.ztf_tiling import get_quadrant_ipix
 from ampel.ztf.t0.DecentFilter import DecentFilter
 from ampel.ztf.dev.DevAlertConsumer import DevAlertConsumer
@@ -38,6 +37,7 @@ from nuztf.observations import get_obs_summary
 from nuztf.plot import lightcurve_from_alert
 from nuztf.utils import cosmo
 from nuztf.fritz import save_source_to_group
+from nuztf.flatpix import get_flatpix
 
 DEBUG = False
 RATELIMIT_CALLS = 10
@@ -60,6 +60,16 @@ class BaseScanner:
     ):
         self.cone_nside = cone_nside
         self.t_min = t_min
+
+        (
+            self.map_coords,
+            self.pixel_nos,
+            self.nside,
+            self.map_probs,
+            self.data,
+            self.pixel_area,
+            self.key,
+        ) = self.unpack_skymap()
 
         if not hasattr(self, "prob_threshold"):
             self.prob_threshold = None
@@ -121,6 +131,9 @@ class BaseScanner:
     def get_full_name(self):
         raise NotImplementedError
 
+    def unpack_skymap(self):
+        raise NotImplementedError
+
     @staticmethod
     def get_tiling_line():
         return ""
@@ -134,7 +147,12 @@ class BaseScanner:
         raise NotImplementedError
 
     def get_overlap_line(self):
-        raise NotImplementedError
+        """ """
+        return (
+            f"We covered {self.overlap_prob:.1f}% ({self.double_extragalactic_area:.1f} sq deg) "
+            f"of the reported localization region. "
+            "This estimate accounts for chip gaps. "
+        )
 
     def filter_ampel(self, res):
         self.logger.debug("Running AMPEL filter")
@@ -415,7 +433,7 @@ class BaseScanner:
             "GROWTH acknowledges generous support of the NSF under PIRE Grant No 1545949.\n"
             "Alert distribution service provided by DIRAC@UW (Patterson et al. 2019).\n"
             "Alert database searches are done by AMPEL (Nordin et al. 2019).\n"
-            "Alert filtering is performed with the AMPEL Follow-up Pipeline (Stein et al. 2021).\n"
+            "Alert filtering is performed with the nuztf (Stein et al. 2021, https://github.com/desy-multimessenger/nuztf).\n"
         )
         if self.dist:
             text += "Alert filtering and follow-up coordination is being undertaken by the Fritz marshal system (FIXME CITATION NEEDED)."
@@ -743,18 +761,7 @@ class BaseScanner:
         pix_map = dict()
         pix_obs_times = dict()
 
-        infile = os.path.join(
-            "nuztf", "data", f"ztf_fields_ipix_nside={self.nside}.pickle"
-        )
-
-        # Generate a lookup table for field healpix
-        # if none exists (because this is computationally costly)
-        if not os.path.isfile(infile):
-            self.generate_flatpix_file()
-
-        with open(infile, "rb") as f:
-            field_pix = pickle.load(f)
-        f.close()
+        field_pix = get_flatpix(nside=self.nside, logger=self.logger)
 
         for i, obs_time in enumerate(tqdm(obs_times)):
 
@@ -1021,46 +1028,6 @@ class BaseScanner:
             f"{n_plane} pixels were covered at low galactic latitude, covering approximately {plane_area:.2g} sq deg."
         )
         return fig, message
-
-    def generate_flatpix_file(self):
-        """
-        Generate and save the fields-healpix lookup table
-        """
-
-        self.logger.info(
-            f"Generating field-healpix lookup table for nside={self.nside}"
-        )
-
-        field_dataframe = FIELD_DATAFRAME.reset_index()
-
-        fields = field_dataframe["ID"].values
-        ras = field_dataframe["RA"].values
-        decs = field_dataframe["Dec"].values
-
-        flat_pix_dict = dict()
-
-        for i, field in tqdm(enumerate(fields), total=len(fields)):
-
-            ra = ras[i]
-            dec = decs[i]
-            pix = get_quadrant_ipix(self.nside, ra, dec)
-
-            flat_pix = []
-
-            for sub_list in pix:
-                for p in sub_list:
-                    flat_pix.append(p)
-
-            flat_pix = list(set(flat_pix))
-            flat_pix_dict[field] = flat_pix
-
-        outdir = os.path.join("nuztf", "data")
-        if not os.path.exists(outdir):
-            os.makedirs(outdir)
-
-        outfile = os.path.join(outdir, f"ztf_fields_ipix_nside={self.nside}.pickle")
-        with open(outfile, "wb") as f:
-            pickle.dump(flat_pix_dict, f)
 
     def crosscheck_prob(self):
 
