@@ -8,17 +8,19 @@ import wget
 import numpy as np
 from numpy.lib.recfunctions import append_fields
 import healpy as hp
-from astropy_healpix import HEALPix
 import lxml.etree
 from lxml import html
 
+from astropy_healpix import HEALPix
+from astropy import units as u
+from astropy.coordinates import SkyCoord
 from astropy.time import Time
 from astropy.io import fits
 
 from ztfquery.io import LOCALSOURCE
 
 
-class SkymapLoader:
+class Skymap:
     def __init__(
         self,
         event: str = None,
@@ -71,7 +73,8 @@ class SkymapLoader:
 
             self.event_name = os.path.basename(event[7:])
 
-        elif np.sum([x in event for x in ["grb", "GRB"]]) > 0:
+        # elif np.sum([x in event for x in ["grb", "GRB"]]) > 0:
+        elif "grb" in event or "GRB" in event:
             self.get_grb_skymap(event_name=event)
 
         elif np.sum([x in event for x in ["s", "S", "gw", "GW"]]) > 0:
@@ -329,3 +332,14 @@ class SkymapLoader:
                 break
 
         return pixel_threshold
+
+    def interpolate_map(self, ra_deg, dec_deg):
+        """ """
+        interpol_map = self.hpm.interpolate_bilinear_skycoord(
+            SkyCoord(ra_deg * u.deg, dec_deg * u.deg), self.data[self.key]
+        )
+        return interpol_map
+
+    def in_contour(self, ra_deg, dec_deg):
+        """ """
+        return self.interpolate_map(ra_deg, dec_deg) > self.pixel_threshold

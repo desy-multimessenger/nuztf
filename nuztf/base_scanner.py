@@ -57,7 +57,6 @@ class BaseScanner:
         cone_nside=64,
         cones_to_scan=None,
         logger=None,
-        skymap=None,
     ):
         self.cone_nside = cone_nside
         self.t_min = t_min
@@ -70,7 +69,7 @@ class BaseScanner:
             self.data,
             self.pixel_area,
             self.key,
-        ) = self.unpack_skymap(skymap=skymap)
+        ) = self.unpack_skymap()
 
         if not hasattr(self, "prob_threshold"):
             self.prob_threshold = None
@@ -132,7 +131,7 @@ class BaseScanner:
     def get_full_name(self):
         raise NotImplementedError
 
-    def unpack_skymap(self, skymap=None):
+    def unpack_skymap(self):
         raise NotImplementedError
 
     @staticmethod

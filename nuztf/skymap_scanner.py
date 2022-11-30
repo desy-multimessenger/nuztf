@@ -3,20 +3,17 @@
 
 import os, time, json, logging, yaml
 
-# import wget
 from tqdm import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
 
 from astropy_healpix import HEALPix
-from astropy.coordinates import SkyCoord
-from astropy import units as u
 from astropy.time import Time
 
 import healpy as hp
 from ztfquery.io import LOCALSOURCE
 
-from nuztf.skymap_loader import SkymapLoader
+from nuztf.skymap import Skymap
 from nuztf.base_scanner import BaseScanner
 from nuztf.ampel_api import (
     ampel_api_lightcurve,
@@ -43,6 +40,8 @@ class SkymapScanner(BaseScanner):
     ):
 
         self.logger = logging.getLogger(__name__)
+        self.prob_threshold = prob_threshold
+        self.n_days = n_days
 
         if config:
             self.config = config
@@ -53,20 +52,17 @@ class SkymapScanner(BaseScanner):
             with open(config_path) as f:
                 self.config = yaml.safe_load(f)
 
-        skymap = SkymapLoader(
+        self.skymap = Skymap(
             event=event,
             rev=rev,
             prob_threshold=prob_threshold,
             custom_prefix=custom_prefix,
         )
 
-        self.n_days = n_days
-        self.t_min = Time(skymap.t_obs, format="isot", scale="utc")
-        self.default_t_max = Time(self.t_min.jd + self.n_days, format="jd")
-        self.logger.info(f"Time-range is {self.t_min} -- {self.default_t_max.isot}")
-        self.event_name = skymap.event_name
-        self.cache_dir = os.path.join(skymap.candidate_cache, self.event_name)
-
+        self.t_min = Time(self.skymap.t_obs, format="isot", scale="utc")
+        self.cache_dir = os.path.join(
+            self.skymap.candidate_cache, self.skymap.event_name
+        )
         if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir)
 
@@ -75,12 +71,15 @@ class SkymapScanner(BaseScanner):
             run_config=self.config,
             t_min=self.t_min,
             cone_nside=cone_nside,
-            skymap=skymap,
         )
 
+        self.default_t_max = Time(self.t_min.jd + self.n_days, format="jd")
+        self.summary_path = self.skymap.summary_path
+        self.logger.info(f"Time-range is {self.t_min} -- {self.default_t_max.isot}")
+
     def get_full_name(self):
-        if self.event_name is not None:
-            return self.event_name
+        if self.skymap.event_name is not None:
+            return self.skymap.event_name
         else:
             return "?????"
 
@@ -124,7 +123,9 @@ class SkymapScanner(BaseScanner):
         time_healpix_end = time.time()
         time_healpix = time_healpix_end - time_healpix_start
 
-        cache_file = os.path.join(self.cache_dir, f"{self.event_name}_all_alerts.json")
+        cache_file = os.path.join(
+            self.cache_dir, f"{self.skymap.event_name}_all_alerts.json"
+        )
 
         outfile = open(cache_file, "w")
         json.dump(self.queue, outfile)
@@ -140,7 +141,9 @@ class SkymapScanner(BaseScanner):
     def filter_alerts(self, load_cachefile=False):
         """ """
         self.logger.info(f"Commencing first stage filtering.")
-        cache_file = os.path.join(self.cache_dir, f"{self.event_name}_all_alerts.json")
+        cache_file = os.path.join(
+            self.cache_dir, f"{self.skymap.event_name}_all_alerts.json"
+        )
 
         if load_cachefile:
             self.queue = json.load(open(cache_file, "r"))
@@ -303,7 +306,7 @@ class SkymapScanner(BaseScanner):
             pass
 
         # Check contour
-        if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
+        if not self.skymap.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
             self.logger.debug(f"{res['objectId']}: Outside of event contour.")
             return False
 
@@ -354,14 +357,12 @@ class SkymapScanner(BaseScanner):
 
         return True
 
-    def unpack_skymap(self, skymap):
+    def unpack_skymap(self):
         """ """
 
-        nside = hp.npix2nside(len(skymap.data[skymap.key]))
+        nside = hp.npix2nside(len(self.skymap.data[self.skymap.key]))
 
-        self.pixel_threshold = skymap.pixel_threshold
-
-        mask = skymap.data[skymap.key] > self.pixel_threshold
+        mask = self.skymap.data[self.skymap.key] > self.skymap.pixel_threshold
 
         map_coords = []
 
@@ -386,10 +387,10 @@ class SkymapScanner(BaseScanner):
             map_coords,
             pixel_nos,
             nside,
-            skymap.data[skymap.key][mask],
-            skymap.data,
+            self.skymap.data[self.skymap.key][mask],
+            self.skymap.data,
             pixel_area,
-            skymap.key,
+            self.skymap.key,
         )
 
     def find_cone_coords(self):
@@ -418,7 +419,7 @@ class SkymapScanner(BaseScanner):
         fig = plt.figure()
         plt.subplot(211, projection="aitoff")
 
-        mask = self.data[self.key] > self.pixel_threshold
+        mask = self.data[self.key] > self.skymap.pixel_threshold
 
         size = hp.max_pixrad(self.nside, degrees=True) ** 2
 
@@ -444,7 +445,9 @@ class SkymapScanner(BaseScanner):
         plt.scatter(ra_cone_rad, dec_cone_rad)
         plt.title("CONE REGION")
 
-        outpath = os.path.join(skymap.base_skymap_dir, f"{skymap.event_name}.png")
+        outpath = os.path.join(
+            self.skymap.base_skymap_dir, f"{self.skymap.event_name}.png"
+        )
         plt.tight_layout()
 
         plt.savefig(outpath, dpi=300)
@@ -472,7 +475,7 @@ class SkymapScanner(BaseScanner):
         plt.tight_layout()
 
         outpath = os.path.join(
-            self.candidate_output_dir, f"{self.event_name}_coverage.png"
+            self.skymap.candidate_output_dir, f"{self.skymap.event_name}_coverage.png"
         )
         plt.savefig(outpath, dpi=300)
 
@@ -480,16 +483,16 @@ class SkymapScanner(BaseScanner):
 
         return fig, message
 
-    def interpolate_map(self, ra_deg, dec_deg):
-        """ """
-        interpol_map = self.hpm.interpolate_bilinear_skycoord(
-            SkyCoord(ra_deg * u.deg, dec_deg * u.deg), self.data[self.key]
-        )
-        return interpol_map
+    # def interpolate_map(self, ra_deg, dec_deg):
+    #     """ """
+    #     interpol_map = self.skymap.hpm.interpolate_bilinear_skycoord(
+    #         SkyCoord(ra_deg * u.deg, dec_deg * u.deg), self.data[self.key]
+    #     )
+    #     return interpol_map
 
-    def in_contour(self, ra_deg, dec_deg):
-        """ """
-        return self.interpolate_map(ra_deg, dec_deg) > self.pixel_threshold
+    # def in_contour(self, ra_deg, dec_deg):
+    #     """ """
+    #     return self.interpolate_map(ra_deg, dec_deg) > self.skymap.pixel_threshold
 
 
 if __name__ == "__main__":
