@@ -1,14 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import os, time, json, logging
+import os, time, json, logging, yaml
 
 # import wget
 from tqdm import tqdm
-import requests
-from numpy.lib.recfunctions import append_fields
-import lxml.etree
-from lxml import html
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -16,12 +12,9 @@ from astropy_healpix import HEALPix
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 from astropy.time import Time
-from astropy.io import fits
 
 import healpy as hp
 from ztfquery.io import LOCALSOURCE
-
-from ligo.skymap.moc import rasterize
 
 from nuztf.skymap_loader import SkymapLoader
 from nuztf.base_scanner import BaseScanner
@@ -29,29 +22,6 @@ from nuztf.ampel_api import (
     ampel_api_lightcurve,
     ampel_api_skymap,
 )
-
-GW_RUN_CONFIG = {
-    "min_ndet": 1,  # Default:2
-    "min_tspan": -1,  # Default 0, but that rejects everything!
-    "max_tspan": 365,
-    "min_rb": 0.3,
-    "max_fwhm": 5.5,
-    "max_elong": 1.4,
-    "max_magdiff": 1.0,
-    "max_nbad": 2,
-    "min_sso_dist": 20,
-    "min_gal_lat": 0.0,  # Default: 14
-    "gaia_rs": 10.0,
-    "gaia_pm_signif": 3,
-    "gaia_plx_signif": 3,
-    "gaia_veto_gmag_min": 9,
-    "gaia_veto_gmag_max": 20,
-    "gaia_excessnoise_sig_max": 999,
-    "ps1_sgveto_rad": 1.0,
-    "ps1_sgveto_th": 0.8,
-    "ps1_confusion_rad": 3.0,
-    "ps1_confusion_sg_tol": 0.1,
-}
 
 
 class RetractionError(Exception):
@@ -68,10 +38,20 @@ class SkymapScanner(BaseScanner):
         prob_threshold: float = 0.9,
         cone_nside: int = 64,
         n_days: float = 3.0,  # By default, accept things detected within 72 hours of event time
-        custom_prefix="",
+        custom_prefix: str = "",
+        config: dict = None,
     ):
 
         self.logger = logging.getLogger(__name__)
+
+        if config:
+            self.config = config
+        else:
+            config_path = os.path.join(
+                os.path.dirname(__file__), "config", "gw_run_config.yaml"
+            )
+            with open(config_path) as f:
+                self.config = yaml.safe_load(f)
 
         skymap = SkymapLoader(
             event=event,
@@ -92,7 +72,7 @@ class SkymapScanner(BaseScanner):
 
         BaseScanner.__init__(
             self,
-            run_config=GW_RUN_CONFIG,
+            run_config=self.config,
             t_min=self.t_min,
             cone_nside=cone_nside,
             skymap=skymap,

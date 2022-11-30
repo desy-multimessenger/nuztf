@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-import os
-import logging
+import os, logging, yaml
 
 from astropy.time import Time
 import healpy as hp
@@ -20,29 +19,6 @@ nu_candidate_output_dir = os.path.join(LOCALSOURCE, "neutrino_candidates")
 if not os.path.exists(nu_candidate_output_dir):
     os.makedirs(nu_candidate_output_dir)
 
-NU_RUN_CONFIG = {
-    "min_ndet": 1,  # Default:2
-    "min_tspan": -1,  # Default 0, but that rejects everything!
-    "max_tspan": 365,
-    "min_rb": 0.0,
-    "max_fwhm": 5.5,
-    "max_elong": 1.4,
-    "max_magdiff": 1.0,
-    "max_nbad": 2,
-    "min_sso_dist": 20,
-    "min_gal_lat": -1.0,  # Default: 14
-    "gaia_rs": 20,
-    "gaia_pm_signif": 3,
-    "gaia_plx_signif": 3,
-    "gaia_veto_gmag_min": 9,
-    "gaia_veto_gmag_max": 20,
-    "gaia_excessnoise_sig_max": 999,
-    "ps1_sgveto_rad": 1,
-    "ps1_sgveto_th": 0.8,
-    "ps1_confusion_rad": 3,
-    "ps1_confusion_sg_tol": 0.1,
-}
-
 
 class NeutrinoScanner(BaseScanner):
 
@@ -55,13 +31,19 @@ class NeutrinoScanner(BaseScanner):
         gcn_no: int = None,
         cone_nside: int = 128,
         t_precursor: float = None,
-        logger=None,
+        config: dict = None,
     ):
 
-        if logger is None:
-            self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(__name__)
+
+        if config:
+            self.config = config
         else:
-            self.logger = logger
+            config_path = os.path.join(
+                os.path.dirname(__file__), "config", "nu_run_config.yaml"
+            )
+            with open(config_path) as f:
+                self.config = yaml.safe_load(f)
 
         self.prob_threshold = 0.9
 
@@ -112,8 +94,7 @@ class NeutrinoScanner(BaseScanner):
         BaseScanner.__init__(
             self,
             t_min=nu_time,
-            run_config=NU_RUN_CONFIG,
-            logger=logger,
+            run_config=self.config,
             cone_nside=cone_nside,
         )
         self.prob_threshold = 0.9
