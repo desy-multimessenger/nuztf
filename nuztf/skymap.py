@@ -17,6 +17,8 @@ from astropy.coordinates import SkyCoord
 from astropy.time import Time
 from astropy.io import fits
 
+from ligo.skymap.moc import rasterize
+
 from ztfquery.io import LOCALSOURCE
 
 
@@ -47,7 +49,7 @@ class Skymap:
 
         self.prob_threshold = prob_threshold
 
-        if ".fit" in event:
+        if ".fit" in event and "O4_simul" not in event:
 
             basename = os.path.basename(event)
 
@@ -72,6 +74,9 @@ class Skymap:
                 )
 
             self.event_name = os.path.basename(event[7:])
+
+        elif "O4_simul" in event:
+            self.get_simulated_gw_skymap(event_name=event)
 
         # elif np.sum([x in event for x in ["grb", "GRB"]]) > 0:
         elif "grb" in event or "GRB" in event:
@@ -106,6 +111,26 @@ class Skymap:
 
         # if not os.path.exists(self.cache_dir):
         #     os.makedirs(self.cache_dir)
+
+    def get_simulated_gw_skymap(self, event_name: str):
+        """Load a simulated skymap for Ligo-Virgo-Kagra O4"""
+        event_name_short = event_name.lstrip("O4_simul").rstrip(".fits").rstrip(".fit")
+        full_file_name = f"{int(event_name_short)}.fits"
+        self.event_name = f"O4_simul_{event_name_short}"
+
+        url = f"https://syncandshare.desy.de/index.php/s/65wdjdcx9oar6M7/download?path=/&files={full_file_name}"
+
+        skymap_dir = os.path.join(self.base_skymap_dir, "simulated")
+
+        if not os.path.exists(skymap_dir):
+            os.makedirs(skymap_dir)
+
+        self.skymap_path = os.path.join(skymap_dir, full_file_name)
+        self.logger.info(f"Downloading skymap and saving to {self.skymap_path}")
+
+        wget.download(url, self.skymap_path)
+
+        self.summary_path = f"{skymap_dir}/{event_name}_{self.prob_threshold}"
 
     def get_grb_skymap(self, event_name: str):
         """ """
