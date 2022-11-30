@@ -9,6 +9,8 @@ import numpy as np
 from numpy.lib.recfunctions import append_fields
 import healpy as hp
 from astropy_healpix import HEALPix
+import lxml.etree
+from lxml import html
 
 from astropy.time import Time
 from astropy.io import fits
