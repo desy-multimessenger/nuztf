@@ -24,7 +24,6 @@ class TestSkymapScanner(unittest.TestCase):
             event=gw_name,
             prob_threshold=prob_threshold,
             n_days=1,
-            logger=self.logger,
         )
 
         scanner.plot_skymap()
@@ -85,7 +84,6 @@ class TestSkymapScanner(unittest.TestCase):
             event=grb_name,
             prob_threshold=prob_threshold,
             n_days=t_window_d,
-            logger=self.logger,
         )
 
         scanner.get_alerts()

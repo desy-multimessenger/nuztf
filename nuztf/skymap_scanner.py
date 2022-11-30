@@ -1,59 +1,24 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import os
-import wget
-import time
-import json
-import logging
+import os, time, json, logging, yaml
 
 from tqdm import tqdm
-import requests
-from numpy.lib.recfunctions import append_fields
-import lxml.etree
-from lxml import html
 import numpy as np
 import matplotlib.pyplot as plt
 
 from astropy_healpix import HEALPix
-from astropy.coordinates import SkyCoord
-from astropy import units as u
 from astropy.time import Time
-from astropy.io import fits
 
 import healpy as hp
 from ztfquery.io import LOCALSOURCE
 
-from ligo.skymap.moc import rasterize
-
+from nuztf.skymap import Skymap
 from nuztf.base_scanner import BaseScanner
 from nuztf.ampel_api import (
     ampel_api_lightcurve,
     ampel_api_skymap,
 )
-
-GW_RUN_CONFIG = {
-    "min_ndet": 1,  # Default:2
-    "min_tspan": -1,  # Default 0, but that rejects everything!
-    "max_tspan": 365,
-    "min_rb": 0.3,
-    "max_fwhm": 5.5,
-    "max_elong": 1.4,
-    "max_magdiff": 1.0,
-    "max_nbad": 2,
-    "min_sso_dist": 20,
-    "min_gal_lat": 0.0,  # Default: 14
-    "gaia_rs": 10.0,
-    "gaia_pm_signif": 3,
-    "gaia_plx_signif": 3,
-    "gaia_veto_gmag_min": 9,
-    "gaia_veto_gmag_max": 20,
-    "gaia_excessnoise_sig_max": 999,
-    "ps1_sgveto_rad": 1.0,
-    "ps1_sgveto_th": 0.8,
-    "ps1_confusion_rad": 3.0,
-    "ps1_confusion_sg_tol": 0.1,
-}
 
 
 class RetractionError(Exception):
@@ -69,101 +34,52 @@ class SkymapScanner(BaseScanner):
         rev: int = None,
         prob_threshold: float = 0.9,
         cone_nside: int = 64,
-        n_days: float = 3.0,
-        logger=None,
-        custom_prefix="",
+        n_days: float = 3.0,  # By default, accept things detected within 72 hours of event time
+        custom_prefix: str = "",
+        config: dict = None,
     ):
 
-        self.base_skymap_dir = os.path.join(LOCALSOURCE, f"{custom_prefix}skymaps")
-        self.candidate_output_dir = os.path.join(
-            LOCALSOURCE, f"{custom_prefix}candidates"
-        )
-        skymap_candidate_cache = os.path.join(LOCALSOURCE, f"{custom_prefix}cache")
-
-        for entry in [
-            self.base_skymap_dir,
-            self.candidate_output_dir,
-            skymap_candidate_cache,
-        ]:
-            if not os.path.exists(entry):
-                os.makedirs(entry)
-
-        if logger:
-            self.logger = logger
-        else:
-            self.logger = logging.getLogger(__name__)
-
+        self.logger = logging.getLogger(__name__)
         self.prob_threshold = prob_threshold
         self.n_days = n_days
 
-        if ".fits" in event:
-
-            basename = os.path.basename(event)
-
-            self.skymap_path = os.path.join(self.base_skymap_dir, basename)
-
-            if event[:8] == "https://":
-                self.logger.info(f"Downloading from: {event}")
-                self.skymap_path = os.path.join(
-                    self.base_skymap_dir, os.path.basename(event[7:])
-                )
-                wget.download(event, self.skymap_path)
-
-                self.summary_path = os.path.join(
-                    self.candidate_output_dir,
-                    f"{os.path.basename(event)}_{self.prob_threshold}",
-                )
-
-            else:
-                self.summary_path = os.path.join(
-                    self.candidate_output_dir,
-                    f"{os.path.basename(event)}_{self.prob_threshold}",
-                )
-
-            self.event_name = os.path.basename(event[7:])
-
-        elif np.sum([x in event for x in ["grb", "GRB"]]) > 0:
-            self.get_grb_skymap(event_name=event)
-
-        elif np.sum([x in event for x in ["s", "S", "gw", "GW"]]) > 0:
-            self.skymap_path, self.summary_path, self.event_name = self.get_gw_skymap(
-                event_name=event, rev=rev
-            )
+        if config:
+            self.config = config
         else:
-            raise Exception(
-                f"Event {event} not recognised as a fits file, a GRB or a GW event."
+            config_path = os.path.join(
+                os.path.dirname(__file__), "config", "gw_run_config.yaml"
             )
+            with open(config_path) as f:
+                self.config = yaml.safe_load(f)
 
-        self.data, t_obs, self.hpm, self.key, self.dist, self.dist_unc = self.read_map()
-
-        t_min = Time(t_obs, format="isot", scale="utc")
-
-        self.logger.info(f"Event time: {t_min}")
-        self.logger.info("Reading map")
-
-        self.pixel_threshold = self.find_pixel_threshold(self.data[self.key])
-
-        BaseScanner.__init__(
-            self,
-            run_config=GW_RUN_CONFIG,
-            t_min=t_min,
-            logger=logger,
-            cone_nside=cone_nside,
+        self.skymap = Skymap(
+            event=event,
+            rev=rev,
+            prob_threshold=prob_threshold,
+            custom_prefix=custom_prefix,
         )
 
-        # By default, accept things detected within 72 hours of event time
-        self.default_t_max = Time(self.t_min.jd + self.n_days, format="jd")
-
-        self.logger.info(f"Time-range is {self.t_min} -- {self.default_t_max.isot}")
-
-        self.cache_dir = os.path.join(skymap_candidate_cache, self.event_name)
-
+        self.t_min = Time(self.skymap.t_obs, format="isot", scale="utc")
+        self.cache_dir = os.path.join(
+            self.skymap.candidate_cache, self.skymap.event_name
+        )
         if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir)
 
+        BaseScanner.__init__(
+            self,
+            run_config=self.config,
+            t_min=self.t_min,
+            cone_nside=cone_nside,
+        )
+
+        self.default_t_max = Time(self.t_min.jd + self.n_days, format="jd")
+        self.summary_path = self.skymap.summary_path
+        self.logger.info(f"Time-range is {self.t_min} -- {self.default_t_max.isot}")
+
     def get_full_name(self):
-        if self.event_name is not None:
-            return self.event_name
+        if self.skymap.event_name is not None:
+            return self.skymap.event_name
         else:
             return "?????"
 
@@ -207,7 +123,9 @@ class SkymapScanner(BaseScanner):
         time_healpix_end = time.time()
         time_healpix = time_healpix_end - time_healpix_start
 
-        cache_file = os.path.join(self.cache_dir, f"{self.event_name}_all_alerts.json")
+        cache_file = os.path.join(
+            self.cache_dir, f"{self.skymap.event_name}_all_alerts.json"
+        )
 
         outfile = open(cache_file, "w")
         json.dump(self.queue, outfile)
@@ -223,7 +141,9 @@ class SkymapScanner(BaseScanner):
     def filter_alerts(self, load_cachefile=False):
         """ """
         self.logger.info(f"Commencing first stage filtering.")
-        cache_file = os.path.join(self.cache_dir, f"{self.event_name}_all_alerts.json")
+        cache_file = os.path.join(
+            self.cache_dir, f"{self.skymap.event_name}_all_alerts.json"
+        )
 
         if load_cachefile:
             self.queue = json.load(open(cache_file, "r"))
@@ -386,7 +306,7 @@ class SkymapScanner(BaseScanner):
             pass
 
         # Check contour
-        if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
+        if not self.skymap.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
             self.logger.debug(f"{res['objectId']}: Outside of event contour.")
             return False
 
@@ -437,240 +357,12 @@ class SkymapScanner(BaseScanner):
 
         return True
 
-    def get_gw_skymap(self, event_name: str, rev: int):
-        """ """
-        from ligo.gracedb.rest import GraceDb
-
-        ligo_client = GraceDb()
-
-        self.logger.info("Obtaining skymap from GraceDB")
-
-        if event_name is None:
-            superevent_iterator = ligo_client.superevents("category: Production")
-            superevent_ids = [
-                superevent["superevent_id"] for superevent in superevent_iterator
-            ]
-            event_name = superevent_ids[0]
-
-        voevents = ligo_client.voevents(event_name).json()["voevents"]
-
-        if rev is None:
-            rev = len(voevents)
-
-        elif rev > len(voevents):
-            raise Exception("Revision {0} not found".format(rev))
-
-        latest_voevent = voevents[rev - 1]
-        self.logger.info(f"Found voevent {latest_voevent['filename']}")
-
-        if "Retraction" in latest_voevent["filename"]:
-            raise RetractionError(
-                f"The specified LIGO event, {latest_voevent['filename']}, was retracted."
-            )
-
-        response = requests.get(latest_voevent["links"]["file"])
-
-        root = lxml.etree.fromstring(response.content)
-        params = {
-            elem.attrib["name"]: elem.attrib["value"]
-            for elem in root.iterfind(".//Param")
-        }
-
-        latest_skymap = params["skymap_fits"]
-
-        self.logger.info(f"Latest skymap URL: {latest_skymap}")
-
-        base_file_name = os.path.basename(latest_skymap)
-        savepath = os.path.join(
-            self.base_skymap_dir,
-            f"{event_name}_{latest_voevent['N']}_{base_file_name}",
-        )
-
-        self.logger.info(f"Saving to: {savepath}")
-        response = requests.get(latest_skymap)
-
-        with open(savepath, "wb") as f:
-            f.write(response.content)
-
-        summary_path = f"{self.base_skymap_dir}/{event_name}_{latest_voevent['N']}_{self.prob_threshold}"
-
-        return savepath, summary_path, event_name
-
-    def get_grb_skymap(self, event_name: str):
-        """ """
-        if event_name is None:
-            raise ValueError(
-                "event_name must be provided for GRBs. They must have the form 'GRB210729A"
-            )
-
-        event_year_short = event_name[3:5]
-        event_year = "20" + event_year_short
-        event_month = event_name[5:7]
-        event_day = event_name[7:9]
-        event_letter = event_name[9]
-        event_number = ord(event_letter) - 65
-
-        # get possible skymap URLs
-
-        url = f"https://heasarc.gsfc.nasa.gov/FTP/fermi/data/gbm/triggers/{event_year}"
-
-        page_overview = requests.get(url)
-        webpage_overview = html.fromstring(page_overview.content)
-
-        links_overview = webpage_overview.xpath("//a/@href")
-
-        links_for_date = []
-
-        for link in links_overview:
-            if link[2:8] == f"{event_year_short}{event_month}{event_day}":
-                links_for_date.append(url + "/" + link + "current/")
-
-        if len(links_for_date) > 1:
-            self.logger.info(
-                f"Found multiple events. Will choose the one corresponding the GRB letter {event_letter}"
-            )
-
-        event_url = links_for_date[event_number]
-
-        page_event = requests.get(event_url)
-        webpage_event = html.fromstring(page_event.content)
-        links_event = webpage_event.xpath("//a/@href")
-
-        for link in links_event:
-            if link[0:11] == "glg_healpix":
-                final_link = event_url + link
-                break
-
-        self.skymap_path = os.path.join(self.base_skymap_dir, link)
-
-        if os.path.isfile(self.skymap_path):
-            self.logger.info(
-                f"Continuing with saved skymap. Located at {self.skymap_path}"
-            )
-        else:
-            self.logger.info(f"Downloading skymap and saving to {self.skymap_path}")
-            wget.download(final_link, self.skymap_path)
-
-        self.summary_path = f"{self.base_skymap_dir}/{event_name}_{self.prob_threshold}"
-
-        self.event_name = event_name
-
-    def read_map(
-        self,
-    ):
-        """Read the skymap"""
-
-        self.logger.info(f"Reading file: {self.skymap_path}")
-
-        with fits.open(self.skymap_path) as hdul:
-            data = None
-            h = hdul[0].header
-
-            dist = None
-            dist_unc = None
-            t_obs = None
-            ordering = None
-
-            for x in hdul:
-                if data is None:
-                    if x.data is not None:
-                        data = np.array(x.data)
-
-                if "DISTMEAN" in x.header:
-                    dist = x.header["DISTMEAN"]
-
-                if "DISTSTD" in x.header:
-                    dist_unc = x.header["DISTSTD"]
-
-                if "DATE-OBS" in x.header:
-                    t_obs = x.header["DATE-OBS"]
-
-                elif "EVENTMJD" in x.header:
-                    t_obs_mjd = x.header["EVENTMJD"]
-                    t_obs = Time(t_obs_mjd, format="mjd").isot
-
-                if "ORDERING" in x.header:
-                    ordering = x.header["ORDERING"]
-
-        if "PROB" in data.dtype.names:
-            key = "PROB"
-        elif "PROBABILITY" in data.dtype.names:
-            key = "PROB"
-            prob = np.array(data["PROBABILITY"]).flatten()
-            data = append_fields(data, "PROB", prob)
-        elif "PROBDENSITY" in data.dtype.names:
-            key = "PROB"
-            prob = np.array(data["PROBDENSITY"])
-            data = append_fields(data, "PROB", prob)
-        elif "T" in data.dtype.names:  # weird IceCube format
-            key = "PROB"
-            prob = np.array(data["T"]).flatten()
-            data = append_fields(data, "PROB", prob)
-        else:
-            raise Exception(
-                f"No recognised probability key in map. This is probably a weird one, right? "
-                f"Found the following keys: {data.dtype.names}"
-            )
-
-        if ordering == "NUNIQ":
-            self.logger.info("Rasterising skymap to convert to nested format")
-            data = data[list(["UNIQ", key])]
-            probs = rasterize(data, order=7)
-            data = np.array(probs, dtype=np.dtype([("PROB", float)]))
-
-        if not isinstance(data["PROB"][0], float):
-            self.logger.info("Flattening skymap")
-            probs = np.array(data["PROB"]).flatten()
-            data = np.array(probs, dtype=np.dtype([("PROB", float)]))
-
-        if "NSIDE" not in h.keys():
-            h["NSIDE"] = hp.npix2nside(len(data[key]))
-
-        data["PROB"] /= np.sum(data["PROB"])
-
-        self.logger.info(f"Summed probability is {100. * np.sum(data['PROB']):.1f}%")
-
-        if ordering == "RING":
-            data["PROB"] = hp.pixelfunc.reorder(data["PROB"], inp="RING", out="NESTED")
-
-        if ordering is not None:
-            h["ORDERING"] = "NESTED"
-        else:
-            raise Exception(
-                f"Error parsing fits file, no ordering found. "
-                f"Please enter the ordewring (NESTED/RING/NUNIQ)"
-            )
-
-        hpm = HEALPix(nside=h["NSIDE"], order=h["ORDERING"], frame="icrs")
-
-        return data, t_obs, hpm, key, dist, dist_unc
-
-    def find_pixel_threshold(self, data):
-        """ """
-
-        ranked_pixels = np.sort(data)[::-1]
-        int_sum = 0.0
-        pixel_threshold = 0.0
-
-        for i, prob in enumerate(ranked_pixels):
-            int_sum += prob
-            if int_sum > self.prob_threshold:
-                self.logger.info(
-                    f"Threshold found! \n To reach {int_sum * 100.0:.2f}% of probability, pixels with probability greater than {prob} are included."
-                )
-                pixel_threshold = prob
-                break
-
-        return pixel_threshold
-
     def unpack_skymap(self):
         """ """
 
-        nside = hp.npix2nside(len(self.data[self.key]))
+        nside = hp.npix2nside(len(self.skymap.data[self.skymap.key]))
 
-        threshold = self.find_pixel_threshold(self.data[self.key])
-
-        mask = self.data[self.key] > threshold
+        mask = self.skymap.data[self.skymap.key] > self.skymap.pixel_threshold
 
         map_coords = []
 
@@ -695,10 +387,10 @@ class SkymapScanner(BaseScanner):
             map_coords,
             pixel_nos,
             nside,
-            self.data[self.key][mask],
-            self.data,
+            self.skymap.data[self.skymap.key][mask],
+            self.skymap.data,
             pixel_area,
-            self.key,
+            self.skymap.key,
         )
 
     def find_cone_coords(self):
@@ -727,7 +419,7 @@ class SkymapScanner(BaseScanner):
         fig = plt.figure()
         plt.subplot(211, projection="aitoff")
 
-        mask = self.data[self.key] > self.pixel_threshold
+        mask = self.data[self.key] > self.skymap.pixel_threshold
 
         size = hp.max_pixrad(self.nside, degrees=True) ** 2
 
@@ -753,7 +445,9 @@ class SkymapScanner(BaseScanner):
         plt.scatter(ra_cone_rad, dec_cone_rad)
         plt.title("CONE REGION")
 
-        outpath = os.path.join(self.base_skymap_dir, f"{self.event_name}.png")
+        outpath = os.path.join(
+            self.skymap.base_skymap_dir, f"{self.skymap.event_name}.png"
+        )
         plt.tight_layout()
 
         plt.savefig(outpath, dpi=300)
@@ -781,7 +475,7 @@ class SkymapScanner(BaseScanner):
         plt.tight_layout()
 
         outpath = os.path.join(
-            self.candidate_output_dir, f"{self.event_name}_coverage.png"
+            self.skymap.candidate_output_dir, f"{self.skymap.event_name}_coverage.png"
         )
         plt.savefig(outpath, dpi=300)
 
@@ -789,16 +483,16 @@ class SkymapScanner(BaseScanner):
 
         return fig, message
 
-    def interpolate_map(self, ra_deg, dec_deg):
-        """ """
-        interpol_map = self.hpm.interpolate_bilinear_skycoord(
-            SkyCoord(ra_deg * u.deg, dec_deg * u.deg), self.data[self.key]
-        )
-        return interpol_map
+    # def interpolate_map(self, ra_deg, dec_deg):
+    #     """ """
+    #     interpol_map = self.skymap.hpm.interpolate_bilinear_skycoord(
+    #         SkyCoord(ra_deg * u.deg, dec_deg * u.deg), self.data[self.key]
+    #     )
+    #     return interpol_map
 
-    def in_contour(self, ra_deg, dec_deg):
-        """ """
-        return self.interpolate_map(ra_deg, dec_deg) > self.pixel_threshold
+    # def in_contour(self, ra_deg, dec_deg):
+    #     """ """
+    #     return self.interpolate_map(ra_deg, dec_deg) > self.skymap.pixel_threshold
 
 
 if __name__ == "__main__":
