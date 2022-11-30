@@ -64,8 +64,8 @@ class SkymapScanner(BaseScanner):
         self.t_min = Time(skymap.t_obs, format="isot", scale="utc")
         self.default_t_max = Time(self.t_min.jd + self.n_days, format="jd")
         self.logger.info(f"Time-range is {self.t_min} -- {self.default_t_max.isot}")
-
-        self.cache_dir = os.path.join(skymap.candidate_cache, skymap.event_name)
+        self.event_name = skymap.event_name
+        self.cache_dir = os.path.join(skymap.candidate_cache, self.event_name)
 
         if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir)
@@ -444,7 +444,7 @@ class SkymapScanner(BaseScanner):
         plt.scatter(ra_cone_rad, dec_cone_rad)
         plt.title("CONE REGION")
 
-        outpath = os.path.join(self.base_skymap_dir, f"{self.event_name}.png")
+        outpath = os.path.join(skymap.base_skymap_dir, f"{skymap.event_name}.png")
         plt.tight_layout()
 
         plt.savefig(outpath, dpi=300)
