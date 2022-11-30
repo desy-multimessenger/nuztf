@@ -238,7 +238,7 @@ class NeutrinoScanner(BaseScanner):
 
         return np.logical_and(in_ra, in_dec)
 
-    def unpack_skymap(self):
+    def unpack_skymap(self, skymap=None):
         """ """
         nside = 1024
         map_coords = []
