@@ -29,6 +29,7 @@ class Skymap:
         rev: int = None,
         prob_threshold: float = 0.9,
         custom_prefix: str = "",
+        t_obs: Time = None,  # overwrite t_obs read from the skymap (for simulation)
     ):
 
         self.base_skymap_dir = os.path.join(LOCALSOURCE, f"{custom_prefix}skymaps")
@@ -100,17 +101,14 @@ class Skymap:
             self.dist_unc,
         ) = self.read_map()
 
-        t_min = Time(self.t_obs, format="isot", scale="utc")
+        # overwrite self.t_obs when passed to class (used for simulation)
+        if t_obs:
+            self.t_obs = t_obs
 
-        self.logger.info(f"Event time: {t_min}")
+        self.logger.info(f"Event time: {self.t_obs}")
         self.logger.info("Reading map")
 
         self.pixel_threshold = self.find_pixel_threshold(self.data[self.key])
-
-        # self.cache_dir = os.path.join(skymap_candidate_cache, self.event_name)
-
-        # if not os.path.exists(self.cache_dir):
-        #     os.makedirs(self.cache_dir)
 
     def get_simulated_gw_skymap(self, event_name: str):
         """Load a simulated skymap for Ligo-Virgo-Kagra O4"""
@@ -126,9 +124,12 @@ class Skymap:
             os.makedirs(skymap_dir)
 
         self.skymap_path = os.path.join(skymap_dir, full_file_name)
-        self.logger.info(f"Downloading skymap and saving to {self.skymap_path}")
 
-        wget.download(url, self.skymap_path)
+        if os.path.exists(self.skymap_path):
+            self.logger.info(f"Readking skymap from {self.skymap_path}")
+        else:
+            self.logger.info(f"Downloading skymap and saving to {self.skymap_path}")
+            wget.download(url, self.skymap_path)
 
         self.summary_path = f"{skymap_dir}/{event_name}_{self.prob_threshold}"
 
@@ -279,6 +280,7 @@ class Skymap:
 
                 if "DATE-OBS" in x.header:
                     t_obs = x.header["DATE-OBS"]
+                    t_obs = Time(t_obs, format="isot", scale="utc")
 
                 elif "EVENTMJD" in x.header:
                     t_obs_mjd = x.header["EVENTMJD"]
