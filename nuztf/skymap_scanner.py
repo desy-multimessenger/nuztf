@@ -35,6 +35,7 @@ class SkymapScanner(BaseScanner):
         prob_threshold: float = 0.9,
         cone_nside: int = 64,
         n_days: float = 3.0,  # By default, accept things detected within 72 hours of event time
+        t_obs: Time = None,  # overwrite map time for simulations
         custom_prefix: str = "",
         config: dict = None,
     ):
@@ -57,9 +58,11 @@ class SkymapScanner(BaseScanner):
             rev=rev,
             prob_threshold=prob_threshold,
             custom_prefix=custom_prefix,
+            t_obs=t_obs,
         )
 
-        self.t_min = Time(self.skymap.t_obs, format="isot", scale="utc")
+        self.t_min = self.skymap.t_obs
+
         self.cache_dir = os.path.join(
             self.skymap.candidate_cache, self.skymap.event_name
         )
@@ -75,7 +78,10 @@ class SkymapScanner(BaseScanner):
 
         self.default_t_max = Time(self.t_min.jd + self.n_days, format="jd")
         self.summary_path = self.skymap.summary_path
-        self.logger.info(f"Time-range is {self.t_min} -- {self.default_t_max.isot}")
+
+        self.logger.info(
+            f"Time range is {self.t_min.isot} -- {self.default_t_max.isot}"
+        )
 
     def get_full_name(self):
         if self.skymap.event_name is not None:

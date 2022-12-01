@@ -51,7 +51,7 @@ class BaseScanner:
     def __init__(
         self,
         run_config,
-        t_min,
+        t_min: Time,
         resource=None,
         filter_class=DecentFilter,
         cone_nside=64,
@@ -112,7 +112,7 @@ class BaseScanner:
             self.cone_ids, self.cone_coords = cones_to_scan
 
         self.cache = dict()
-        self.default_t_max = t_min + 10.0
+        self.default_t_max = self.t_min + 10.0
 
         self.overlap_prob = None
         self.overlap_fields = None
