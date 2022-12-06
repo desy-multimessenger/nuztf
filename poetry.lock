@@ -124,7 +124,7 @@ docs = ["Sphinx (>=5.1.1,<5.2.0)", "sphinx-autodoc-typehints (>=1.11.1,<2.0.0)",
 
 [[package]]
 name = "ampel-ztf"
-version = "0.8.3a5"
+version = "0.8.3a6"
 description = "Zwicky Transient Facility support for the Ampel system"
 category = "main"
 optional = false
@@ -2801,8 +2801,8 @@ ampel-photometry = [
     {file = "ampel_photometry-0.8.3a2-py3-none-any.whl", hash = "sha256:24cdef07d875fc87a55525e0717caf57b6f0df27952b1009a33fffb24b30fe94"},
 ]
 ampel-ztf = [
-    {file = "ampel_ztf-0.8.3a5-py3-none-any.whl", hash = "sha256:6b73913882f6a358b8f5d8a9dbfa67a455f9376b99acf31706ef22ffef82d90d"},
-    {file = "ampel_ztf-0.8.3a5.tar.gz", hash = "sha256:92683edddca331bd8fac41094737e20b8fb3886ba7f8f8685928959ff98cbf6b"},
+    {file = "ampel_ztf-0.8.3a6-py3-none-any.whl", hash = "sha256:ee08b43c9783a197c2c249d4bd07a72793984f12569e4f310a163ef5447139fb"},
+    {file = "ampel_ztf-0.8.3a6.tar.gz", hash = "sha256:1f13e52ba86c7f33093ff0676760b6dea2f018828165e7a6d672b32620703b79"},
 ]
 ampel-ztf-archive = [
     {file = "ampel-ztf-archive-0.8.0a0.tar.gz", hash = "sha256:d08062ca7177c348164410d48b7a5bf633c9890f47018f201137b38c352108ac"},
