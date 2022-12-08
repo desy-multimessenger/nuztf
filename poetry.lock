@@ -2671,7 +2671,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 
 [[package]]
 name = "ztfquery"
-version = "1.19.1"
+version = "1.20.0"
 description = "access ZTF data from python"
 category = "main"
 optional = false
@@ -5227,5 +5227,5 @@ zipp = [
     {file = "zipp-3.10.0.tar.gz", hash = "sha256:7a7262fd930bd3e36c50b9a64897aec3fafff3dfdeec9623ae22b40e93f99bb8"},
 ]
 ztfquery = [
-    {file = "ztfquery-1.19.1.tar.gz", hash = "sha256:b5ddd1912d04feb77c4471ab299d29c03ae1b2740752f2703505aa4ddc33dc4e"},
+    {file = "ztfquery-1.20.0.tar.gz", hash = "sha256:fc54c21d432022847d7c1d1ef850e4f33b79da8bc590c4fe6b153ba5a8ed8f77"},
 ]
