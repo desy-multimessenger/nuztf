@@ -124,7 +124,7 @@ docs = ["Sphinx (>=5.1.1,<5.2.0)", "sphinx-autodoc-typehints (>=1.11.1,<2.0.0)",
 
 [[package]]
 name = "ampel-ztf"
-version = "0.8.3a5"
+version = "0.8.3a7"
 description = "Zwicky Transient Facility support for the Ampel system"
 category = "main"
 optional = false
@@ -144,9 +144,11 @@ matplotlib = ">=3.3.4,<4.0.0"
 nest-asyncio = ">=1.4.3,<2.0.0"
 requests = ">=2.25.1,<3.0.0"
 requests-toolbelt = ">=0.10.0,<0.11.0"
+scipy = ">=1.9.3,<2.0.0"
 
 [package.extras]
 archive = ["ampel-ztf-archive (>=0.8.0-alpha.0,<0.9.0)"]
+fp = ["pandas (>=1.5.2,<2.0.0)", "planobs (>=0.5.4,<0.6.0)"]
 healpix = ["healpy (>=1.15,<2.0)"]
 kafka = ["confluent-kafka (>=1.5.0,<2.0.0)"]
 light-curve = ["light-curve (>=0.6,<0.7)"]
@@ -2801,8 +2803,8 @@ ampel-photometry = [
     {file = "ampel_photometry-0.8.3a2-py3-none-any.whl", hash = "sha256:24cdef07d875fc87a55525e0717caf57b6f0df27952b1009a33fffb24b30fe94"},
 ]
 ampel-ztf = [
-    {file = "ampel_ztf-0.8.3a5-py3-none-any.whl", hash = "sha256:6b73913882f6a358b8f5d8a9dbfa67a455f9376b99acf31706ef22ffef82d90d"},
-    {file = "ampel_ztf-0.8.3a5.tar.gz", hash = "sha256:92683edddca331bd8fac41094737e20b8fb3886ba7f8f8685928959ff98cbf6b"},
+    {file = "ampel_ztf-0.8.3a7-py3-none-any.whl", hash = "sha256:4829ca2618f0bc5a929b73ed58f61c0a6abf33742dc51b027ca04fc7c9a3796f"},
+    {file = "ampel_ztf-0.8.3a7.tar.gz", hash = "sha256:28f1fbc11b183299dfe10eb7a3ffc12d59090d013a396ee77c537ea0a69eff6e"},
 ]
 ampel-ztf-archive = [
     {file = "ampel-ztf-archive-0.8.0a0.tar.gz", hash = "sha256:d08062ca7177c348164410d48b7a5bf633c9890f47018f201137b38c352108ac"},
