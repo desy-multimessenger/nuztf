@@ -58,7 +58,7 @@ docs = ["Sphinx (>=5.1.1,<5.2.0)", "sphinx-autodoc-typehints (>=1.11.1,<2.0.0)",
 
 [[package]]
 name = "ampel-core"
-version = "0.8.3b9"
+version = "0.8.3b10"
 description = "Alice in Modular Provenance-Enabled Land"
 category = "main"
 optional = false
@@ -124,7 +124,7 @@ docs = ["Sphinx (>=5.1.1,<5.2.0)", "sphinx-autodoc-typehints (>=1.11.1,<2.0.0)",
 
 [[package]]
 name = "ampel-ztf"
-version = "0.8.3a5"
+version = "0.8.3a8"
 description = "Zwicky Transient Facility support for the Ampel system"
 category = "main"
 optional = false
@@ -133,7 +133,7 @@ python-versions = ">=3.10,<3.11"
 [package.dependencies]
 aiohttp = ">=3.7.3,<4.0.0"
 ampel-alerts = ">=0.8.3-beta.1,<0.9.0"
-ampel-core = ">=0.8.3-beta.9,<0.9.0"
+ampel-core = ">=0.8.3-beta.10,<0.9.0"
 ampel-interface = ">=0.8.3-beta.9,<0.9.0"
 ampel-photometry = ">=0.8.3-alpha.2,<0.9.0"
 ampel-ztf-archive = {version = ">=0.8.0-alpha.0,<0.9.0", optional = true, markers = "extra == \"archive\""}
@@ -144,9 +144,11 @@ matplotlib = ">=3.3.4,<4.0.0"
 nest-asyncio = ">=1.4.3,<2.0.0"
 requests = ">=2.25.1,<3.0.0"
 requests-toolbelt = ">=0.10.0,<0.11.0"
+scipy = ">=1.9.3,<2.0.0"
 
 [package.extras]
 archive = ["ampel-ztf-archive (>=0.8.0-alpha.0,<0.9.0)"]
+fp = ["pandas (>=1.5.2,<2.0.0)", "planobs (>=0.5.4,<0.6.0)"]
 healpix = ["healpy (>=1.15,<2.0)"]
 kafka = ["confluent-kafka (>=1.5.0,<2.0.0)"]
 light-curve = ["light-curve (>=0.6,<0.7)"]
@@ -2785,8 +2787,8 @@ ampel-alerts = [
     {file = "ampel_alerts-0.8.3b1-py3-none-any.whl", hash = "sha256:73138c7c4b8772b7f43d4076cdc15c5d39a3df170732bcc36f3c9ffdc2f0816f"},
 ]
 ampel-core = [
-    {file = "ampel_core-0.8.3b9-py3-none-any.whl", hash = "sha256:fb903edada6fec715fdefe3006f908f7ea23eee65cda57824379a3332af05a79"},
-    {file = "ampel_core-0.8.3b9.tar.gz", hash = "sha256:ce9c3018512f54f24f7b004f0b7f97ddd1261842eb4f1ec8a3ace2d1dfe0a1c9"},
+    {file = "ampel_core-0.8.3b10-py3-none-any.whl", hash = "sha256:5e79472b119ebc7f9bd9da802ffeafbc6e5bcc2ea8362bfb5cdb2ee623f3f257"},
+    {file = "ampel_core-0.8.3b10.tar.gz", hash = "sha256:4e59abf32cd1f14519f40962c20b3ceb58d92119701a0c82f1afef22b94a8bc4"},
 ]
 ampel-interface = [
     {file = "ampel_interface-0.8.3b9-py3-none-any.whl", hash = "sha256:db6ef448b184c7da7ecd0c56903c7f24cab74fbafdade77102dd2825d4efe762"},
@@ -2801,8 +2803,8 @@ ampel-photometry = [
     {file = "ampel_photometry-0.8.3a2-py3-none-any.whl", hash = "sha256:24cdef07d875fc87a55525e0717caf57b6f0df27952b1009a33fffb24b30fe94"},
 ]
 ampel-ztf = [
-    {file = "ampel_ztf-0.8.3a5-py3-none-any.whl", hash = "sha256:6b73913882f6a358b8f5d8a9dbfa67a455f9376b99acf31706ef22ffef82d90d"},
-    {file = "ampel_ztf-0.8.3a5.tar.gz", hash = "sha256:92683edddca331bd8fac41094737e20b8fb3886ba7f8f8685928959ff98cbf6b"},
+    {file = "ampel_ztf-0.8.3a8-py3-none-any.whl", hash = "sha256:5ed946a80dce5655831551b7357690779db9a040d12035189eed6603d9d12749"},
+    {file = "ampel_ztf-0.8.3a8.tar.gz", hash = "sha256:7f28485d35f307f80388d43516091d398f410baf36f584baef0fedbc1881b537"},
 ]
 ampel-ztf-archive = [
     {file = "ampel-ztf-archive-0.8.0a0.tar.gz", hash = "sha256:d08062ca7177c348164410d48b7a5bf633c9890f47018f201137b38c352108ac"},
