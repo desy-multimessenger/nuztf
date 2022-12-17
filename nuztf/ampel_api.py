@@ -16,9 +16,9 @@ from nuztf.credentials import load_credentials
 # AMPEL API URLs
 
 API_BASEURL = "https://ampel.zeuthen.desy.de"
-API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive/v3"
+API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive/v2"
 API_CATALOGMATCH_URL = API_BASEURL + "/api/catalogmatch"
-API_CUTOUT_URL = API_BASEURL + "/api/ztf/archive/v3/cutouts"
+API_CUTOUT_URL = API_BASEURL + "/api/ztf/archive/v2/cutouts"
 
 _, ampel_api_archive_token = load_credentials("ampel_api_archive_token")
 
@@ -449,13 +449,19 @@ def ampel_api_skymap(
         "Content-Type": "application/json",
         "Authorization": f"Bearer {ampel_api_archive_token}",
     }
+    if "v2" in API_ZTF_ARCHIVE_URL:
+        lt = "lt"
+        gt = "gt"
+    else:
+        lt = "$lt"
+        gt = "$gt"
 
     query = {
         "nside": nside,
         "pixels": pixels,
         "jd": {
-            "$lt": t_max_jd,
-            "$gt": t_min_jd,
+            lt: t_max_jd,
+            gt: t_min_jd,
         },
         "latest": "false",
         "with_history": hist,
