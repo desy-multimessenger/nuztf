@@ -123,7 +123,7 @@ def lightcurve_from_alert(
             [cutoutsci, cutouttemp, cutoutdiff],
             ["Science", "Template", "Difference"],
         ):
-            create_stamp_plot(alert=cutout_, ax=ax_, type=type_)
+            create_stamp_plot(alert=cutout_, ax=ax_, cutout_type=type_)
 
         img = get_ps_stamp(
             candidate["ra"], candidate["dec"], size=240, color=["y", "g", "i"]
@@ -297,12 +297,21 @@ def lightcurve_from_alert(
     return fig, axes
 
 
-def create_stamp_plot(alert: dict, ax, type: str):
+def create_stamp_plot(alert: dict, ax, cutout_type: str):
     """Helper function to create cutout subplot"""
+    v3_cutout_names = {
+        "Science": "Cutoutscience",
+        "Template": "Cutouttemplate",
+        "Difference": "Cutoutdifference",
+    }
 
-    with gzip.open(
-        io.BytesIO(b64decode(alert[f"cutout{type}"]["stampData"])), "rb"
-    ) as f:
+    if alert.get(f"cutout{cutout_type}") is None:
+        cutout_type = v3_cutout_names[cutout_type]
+        data = alert[f"cutout{cutout_type}"]["stampData"]["stampData"]
+    else:
+        data = alert[f"cutout{cutout_type}"]["stampData"]
+
+    with gzip.open(io.BytesIO(b64decode(data)), "rb") as f:
         data = fits.open(io.BytesIO(f.read()), ignore_missing_simple=True)[0].data
     vmin, vmax = np.percentile(data[data == data], [0, 100])
     data_ = visualization.AsinhStretch()((data - vmin) / (vmax - vmin))

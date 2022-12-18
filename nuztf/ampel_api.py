@@ -8,17 +8,14 @@ import backoff
 from base64 import b64encode
 from json import JSONDecodeError
 import numpy as np
-from astropy.time import Time
-from astropy.io import fits
+from astropy.time import Time  # type: ignore
+from astropy.io import fits  # type: ignore
 from requests.auth import HTTPBasicAuth
 from nuztf.credentials import load_credentials
-
-# AMPEL API URLs
 
 API_BASEURL = "https://ampel.zeuthen.desy.de"
 API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive/v2"
 API_CATALOGMATCH_URL = API_BASEURL + "/api/catalogmatch"
-API_CUTOUT_URL = API_BASEURL + "/api/ztf/archive/v2/cutouts"
 
 _, ampel_api_archive_token = load_credentials("ampel_api_archive_token")
 
@@ -516,7 +513,10 @@ def ampel_api_cutout(candid: int, logger=None):
     if logger is None:
         logger = logging.getLogger(__name__)
 
-    queryurl_cutouts = API_CUTOUT_URL + f"/{candid}"
+    if "v2" in API_ZTF_ARCHIVE_URL:
+        queryurl_cutouts = API_ZTF_ARCHIVE_URL + f"/cutouts/{candid}"
+    else:
+        queryurl_cutouts = API_ZTF_ARCHIVE_URL + f"/alert/{candid}/cutouts"
 
     headers = {"Authorization": f"Bearer {ampel_api_archive_token}"}
 
