@@ -146,6 +146,11 @@ class BaseScanner:
     def remove_variability_line():
         raise NotImplementedError
 
+    @staticmethod
+    def fid_to_band(fid: int):
+        fid_band = {1: "g", 2: "r", 3: "i"}
+        return fid_band[fid]
+
     def get_overlap_line(self):
         """ """
         return (
@@ -838,10 +843,16 @@ class BaseScanner:
 
         overlapping_fields = sorted(list(set(overlapping_fields)))
 
-        self.observations = data.query("obsjd in @times").reset_index(drop=True)
+        _observations = data.query("obsjd in @times").reset_index(drop=True)[
+            ["datetime", "exptime", "fid", "field"]
+        ]
+        bands = [self.fid_to_band(fid) for fid in _observations["fid"].values]
+        _observations["band"] = bands
+        _observations.drop(columns=["fid"], inplace=True)
+        self.observations = _observations
 
-        self.logger.debug("All observations:\n")
-        self.logger.debug(self.observations)
+        self.logger.info("All observations:\n")
+        self.logger.info(self.observations)
 
         try:
             self.first_obs = Time(min(times), format="jd")
