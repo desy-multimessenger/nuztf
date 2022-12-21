@@ -851,8 +851,8 @@ class BaseScanner:
         _observations.drop(columns=["fid"], inplace=True)
         self.observations = _observations
 
-        self.logger.info("All observations:\n")
-        self.logger.info(self.observations)
+        self.logger.info("All observations:")
+        self.logger.info(f"\n{self.observations}")
 
         try:
             self.first_obs = Time(min(times), format="jd")
