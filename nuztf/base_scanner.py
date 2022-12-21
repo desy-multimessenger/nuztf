@@ -838,6 +838,11 @@ class BaseScanner:
 
         overlapping_fields = sorted(list(set(overlapping_fields)))
 
+        self.observations = data.query("obsjd in @times").reset_index(drop=True)
+
+        self.logger.debug("All observations:\n")
+        self.logger.debug(self.observations)
+
         try:
             self.first_obs = Time(min(times), format="jd")
             self.first_obs.utc.format = "isot"

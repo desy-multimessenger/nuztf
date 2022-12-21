@@ -117,9 +117,9 @@ class NeutrinoScanner(BaseScanner):
         self, ztf_id: str, first_detection: float, lul_lim: float, lul_jd: float
     ):
         """ """
-        fd = Time(first_detection, format="mjd")
+        fd = Time(first_detection, format="jd").datetime.strftime("%Y-%m-%d")
 
-        text = f"{ztf_id} was first detected on {fd.utc}. "
+        text = f"{ztf_id} was first detected on {fd}. "
 
         return text
 
