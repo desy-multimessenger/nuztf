@@ -60,7 +60,6 @@ class BaseScanner:
     ):
         self.cone_nside = cone_nside
         self.t_min = t_min
-
         (
             self.map_coords,
             self.pixel_nos,

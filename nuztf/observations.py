@@ -148,6 +148,9 @@ def get_obs_summary(t_min, t_max=None, max_days: int = None):
     """
     now = Time.now()
 
+    if t_max and max_days:
+        raise ValueError("Choose either t_max or max_days, not both")
+
     if t_max is None:
         if max_days is None:
             t_max = now
@@ -158,32 +161,21 @@ def get_obs_summary(t_min, t_max=None, max_days: int = None):
         t_max = now
 
     logger.info("Getting observation logs from skyvision.")
-    mns = get_obs_summary_skyvision(t_min, t_max)
+    mns = get_obs_summary_skyvision(t_min=t_min, t_max=t_max)
 
     if len(mns.data) == 0:
         logger.debug("Empty observation log, try IRSA instead.")
-        mns = get_obs_summary_irsa(t_min, t_max)
+        mns = get_obs_summary_irsa(t_min=t_min, t_max=t_max)
 
     logger.debug(f"Found {len(mns.data)} observations in total.")
 
     return mns
 
 
-def get_obs_summary_irsa(t_min, t_max=None, max_days: int = None):
+def get_obs_summary_irsa(t_min, t_max):
     """
     Get observation summary from IRSA
     """
-    now = Time.now()
-
-    if t_max is None:
-        if max_days is None:
-            t_max = now
-        else:
-            t_max = t_min + (max_days * u.day)
-
-    if t_max > now:
-        t_max = now
-
     jds = np.arange(int(t_min.jd), int(t_max.jd) + 1)
 
     logger.debug("Getting coverage")
@@ -201,24 +193,11 @@ def get_obs_summary_irsa(t_min, t_max=None, max_days: int = None):
     return mns
 
 
-def get_obs_summary_skyvision(t_min, t_max=None, max_days: int = None):
+def get_obs_summary_skyvision(t_min, t_max):
     """
     Get observation summary from Skyvision
     """
-
-    t_min_jd = t_min.jd
     t_min_date = t_min.to_value("iso", subfmt="date")
-
-    if t_max is None:
-        if max_days is None:
-            t_max = Time.now()
-        else:
-            t_max = t_min + max_days * u.day
-
-    elif t_max is not None and max_days is not None:
-        raise ValueError("Choose either t_max or max_days, not both")
-
-    t_max_jd = t_max.jd
     t_max_date = t_max.to_value("iso", subfmt="date")
 
     # ztfquery saves nightly observations in a cache, and does not redownload them.
@@ -242,7 +221,7 @@ def get_obs_summary_skyvision(t_min, t_max=None, max_days: int = None):
 
     mns.data["obsjd"] = Time(list(mns.data.datetime.values), format="isot").jd
 
-    mns.data.query(f"obsjd >= {t_min_jd} and obsjd <= {t_max_jd}", inplace=True)
+    mns.data.query(f"obsjd >= {t_min.jd} and obsjd <= {t_max.jd}", inplace=True)
 
     mns.data.reset_index(inplace=True)
     mns.data.drop(columns=["index"], inplace=True)
