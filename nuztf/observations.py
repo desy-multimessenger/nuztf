@@ -146,13 +146,23 @@ def get_obs_summary(t_min, t_max=None, max_days: int = None):
     """
     Get observation summary from Skyvision (or IRSA if Skyvision fails)
     """
+    now = Time.now()
+
+    if t_max is None:
+        if max_days is None:
+            t_max = now
+        else:
+            t_max = t_min + (max_days * u.day)
+
+    if t_max > now:
+        t_max = now
 
     logger.info("Getting observation logs from skyvision.")
-    mns = get_obs_summary_skyvision(t_min, t_max, max_days=max_days)
+    mns = get_obs_summary_skyvision(t_min, t_max)
 
     if len(mns.data) == 0:
         logger.debug("Empty observation log, try IRSA instead.")
-        mns = get_obs_summary_irsa(t_min, t_max, max_days=max_days)
+        mns = get_obs_summary_irsa(t_min, t_max)
 
     logger.debug(f"Found {len(mns.data)} observations in total.")
 
@@ -163,12 +173,16 @@ def get_obs_summary_irsa(t_min, t_max=None, max_days: int = None):
     """
     Get observation summary from IRSA
     """
+    now = Time.now()
 
     if t_max is None:
         if max_days is None:
-            t_max = Time.now()
+            t_max = now
         else:
             t_max = t_min + (max_days * u.day)
+
+    if t_max > now:
+        t_max = now
 
     jds = np.arange(int(t_min.jd), int(t_max.jd) + 1)
 
