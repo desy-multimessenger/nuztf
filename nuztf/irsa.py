@@ -166,7 +166,7 @@ def plot_irsa_lightcurve(
                 if np.logical_and(
                     str(result_table["Redshift"][0]) != "--", source_redshift is None
                 ):
-                    source_redshift = result_table["Redshift"]
+                    source_redshift = result_table["Redshift"].data[0]
 
                 logger.info(
                     f"Using AStroquery NED query result for name {source_name} ({source_coords})"
@@ -264,7 +264,7 @@ def plot_irsa_lightcurve(
                 if str(result_table["Redshift"][0]) == "--":
                     raise RemoteServiceError
 
-                source_redshift = result_table["Redshift"][0]
+                source_redshift = result_table["Redshift"][0].data[0]
                 logger.info(f"Found a redshift of {source_redshift}")
             elif len(result_table["Redshift"]) > 1:
                 logger.warning(f"Found multiple redshifts: {result_table}")
@@ -284,14 +284,14 @@ def plot_irsa_lightcurve(
 
         if plot_mag:
             dist_mod = 5 * (
-                np.log10(cosmo.luminosity_distance(z=(redshift - 1)).to(u.pc).value)
+                np.log10(cosmo.luminosity_distance(z=source_redshift).to(u.pc).value)
                 - 1.0
             )
         else:
             conversion_factor = (
                 4
                 * np.pi
-                * cosmo.luminosity_distance(z=(redshift - 1)).to(u.cm) ** 2.0
+                * cosmo.luminosity_distance(z=source_redshift).to(u.cm) ** 2.0
                 / (redshift)
             )
 
@@ -431,6 +431,7 @@ def plot_irsa_lightcurve(
             ax1b.set_yscale("log")
 
             y_min, y_max = ax.get_ylim()
+            print(conversion_factor)
 
             ax1b.set_ylim(
                 y_min * conversion_factor.value, y_max * conversion_factor.value
