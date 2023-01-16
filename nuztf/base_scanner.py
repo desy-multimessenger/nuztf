@@ -152,7 +152,9 @@ class BaseScanner:
 
     def get_overlap_line(self):
         """ """
-        if (self.overlap_prob is not None) and (self.double_extragalactic_area is not None):
+        if (self.overlap_prob is not None) and (
+            self.double_extragalactic_area is not None
+        ):
             return (
                 f"We covered {self.overlap_prob:.1f}% ({self.double_extragalactic_area:.1f} sq deg) "
                 f"of the reported localization region. "
@@ -368,7 +370,6 @@ class BaseScanner:
 
         return s
 
-
     def parse_candidates(self):
 
         table = (
@@ -420,7 +421,11 @@ class BaseScanner:
     def draft_gcn(self):
 
         if self.first_obs is None:
-            self.first_obs = Time(input("What was the first observation date? (YYYY-MM-DD HH:MM:SS [UTC])"))
+            self.first_obs = Time(
+                input(
+                    "What was the first observation date? (YYYY-MM-DD HH:MM:SS [UTC])"
+                )
+            )
 
         first_obs_dt = self.first_obs.datetime
         pretty_date = first_obs_dt.strftime("%Y-%m-%d")
