@@ -120,6 +120,10 @@ def get_coverage(jds: [int]) -> Optional[pd.DataFrame]:
     for jd in jds:
         if not os.path.exists(coverage_path(jd)):
             missing_logs.append(jd)
+        else:
+            df = pd.read_csv(coverage_path(jd))
+            if len(df) == 0:
+                missing_logs.append(jd)
 
     if len(missing_logs) > 0:
         logger.debug(
@@ -181,7 +185,6 @@ def get_obs_summary_irsa(t_min, t_max):
     logger.debug("Getting coverage")
 
     df = get_coverage(jds)
-
     mns = MNS(df)
 
     mns.data.query(f"obsjd >= {t_min.jd} and obsjd <= {t_max.jd}", inplace=True)

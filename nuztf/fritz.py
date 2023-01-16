@@ -1,4 +1,4 @@
-import requests
+import requests  # type: ignore
 import backoff
 import os
 from nuztf.credentials import load_credentials
@@ -13,7 +13,12 @@ fritz_token = load_credentials("fritz", token_based=True)
 def fritz_api(method: str, endpoint_extension: str, data: dict = None):
     headers = {"Authorization": f"token {fritz_token}"}
     endpoint = os.path.join(API_BASEURL, endpoint_extension)
-    response = requests.request(method, endpoint, json=data, headers=headers)
+    if method in ["post", "POST"]:
+        response = requests.request(method, endpoint, json=data, headers=headers)
+    elif method in ["get", "GET"]:
+        response = requests.request(method, endpoint, params=data, headers=headers)
+    else:
+        raise ValueError("You have to use either 'get' or 'post'")
     return response
 
 
