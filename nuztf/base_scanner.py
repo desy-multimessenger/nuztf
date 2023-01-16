@@ -701,6 +701,7 @@ class BaseScanner:
     def calculate_overlap_with_observations(
         self, fields=None, pid=None, first_det_window_days=3.0, min_sep=0.01
     ):
+        print(fields)
         if fields is None:
             mns = self.get_multi_night_summary(first_det_window_days)
 

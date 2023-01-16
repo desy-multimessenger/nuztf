@@ -1,24 +1,22 @@
-import glob
+import glob, time, os, warnings, logging, requests
+
+from typing import Optional
 
 import pyvo.dal
-import time
-from typing import Optional
-from nuztf import credentials
 from pyvo.auth import securitymethods, authsession
-import requests
 import pandas as pd
-import logging
 from glob import glob
 import backoff
 
-import os
-import warnings
 import numpy as np
 from astropy.time import Time
 from astropy import units as u
 from ztfquery import skyvision
 from ztfquery.io import LOCALSOURCE
 from ztfquery.fields import get_fields_containing_target
+
+from nuztf import credentials
+from nuztf.fritz import fritz_api
 
 logger = logging.getLogger(__name__)
 
@@ -167,6 +165,12 @@ def get_obs_summary(t_min, t_max=None, max_days: int = None):
     logger.info("Getting observation logs from skyvision.")
     mns = get_obs_summary_skyvision(t_min=t_min, t_max=t_max)
 
+    # Useless for now as long as Fritz also depends on TAP
+
+    # if len(mns.data) == 0:
+    #     logger.debug("Empty observation log, try Fritz instead.")
+    #     mns = get_obs_summary_fritz(t_min=t_min, t_max=t_max)
+
     if len(mns.data) == 0:
         logger.debug("Empty observation log, try IRSA instead.")
         mns = get_obs_summary_irsa(t_min=t_min, t_max=t_max)
@@ -208,7 +212,7 @@ def get_obs_summary_skyvision(t_min, t_max):
     # Here we simply clear the cache and cleanly re-download everything.
 
     logger.debug(
-        f"Obtaining nightly observation logs from {t_min_date} to {t_max_date}"
+        f"Skyvision: Obtaining nightly observation logs from {t_min_date} to {t_max_date}"
     )
 
     skyvision_log = os.path.join(LOCALSOURCE, "skyvision")
@@ -228,6 +232,58 @@ def get_obs_summary_skyvision(t_min, t_max):
 
     mns.data.reset_index(inplace=True)
     mns.data.drop(columns=["index"], inplace=True)
+
+    logger.debug(f"Found {len(mns.data)} observations in total.")
+
+    return mns
+
+
+def get_obs_summary_fritz(t_min, t_max) -> MNS | None:
+    """
+    Get observation summary from Fritz
+    """
+
+    res = fritz_api(method="GET", endpoint_extension="api/observation", data=data)
+    res = res.json().get("data", {}).get("observations")
+
+    t_min_date = t_min.to_value("iso").split(".")[0]
+    t_max_date = t_max.to_value("iso").split(".")[0]
+
+    logger.debug(
+        f"Fritz: Obtaining nightly observation logs from {t_min_date} to {t_max_date}"
+    )
+
+    params = {
+        "telescopeName": "Palomar 1.2m Oschin",
+        "startDate": t_min_date,
+        "endDate": t_max_date,
+    }
+
+    res = fritz_api(method="GET", endpoint_extension="api/observation", data=params)
+    res = res.json().get("data", {}).get("observations")
+
+    if res is None:
+        return res
+
+    resdict = {}
+    for i, entry in enumerate(res):
+        resdict.update(
+            {
+                i: {
+                    "datetime": entry["obstime"],
+                    "date": Time(entry["obstime"]).to_value("iso", subfmt="date"),
+                    "exptime": entry["exposure_time"],
+                    "fid": entry["id"],
+                    "field": entry["field"]["field_id"],
+                    "obsjd": Time(entry["obstime"]).to_value("jd"),
+                    "maglim": entry["limmag"],
+                }
+            }
+        )
+
+    df = pd.DataFrame.from_dict(resdict, orient="index")
+
+    mns = MNS(df)
 
     logger.debug(f"Found {len(mns.data)} observations in total.")
 
