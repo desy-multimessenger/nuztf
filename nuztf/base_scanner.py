@@ -694,7 +694,7 @@ class BaseScanner:
             text += "\n"
 
         if len(text) > 0:
-            text = f"\n\nAmongst our candidates, {text}\n\n"
+            text = f"Amongst our candidates, \n\n{text}\n\n"
 
         return text
 
