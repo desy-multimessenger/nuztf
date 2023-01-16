@@ -759,6 +759,10 @@ class BaseScanner:
             data = data[first_det_mask]
             obs_times = obs_times[first_det_mask]
 
+        if len(obs_times) == 0:
+            self.logger.warning("No observations found for this event.")
+            return None
+
         self.logger.info(f"Most recent observation found is {obs_times[-1]}")
         self.logger.info("Unpacking observations")
 
@@ -890,26 +894,32 @@ class BaseScanner:
     ):
         """ """
 
-        (
-            double_in_plane_pixels,
-            double_in_plane_probs,
-            single_in_plane_pixels,
-            single_in_plane_prob,
-            veto_pixels,
-            plane_pixels,
-            plane_probs,
-            times,
-            double_no_plane_prob,
-            double_no_plane_pixels,
-            single_no_plane_prob,
-            single_no_plane_pixels,
-            overlapping_fields,
-        ) = self.calculate_overlap_with_observations(
+        overlap_res = self.calculate_overlap_with_observations(
             fields=fields,
             pid=pid,
             first_det_window_days=first_det_window_days,
             min_sep=min_sep,
         )
+
+        if overlap_res is None:
+            self.logger.warning("Not plotting overlap with observations.")
+            return
+        else:
+            (
+                double_in_plane_pixels,
+                double_in_plane_probs,
+                single_in_plane_pixels,
+                single_in_plane_prob,
+                veto_pixels,
+                plane_pixels,
+                plane_probs,
+                times,
+                double_no_plane_prob,
+                double_no_plane_pixels,
+                single_no_plane_prob,
+                single_no_plane_pixels,
+                overlapping_fields,
+            ) = overlap_res
 
         fig = plt.figure()
         plt.subplot(projection="aitoff")
