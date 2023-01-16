@@ -152,11 +152,15 @@ class BaseScanner:
 
     def get_overlap_line(self):
         """ """
-        return (
-            f"We covered {self.overlap_prob:.1f}% ({self.double_extragalactic_area:.1f} sq deg) "
-            f"of the reported localization region. "
-            "This estimate accounts for chip gaps. "
-        )
+        if (self.overlap_prob is not None) and (self.double_extragalactic_area is not None):
+            return (
+                f"We covered {self.overlap_prob:.1f}% ({self.double_extragalactic_area:.1f} sq deg) "
+                f"of the reported localization region. "
+                "This estimate accounts for chip gaps. "
+            )
+        else:
+            self.logger.warning("No overlap line added!")
+            return ""
 
     def filter_ampel(self, res):
         self.logger.debug("Running AMPEL filter")
