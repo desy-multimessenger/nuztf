@@ -152,11 +152,17 @@ class BaseScanner:
 
     def get_overlap_line(self):
         """ """
-        return (
-            f"We covered {self.overlap_prob:.1f}% ({self.double_extragalactic_area:.1f} sq deg) "
-            f"of the reported localization region. "
-            "This estimate accounts for chip gaps. "
-        )
+        if (self.overlap_prob is not None) and (
+            self.double_extragalactic_area is not None
+        ):
+            return (
+                f"We covered {self.overlap_prob:.1f}% ({self.double_extragalactic_area:.1f} sq deg) "
+                f"of the reported localization region. "
+                "This estimate accounts for chip gaps. "
+            )
+        else:
+            self.logger.warning("No overlap line added!")
+            return ""
 
     def filter_ampel(self, res):
         self.logger.debug("Running AMPEL filter")
@@ -352,6 +358,18 @@ class BaseScanner:
 
         return abs_mag
 
+    def get_candidates_lines(self):
+        if len(self.cache) > 0:
+            s = (
+                "We are left with the following high-significance transient "
+                "candidates by our pipeline, all lying within the "
+                f"{100 * self.prob_threshold}% localization of the skymap.\n\n{self.parse_candidates()}"
+            )
+        else:
+            s = "\n\nNo candidate counterparts were detected."
+
+        return s
+
     def parse_candidates(self):
 
         table = (
@@ -402,6 +420,13 @@ class BaseScanner:
 
     def draft_gcn(self):
 
+        if self.first_obs is None:
+            self.first_obs = Time(
+                input(
+                    "What was the first observation date? (YYYY-MM-DD HH:MM:SS [UTC])"
+                )
+            )
+
         first_obs_dt = self.first_obs.datetime
         pretty_date = first_obs_dt.strftime("%Y-%m-%d")
         pretty_time = first_obs_dt.strftime("%H:%M")
@@ -416,9 +441,8 @@ class BaseScanner:
             "The images were processed in real-time through the ZTF reduction and image subtraction pipelines at IPAC to search for potential counterparts (Masci et al. 2019). "
             "AMPEL (Nordin et al. 2019, Stein et al. 2021) was used to search the alerts database for candidates. "
             "We reject stellar sources (Tachibana and Miller 2018) and moving objects, and "
-            f"apply machine learning algorithms (Mahabal et al. 2019) {self.remove_variability_line()}. We are left with the following high-significance transient "
-            "candidates by our pipeline, all lying within the "
-            f"{100 * self.prob_threshold}% localization of the skymap.\n\n{self.parse_candidates()} \n\n"
+            f"apply machine learning algorithms (Mahabal et al. 2019) {self.remove_variability_line()}. "
+            f"{self.get_candidates_lines()} \n\n"
         )
 
         if self.dist:
@@ -430,7 +454,7 @@ class BaseScanner:
         else:
             pass
 
-        text += f"Amongst our candidates, \n\n{self.text_summary()}\n\n"
+        text += self.text_summary()
 
         text += (
             "ZTF and GROWTH are worldwide collaborations comprising Caltech, USA; IPAC, USA; WIS, Israel; OKC, Sweden; JSI/UMd, USA; DESY, Germany; TANGO, Taiwan; UW Milwaukee, USA; LANL, USA; TCD, Ireland; IN2P3, France.\n\n"
@@ -669,6 +693,9 @@ class BaseScanner:
             text += xmatch_info
             text += "\n"
 
+        if len(text) > 0:
+            text = f"Amongst our candidates, \n\n{text}\n\n"
+
         return text
 
     def calculate_overlap_with_observations(
@@ -760,9 +787,8 @@ class BaseScanner:
             obs_times = obs_times[first_det_mask]
 
         if len(obs_times) == 0:
-            raise ValueError(
-                "No observations found. No log online yet, or skyvision is having problems."
-            )
+            self.logger.warning("No observations found for this event.")
+            return None
 
         self.logger.info(f"Most recent observation found is {obs_times[-1]}")
         self.logger.info("Unpacking observations")
@@ -895,26 +921,32 @@ class BaseScanner:
     ):
         """ """
 
-        (
-            double_in_plane_pixels,
-            double_in_plane_probs,
-            single_in_plane_pixels,
-            single_in_plane_prob,
-            veto_pixels,
-            plane_pixels,
-            plane_probs,
-            times,
-            double_no_plane_prob,
-            double_no_plane_pixels,
-            single_no_plane_prob,
-            single_no_plane_pixels,
-            overlapping_fields,
-        ) = self.calculate_overlap_with_observations(
+        overlap_res = self.calculate_overlap_with_observations(
             fields=fields,
             pid=pid,
             first_det_window_days=first_det_window_days,
             min_sep=min_sep,
         )
+
+        if overlap_res is None:
+            self.logger.warning("Not plotting overlap with observations.")
+            return
+        else:
+            (
+                double_in_plane_pixels,
+                double_in_plane_probs,
+                single_in_plane_pixels,
+                single_in_plane_prob,
+                veto_pixels,
+                plane_pixels,
+                plane_probs,
+                times,
+                double_no_plane_prob,
+                double_no_plane_pixels,
+                single_no_plane_prob,
+                single_no_plane_pixels,
+                overlapping_fields,
+            ) = overlap_res
 
         fig = plt.figure()
         plt.subplot(projection="aitoff")
