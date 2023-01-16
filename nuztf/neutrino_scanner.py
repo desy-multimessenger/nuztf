@@ -61,7 +61,7 @@ class NeutrinoScanner(BaseScanner):
 
             nu_name_gcn = gcn_info.get("name")
             if nu_name_gcn is None:
-                raise ValueError(f"No GCN notice or circular found for {nu_name}")
+                raise ValueError(f"No GCN notice or circular found for {nu_name}.")
             else:
                 nu_name = nu_name_gcn
             author = gcn_info["author"]

@@ -759,6 +759,11 @@ class BaseScanner:
             data = data[first_det_mask]
             obs_times = obs_times[first_det_mask]
 
+        if len(obs_times) == 0:
+            raise ValueError(
+                "No observations found. No log online yet, or skyvision is having problems."
+            )
+
         self.logger.info(f"Most recent observation found is {obs_times[-1]}")
         self.logger.info("Unpacking observations")
 
