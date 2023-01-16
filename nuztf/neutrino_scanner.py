@@ -59,7 +59,11 @@ class NeutrinoScanner(BaseScanner):
 
             self.logger.info(gcn_info)
 
-            nu_name = gcn_info["name"]
+            nu_name_gcn = gcn_info.get("name")
+            if nu_name_gcn is None:
+                raise ValueError(f"No GCN notice or circular found for {nu_name}.")
+            else:
+                nu_name = nu_name_gcn
             author = gcn_info["author"]
             ra = [gcn_info["ra"], gcn_info["ra_err"][0], gcn_info["ra_err"][1]]
             dec = [gcn_info["dec"], gcn_info["dec_err"][0], gcn_info["dec_err"][1]]
@@ -155,13 +159,21 @@ class NeutrinoScanner(BaseScanner):
             self.logger.debug(f"{ztf_id}: Not in contour")
             return False
 
+        endhist = res["candidate"]["jdendhist"]
+        starthist = res["candidate"]["jdstarthist"]
+
+        if endhist == starthist:
+            self.logger.debug(f"{ztf_id}: One detection only")
+            return False
+
         # Require 2 detections separated by 15 mins
-        if (res["candidate"]["jdendhist"] - res["candidate"]["jdstarthist"]) < 0.01:
+        if (endhist - starthist) < 0.01:
             self.logger.debug(
-                f"{ztf_id}: Does not have 2 detections separated  by >15 mins"
+                f"{ztf_id}: Does have 2 detections, but these are not separated by >15 mins (delta t = {(endhist-starthist)*1440:.0f} min)"
             )
             return False
 
+        self.logger.info(f"{ztf_id}: Passes first filtering stage.")
         return True
 
     def filter_f_history(self, res: dict):
