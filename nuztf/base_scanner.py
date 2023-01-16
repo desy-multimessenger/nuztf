@@ -356,6 +356,19 @@ class BaseScanner:
 
         return abs_mag
 
+    def get_candidates_lines(self):
+        if len(self.cache) > 0:
+            s = (
+                "We are left with the following high-significance transient "
+                "candidates by our pipeline, all lying within the "
+                f"{100 * self.prob_threshold}% localization of the skymap.\n\n{self.parse_candidates()}"
+            )
+        else:
+            s = "\n\nNo candidate counterparts were detected."
+
+        return s
+
+
     def parse_candidates(self):
 
         table = (
@@ -423,9 +436,8 @@ class BaseScanner:
             "The images were processed in real-time through the ZTF reduction and image subtraction pipelines at IPAC to search for potential counterparts (Masci et al. 2019). "
             "AMPEL (Nordin et al. 2019, Stein et al. 2021) was used to search the alerts database for candidates. "
             "We reject stellar sources (Tachibana and Miller 2018) and moving objects, and "
-            f"apply machine learning algorithms (Mahabal et al. 2019) {self.remove_variability_line()}. We are left with the following high-significance transient "
-            "candidates by our pipeline, all lying within the "
-            f"{100 * self.prob_threshold}% localization of the skymap.\n\n{self.parse_candidates()} \n\n"
+            f"apply machine learning algorithms (Mahabal et al. 2019) {self.remove_variability_line()}. "
+            f"{self.get_candidates_lines()} \n\n"
         )
 
         if self.dist:
