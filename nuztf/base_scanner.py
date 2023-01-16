@@ -449,7 +449,7 @@ class BaseScanner:
         else:
             pass
 
-        text += f"Amongst our candidates, \n\n{self.text_summary()}\n\n"
+        text += self.text_summary()
 
         text += (
             "ZTF and GROWTH are worldwide collaborations comprising Caltech, USA; IPAC, USA; WIS, Israel; OKC, Sweden; JSI/UMd, USA; DESY, Germany; TANGO, Taiwan; UW Milwaukee, USA; LANL, USA; TCD, Ireland; IN2P3, France.\n\n"
@@ -687,6 +687,9 @@ class BaseScanner:
             xmatch_info = get_cross_match_info(raw=res, logger=self.logger)
             text += xmatch_info
             text += "\n"
+
+        if len(text) > 0:
+            text = f"\n\nAmongst our candidates, {text}\n\n"
 
         return text
 
