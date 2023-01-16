@@ -402,10 +402,10 @@ class BaseScanner:
 
     def draft_gcn(self):
 
-        first_obs_dt = (
-            self.first_obs.datetime if self.first_obs
-            else Time(input("What was the first observation date? (YYYY-MM-DD HH:MM:SS [UTC])"))
-        )
+        if self.first_obs is None:
+            self.first_obs = Time(input("What was the first observation date? (YYYY-MM-DD HH:MM:SS [UTC])"))
+
+        first_obs_dt = self.first_obs.datetime
         pretty_date = first_obs_dt.strftime("%Y-%m-%d")
         pretty_time = first_obs_dt.strftime("%H:%M")
 
