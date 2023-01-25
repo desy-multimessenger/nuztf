@@ -62,6 +62,8 @@ def get_flatpix(nside: int, logger=logging.getLogger(__name__)):
     if not os.path.isfile(infile):
         generate_flatpix_file(nside=nside, logger=logger)
 
+    logger.info(f"Loading from {infile}")
+
     with open(infile, "rb") as f:
         field_pix = pickle.load(f)
 
