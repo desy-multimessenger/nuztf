@@ -417,7 +417,7 @@ class SkymapScanner(BaseScanner):
     def plot_skymap(self):
         """ """
         fig = plt.figure()
-        plt.subplot(211, projection="aitoff")
+        plt.subplot(111, projection="aitoff")
 
         mask = self.data[self.key] > self.skymap.pixel_threshold
 
@@ -425,9 +425,6 @@ class SkymapScanner(BaseScanner):
 
         ra_map_rad = np.deg2rad(self.wrap_around_180(self.map_coords["ra"]))
         dec_map_rad = np.deg2rad(self.map_coords["dec"])
-
-        ra_cone_rad = np.deg2rad(self.wrap_around_180(self.cone_coords["ra"]))
-        dec_cone_rad = np.deg2rad(self.cone_coords["dec"])
 
         plt.scatter(
             ra_map_rad,
@@ -439,11 +436,6 @@ class SkymapScanner(BaseScanner):
         )
 
         plt.title("SKYMAP")
-
-        plt.subplot(212, projection="aitoff")
-
-        plt.scatter(ra_cone_rad, dec_cone_rad)
-        plt.title("CONE REGION")
 
         outpath = os.path.join(
             self.skymap.base_skymap_dir, f"{self.skymap.event_name}.png"
