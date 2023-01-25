@@ -14,7 +14,7 @@ from requests.auth import HTTPBasicAuth
 from nuztf.credentials import load_credentials
 
 API_BASEURL = "https://ampel.zeuthen.desy.de"
-API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive/v2"
+API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive/v3"
 API_CATALOGMATCH_URL = API_BASEURL + "/api/catalogmatch"
 
 _, ampel_api_archive_token = load_credentials("ampel_api_archive_token")
@@ -98,6 +98,7 @@ def ampel_api_cone(
         queryurl_conesearch,
         headers=headers,
     )
+
     if response.status_code == 503:
         raise requests.exceptions.RequestException
 
