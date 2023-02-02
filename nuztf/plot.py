@@ -23,7 +23,6 @@ from nuztf.ampel_api import ensure_cutouts
 
 
 def alert_to_pandas(alert):
-
     candidate = alert[0]["candidate"]
     prv_candid = alert[0]["prv_candidates"]
     combined = [candidate]
@@ -136,7 +135,6 @@ def lightcurve_from_alert(
     # If redshift is given, calculate absolute magnitude via luminosity distance
     # and plot as right axis
     if z is not None:
-
         dist_l = cosmo.luminosity_distance(z).to(u.pc).value
 
         def mag_to_absmag(mag):
@@ -179,7 +177,6 @@ def lightcurve_from_alert(
         lc_ax1.set_ylim([np.max(mag_range), np.min(mag_range)])
 
     for fid in BAND_NAMES.keys():
-
         # Plot older datapoints
         df_temp = df.iloc[1:].query("fid == @fid")
         lc_ax1.errorbar(

@@ -32,7 +32,6 @@ class TestIrsa(unittest.TestCase):
         nu_names = ["IC190730A", "IC211216B"]
 
         for i, src_name in enumerate(src_names):
-
             plot_irsa_lightcurve(
                 source_name=src_name,
                 nu_name=nu_names[i],

@@ -38,7 +38,6 @@ def merge_alerts(alert_list: list) -> list:
             )
 
             for index in order[1:]:
-
                 x = alerts[index]
 
                 # Merge previous detections

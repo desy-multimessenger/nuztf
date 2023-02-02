@@ -21,7 +21,6 @@ if not os.path.exists(nu_candidate_output_dir):
 
 
 class NeutrinoScanner(BaseScanner):
-
     default_fritz_group = 221
 
     def __init__(
@@ -33,7 +32,6 @@ class NeutrinoScanner(BaseScanner):
         t_precursor: float = None,
         config: dict = None,
     ):
-
         self.logger = logging.getLogger(__name__)
 
         if config:
@@ -48,7 +46,6 @@ class NeutrinoScanner(BaseScanner):
         self.prob_threshold = 0.9
 
         if manual_args is None:
-
             if nu_name is not None:
                 gcn_no = find_gcn_no(nu_name)
 
@@ -225,7 +222,6 @@ class NeutrinoScanner(BaseScanner):
         return cone_ids, cone_coords
 
     def in_contour(self, ra_deg, dec_deg):
-
         in_ra = np.logical_and(ra_deg > self.ra_min, ra_deg < self.ra_max)
         in_dec = np.logical_and(dec_deg > self.dec_min, dec_deg < self.dec_max)
 

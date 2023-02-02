@@ -34,7 +34,7 @@ class TestCoverage(unittest.TestCase):
 
         self.assertEqual(len(res.data), 211)
 
-        for (name, val) in expected.items():
+        for name, val in expected.items():
             self.assertEqual(res.data.iloc[0][name], val)
 
         res2 = get_obs_summary_skyvision(t_start, t_end)
@@ -54,5 +54,5 @@ class TestCoverage(unittest.TestCase):
             "obsjd": 2458866.7346568983,
         }
 
-        for (name, val) in expected_2.items():
+        for name, val in expected_2.items():
             self.assertEqual(res2.data.iloc[0][name], val)

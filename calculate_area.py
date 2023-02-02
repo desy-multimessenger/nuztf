@@ -12,7 +12,6 @@ from ztf_plan_obs import gcn_parser
 RECALC = True
 
 if RECALC:
-
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
 
@@ -25,11 +24,9 @@ if RECALC:
     neutrinos = ["IC210922A"]
 
     for i, neutrino in enumerate(neutrinos):
-
         print(f"Processing {neutrino} ({i+1} of {len(neutrinos)})")
 
         try:
-
             nu = NeutrinoScanner(neutrino, logger=logger)
             gcn_no = find_gcn_no(neutrino)
             gcn_info = parse_gcn_circular(gcn_no)
@@ -65,7 +62,6 @@ if RECALC:
             uncorrected_areas.append(uncorrected_area)
 
         except:
-
             bad_neutrinos.append(neutrino)
             rectangular_areas.append(None)
             corrected_areas.append(None)

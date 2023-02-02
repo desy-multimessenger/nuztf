@@ -118,7 +118,6 @@ def get_cross_match_info(raw: dict, logger=None):
     )
     if res is not None:
         if len(res) == 1:
-
             if "q" in res[0]["body"]["broad_type"]:
                 label = f"[MILLIQUAS: {res[0]['body']['name']} - Likely QSO (prob = {res[0]['body']['qso_prob']}%) ({res[0]['dist_arcsec']:.2f} arsec)]"
             else:
@@ -193,7 +192,6 @@ def get_cross_match_info(raw: dict, logger=None):
     # Just check NED
 
     if label == "":
-
         res = query_ned_astroquery(
             ra_deg=alert["ra"],
             dec_deg=alert["dec"],

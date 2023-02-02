@@ -4,7 +4,6 @@ from nuztf.skymap_scanner import SkymapScanner
 
 
 class TestSkymapScanner(unittest.TestCase):
-
     maxDiff = None
 
     def setUp(self):
@@ -12,7 +11,6 @@ class TestSkymapScanner(unittest.TestCase):
         self.logger.setLevel(logging.INFO)
 
     def test_gw_scan(self):
-
         self.logger.info("\n\n Testing GW Scanning \n\n")
 
         gw_name = "S190814bv"
@@ -71,7 +69,6 @@ class TestSkymapScanner(unittest.TestCase):
         self.assertEqual(tns_summary, true_tns_summary)
 
     def test_grb_scan(self):
-
         self.logger.info("\n\n Testing GRB Scanner \n\n")
 
         grb_name = "GRB210927A"

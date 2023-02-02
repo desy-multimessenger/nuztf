@@ -96,7 +96,6 @@ def plot_irsa_lightcurve(
     # If there are no coordinates, try name resolve to get coordinates!
 
     if source_coords is None:
-
         logger.info(f"Trying to resolve {source_name} and query for coordinates.")
         logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
 
@@ -182,7 +181,6 @@ def plot_irsa_lightcurve(
     # Try to find a catalogue source nearby using coordinates
 
     if ("ZTF" in source_name) and source_coords:
-
         c = SkyCoord(source_coords[0], source_coords[1], unit=u.deg, frame="icrs")
 
         r = 0.5 * u.arcsecond
@@ -245,7 +243,6 @@ def plot_irsa_lightcurve(
     plt.figure(figsize=(base_width * 1.1, base_height), dpi=dpi)
 
     if expanded_labels:
-
         ax2 = plt.subplot(111)
 
         ax = ax2.twiny()
@@ -260,7 +257,6 @@ def plot_irsa_lightcurve(
         try:
             result_table = Ned.query_object(source_name)
             if len(result_table["Redshift"]) == 1:
-
                 if str(result_table["Redshift"][0]) == "--":
                     raise RemoteServiceError
 
@@ -277,7 +273,6 @@ def plot_irsa_lightcurve(
         source_redshift = None
 
     if source_redshift is not None:
-
         ax1b = ax.twinx()
 
         redshift = 1.0 + source_redshift
@@ -318,7 +313,6 @@ def plot_irsa_lightcurve(
     # If you want, you can check the most recent observation
 
     if check_obs:
-
         logger.info(
             f"Getting most recent ZTF observation, looking back {check_obs_lookback_weeks} weeks."
         )
@@ -368,7 +362,6 @@ def plot_irsa_lightcurve(
                 )
 
         else:
-
             flux_j = mags.to(u.Jansky)
 
             f = (const.c / (wl[fc] * u.nm)).to("Hz")
@@ -454,7 +447,6 @@ def plot_irsa_lightcurve(
         ax.axvline(gcn_info["time"].mjd, linestyle=":", label=nu, color=f"C{j}")
 
     if expanded_labels:
-
         # Set up ISO dates
 
         lmjd, umjd = ax.get_xlim()
@@ -470,7 +462,6 @@ def plot_irsa_lightcurve(
 
         for year in range(2016, int(nt.value[:4]) + 1):
             for k, month in enumerate([1, 7]):
-
                 t = Time(f"{year}-{month}-01T00:00:00.01", format="isot", scale="utc")
                 t.format = "fits"
                 t.out_subfmt = "date"

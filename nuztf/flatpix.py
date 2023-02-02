@@ -31,7 +31,6 @@ def generate_flatpix_file(nside: int, logger=logging.getLogger(__name__)):
     flat_pix_dict = dict()
 
     for i, field in tqdm(enumerate(fields), total=len(fields)):
-
         ra = ras[i]
         dec = decs[i]
         pix = get_quadrant_ipix(nside, ra, dec)
@@ -54,7 +53,6 @@ def generate_flatpix_file(nside: int, logger=logging.getLogger(__name__)):
 
 
 def get_flatpix(nside: int, logger=logging.getLogger(__name__)):
-
     infile = get_flatpix_path(nside=nside)
 
     # Generate a lookup table for field healpix

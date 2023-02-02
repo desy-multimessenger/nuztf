@@ -13,14 +13,12 @@ from nuztf.base_scanner import cosmo
 
 class TestNeutrinoScanner(unittest.TestCase):
     def setUp(self):
-
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
 
         self.max_distance_diff_arcsec = 2
 
     def test_scan(self):
-
         self.logger.info("\n\n Testing Neutrino Scanner \n\n")
 
         neutrino_name = "IC200620A"

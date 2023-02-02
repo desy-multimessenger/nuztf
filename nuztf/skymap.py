@@ -29,7 +29,6 @@ class Skymap:
         prob_threshold: float = 0.9,
         custom_prefix: str = "",
     ):
-
         self.base_skymap_dir = os.path.join(LOCALSOURCE, f"{custom_prefix}skymaps")
         self.candidate_output_dir = os.path.join(
             LOCALSOURCE, f"{custom_prefix}candidates"
@@ -49,7 +48,6 @@ class Skymap:
         self.prob_threshold = prob_threshold
 
         if ".fit" in event:
-
             basename = os.path.basename(event)
 
             self.skymap_path = os.path.join(self.base_skymap_dir, basename)

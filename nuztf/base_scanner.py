@@ -45,7 +45,6 @@ RATELIMIT_PERIOD = 1
 
 
 class BaseScanner:
-
     default_fritz_group = 1430
 
     def __init__(
@@ -180,9 +179,7 @@ class BaseScanner:
         max_time=600,
     )
     def add_res_to_cache(self, res):
-
         for res_alert in res:
-
             if res_alert["objectId"] not in self.cache.keys():
                 self.cache[res_alert["objectId"]] = res_alert
             elif (
@@ -336,7 +333,6 @@ class BaseScanner:
         all_results = []
 
         for ztf_id in tqdm(ztf_ids):
-
             # get the full lightcurve from the API
             query_res = ampel_api_lightcurve(ztf_name=ztf_id, logger=self.logger)
 
@@ -371,14 +367,12 @@ class BaseScanner:
         return s
 
     def parse_candidates(self):
-
         table = (
             "+--------------------------------------------------------------------------------+\n"
             "| ZTF Name     | IAU Name  | RA (deg)    | DEC (deg)   | Filter | Mag   | MagErr |\n"
             "+--------------------------------------------------------------------------------+\n"
         )
         for name, res in sorted(self.cache.items()):
-
             jds = [x["jd"] for x in res["prv_candidates"]]
 
             if res["candidate"]["jd"] > max(jds):
@@ -419,7 +413,6 @@ class BaseScanner:
         return table
 
     def draft_gcn(self):
-
         if self.first_obs is None:
             self.first_obs = Time(
                 input(
@@ -496,8 +489,7 @@ class BaseScanner:
         self.logger.info(f"Saving lightcurves to: {pdf_path}")
 
         with PdfPages(pdf_path) as pdf:
-            for (name, alert) in tqdm(sorted(self.cache.items())):
-
+            for name, alert in tqdm(sorted(self.cache.items())):
                 fig, _ = lightcurve_from_alert(
                     [alert],
                     include_cutouts=True,
@@ -525,7 +517,7 @@ class BaseScanner:
 
         data = {"ztf_id": [], "RA": [], "Dec": [], "mag": [], "xmatch": []}
 
-        for (ztf_id, alert) in tqdm(sorted(self.cache.items())):
+        for ztf_id, alert in tqdm(sorted(self.cache.items())):
             data["ztf_id"].append(ztf_id)
             data["RA"].append(alert["candidate"]["ra"])
             data["Dec"].append(alert["candidate"]["dec"])
@@ -590,7 +582,6 @@ class BaseScanner:
 
     def peak_mag_summary(self):
         for name, res in sorted(self.cache.items()):
-
             detections = [
                 x
                 for x in res["prv_candidates"] + [res["candidate"]]
@@ -738,13 +729,11 @@ class BaseScanner:
         veto_fields = []
 
         for field in list(set(data["field"])):
-
             mask = data["field"] == field
 
             res = ztfquery_fields.get_field_centroid(field)
 
             if len(res) > 0:
-
                 ras[mask] = res[0][0]
                 decs[mask] = res[0][1]
 
@@ -800,7 +789,6 @@ class BaseScanner:
         field_pix = get_flatpix(nside=self.nside, logger=self.logger)
 
         for i, obs_time in enumerate(tqdm(obs_times)):
-
             field = data["field"].iat[i]
 
             flat_pix = field_pix[field]
@@ -839,9 +827,7 @@ class BaseScanner:
         overlapping_fields = []
 
         for i, p in enumerate(tqdm(hp.nest2ring(self.nside, self.pixel_nos))):
-
             if p in pix_obs_times.keys():
-
                 if p in idx:
                     plane_pixels.append(p)
                     plane_probs.append(self.map_probs[i])
@@ -963,7 +949,6 @@ class BaseScanner:
         ).T
 
         if len(veto_pos) > 0:
-
             plt.scatter(
                 np.radians(self.wrap_around_180(veto_pos[0])),
                 np.radians(veto_pos[1]),
@@ -976,7 +961,6 @@ class BaseScanner:
         ).T
 
         if len(plane_pos) > 0:
-
             plt.scatter(
                 np.radians(self.wrap_around_180(plane_pos[0])),
                 np.radians(plane_pos[1]),
@@ -1083,7 +1067,6 @@ class BaseScanner:
         return fig, message
 
     def crosscheck_prob(self):
-
         try:
             nside = self.ligo_nside
         except AttributeError:
@@ -1135,7 +1118,6 @@ class BaseScanner:
         )
 
     def export_cache_to_fritz(self, group_id=None):
-
         if group_id is None:
             group_id = self.default_fritz_group
 

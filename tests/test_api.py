@@ -15,7 +15,6 @@ from nuztf.ampel_api import (
 
 
 class TestAPI(unittest.TestCase):
-
     maxDiff = None
 
     def setUp(self):
@@ -23,7 +22,6 @@ class TestAPI(unittest.TestCase):
         self.logger.setLevel(logging.INFO)
 
     def test_api(self):
-
         self.logger.info("\n\n Testing API queries \n\n")
 
         ztf_id = "ZTF21abyonuw"

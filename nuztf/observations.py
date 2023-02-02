@@ -40,7 +40,6 @@ partial_flag = "_PARTIAL"
 
 
 def coverage_path(jd: float) -> str:
-
     if (Time.now().jd - jd) < 1:
         partial_ext = partial_flag
     else:
@@ -81,7 +80,6 @@ def write_coverage(jds: [int]):
             output_path = coverage_path(jd)
 
             with open(output_path, "w") as fid:
-
                 fid.write(
                     "obsid,field,obsjd,datetime,seeing,limmag,exposure_time,fid,processed_fraction\n"
                 )
@@ -99,14 +97,12 @@ def write_coverage(jds: [int]):
 
 
 def get_coverage(jds: [int]) -> Optional[pd.DataFrame]:
-
     # Clear any logs flagged as partial/incomplete
 
     cache_files = glob(f"{coverage_dir}/*.csv")
     partial_logs = [x for x in cache_files if partial_flag in x]
 
     if len(partial_logs) > 0:
-
         logger.debug(f"Removing the following partial logs: {partial_logs}")
         for partial_log in partial_logs:
             os.remove(partial_log)
@@ -304,7 +300,6 @@ def get_most_recent_obs(ra: float, dec: float, lookback_weeks_max: int = 12):
     lookback_weeks = 1
 
     while np.sum(mask) < 1 and lookback_weeks <= lookback_weeks_max:
-
         t_min = t_max - 1 * u.week
 
         if lookback_weeks > 1:

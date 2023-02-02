@@ -38,7 +38,6 @@ class SkymapScanner(BaseScanner):
         custom_prefix: str = "",
         config: dict = None,
     ):
-
         self.logger = logging.getLogger(__name__)
         self.prob_threshold = prob_threshold
         self.n_days = n_days
@@ -154,7 +153,6 @@ class SkymapScanner(BaseScanner):
         i_survived = []
 
         for i, res in enumerate(tqdm(self.queue)):
-
             ztf_id = res["objectId"]
 
             if self.filter_f_no_prv(
@@ -199,12 +197,10 @@ class SkymapScanner(BaseScanner):
         final_objects = []
 
         for ztf_id in tqdm(first_stage_objects):
-
             # Get the full lightcurve from the API
             query_res = ampel_api_lightcurve(ztf_name=ztf_id, logger=self.logger)
 
             for res in query_res:
-
                 _ztf_id = res["objectId"]
 
                 if self.filter_f_history(res=res):
@@ -454,7 +450,6 @@ class SkymapScanner(BaseScanner):
 
         if plot_candidates:
             for candidate, res in self.cache.items():
-
                 ra = np.deg2rad(
                     self.wrap_around_180(np.array([res["candidate"]["ra"]]))
                 )
@@ -488,7 +483,6 @@ class SkymapScanner(BaseScanner):
 
 
 if __name__ == "__main__":
-
     import logging
 
     logger = logging.getLogger(__name__)

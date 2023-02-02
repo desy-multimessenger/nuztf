@@ -7,7 +7,6 @@ from nuztf.parse_nu_gcn import get_latest_gcn, gcn_url, find_gcn_no
 
 
 class TestNeutrinoScanner(unittest.TestCase):
-
     maxDiff = None
 
     def setUp(self):
@@ -22,7 +21,6 @@ class TestNeutrinoScanner(unittest.TestCase):
         self.logger.info(f"URL is {url}")
 
     def test_named(self):
-
         name = "IC200620A"
 
         num = int(find_gcn_no(base_nu_name=name))
