@@ -2494,17 +2494,17 @@ six = "*"
 
 [[package]]
 name = "ligo-skymap"
-version = "1.0.5"
+version = "1.0.6"
 description = "Tools for reading, writing, manipulating, and making LIGO and Virgo sky maps"
 category = "main"
 optional = false
 python-versions = "*"
 files = [
-    {file = "ligo.skymap-1.0.5-cp38-abi3-macosx_10_15_x86_64.whl", hash = "sha256:3bb96c665b1ce6d221bfb4d8b197f1f4a28863da91a99b32b85d8b2a724c41bc"},
-    {file = "ligo.skymap-1.0.5-cp38-abi3-macosx_12_0_arm64.whl", hash = "sha256:fbff16fab4f74e886b76d771762b941ba66dd8db35514dc1d551665208ba02f5"},
-    {file = "ligo.skymap-1.0.5-cp38-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:74027e33df349ba11dd538d2cc9ae822de8ed567e03a7edaad8b2a187ce3aa74"},
-    {file = "ligo.skymap-1.0.5-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5ab46e963991fa972f5bf90e88d89ab12f0f34f1d67fc2d7aebbbf6229da8d5c"},
-    {file = "ligo.skymap-1.0.5.tar.gz", hash = "sha256:ebd029784401ab0dd9e892c1a5a545a629d42d156e35cc649229b0161a79d7f8"},
+    {file = "ligo.skymap-1.0.6-cp38-abi3-macosx_10_15_x86_64.whl", hash = "sha256:e24ac69aa35cd7b2650f6e9edfdde292607b7d1add4beb04f2f00ad37103b092"},
+    {file = "ligo.skymap-1.0.6-cp38-abi3-macosx_12_0_arm64.whl", hash = "sha256:62f4c7fd56faf270944cee559a12e098eb78f79fd6d821b140b135aff8d09b49"},
+    {file = "ligo.skymap-1.0.6-cp38-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:94f64d5a4294d337650f6a6fbed07288133305626302dcde5204f021e017e2b1"},
+    {file = "ligo.skymap-1.0.6-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:15d7b8a09e0422335436ce18d944060b2aa6512064eb0988f6be490633fca869"},
+    {file = "ligo.skymap-1.0.6.tar.gz", hash = "sha256:5aebaf8e24fe7c0b5d1b34a821f607fb5bd1249d5e8748c7c3e918b03bd990b6"},
 ]
 
 [package.dependencies]
@@ -3356,6 +3356,20 @@ category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
+    {file = "Pillow-9.4.0-1-cp310-cp310-macosx_10_10_x86_64.whl", hash = "sha256:1b4b4e9dda4f4e4c4e6896f93e84a8f0bcca3b059de9ddf67dac3c334b1195e1"},
+    {file = "Pillow-9.4.0-1-cp311-cp311-macosx_10_10_x86_64.whl", hash = "sha256:fb5c1ad6bad98c57482236a21bf985ab0ef42bd51f7ad4e4538e89a997624e12"},
+    {file = "Pillow-9.4.0-1-cp37-cp37m-macosx_10_10_x86_64.whl", hash = "sha256:f0caf4a5dcf610d96c3bd32932bfac8aee61c96e60481c2a0ea58da435e25acd"},
+    {file = "Pillow-9.4.0-1-cp38-cp38-macosx_10_10_x86_64.whl", hash = "sha256:3f4cc516e0b264c8d4ccd6b6cbc69a07c6d582d8337df79be1e15a5056b258c9"},
+    {file = "Pillow-9.4.0-1-cp39-cp39-macosx_10_10_x86_64.whl", hash = "sha256:b8c2f6eb0df979ee99433d8b3f6d193d9590f735cf12274c108bd954e30ca858"},
+    {file = "Pillow-9.4.0-1-pp38-pypy38_pp73-macosx_10_10_x86_64.whl", hash = "sha256:b70756ec9417c34e097f987b4d8c510975216ad26ba6e57ccb53bc758f490dab"},
+    {file = "Pillow-9.4.0-1-pp39-pypy39_pp73-macosx_10_10_x86_64.whl", hash = "sha256:43521ce2c4b865d385e78579a082b6ad1166ebed2b1a2293c3be1d68dd7ca3b9"},
+    {file = "Pillow-9.4.0-2-cp310-cp310-macosx_10_10_x86_64.whl", hash = "sha256:9d9a62576b68cd90f7075876f4e8444487db5eeea0e4df3ba298ee38a8d067b0"},
+    {file = "Pillow-9.4.0-2-cp311-cp311-macosx_10_10_x86_64.whl", hash = "sha256:87708d78a14d56a990fbf4f9cb350b7d89ee8988705e58e39bdf4d82c149210f"},
+    {file = "Pillow-9.4.0-2-cp37-cp37m-macosx_10_10_x86_64.whl", hash = "sha256:8a2b5874d17e72dfb80d917213abd55d7e1ed2479f38f001f264f7ce7bae757c"},
+    {file = "Pillow-9.4.0-2-cp38-cp38-macosx_10_10_x86_64.whl", hash = "sha256:83125753a60cfc8c412de5896d10a0a405e0bd88d0470ad82e0869ddf0cb3848"},
+    {file = "Pillow-9.4.0-2-cp39-cp39-macosx_10_10_x86_64.whl", hash = "sha256:9e5f94742033898bfe84c93c831a6f552bb629448d4072dd312306bab3bd96f1"},
+    {file = "Pillow-9.4.0-2-pp38-pypy38_pp73-macosx_10_10_x86_64.whl", hash = "sha256:013016af6b3a12a2f40b704677f8b51f72cb007dac785a9933d5c86a72a7fe33"},
+    {file = "Pillow-9.4.0-2-pp39-pypy39_pp73-macosx_10_10_x86_64.whl", hash = "sha256:99d92d148dd03fd19d16175b6d355cc1b01faf80dae93c6c3eb4163709edc0a9"},
     {file = "Pillow-9.4.0-cp310-cp310-macosx_10_10_x86_64.whl", hash = "sha256:2968c58feca624bb6c8502f9564dd187d0e1389964898f5e9e1fbc8533169157"},
     {file = "Pillow-9.4.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:c5c1362c14aee73f50143d74389b2c158707b4abce2cb055b7ad37ce60738d47"},
     {file = "Pillow-9.4.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:bd752c5ff1b4a870b7661234694f24b1d2b9076b8bf337321a814c612665f343"},
