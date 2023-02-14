@@ -50,10 +50,16 @@ class TestAPI(unittest.TestCase):
 
         self.logger.info("Commencing API cone search")
 
+        t_min_jd_cone = Time("2021-09-01", format="isot").jd
         t_max_jd_cone = Time("2021-10-07", format="isot").jd
 
         api_cone = ampel_api_cone(
-            ra=30, dec=30, radius=0.1, t_max_jd=t_max_jd_cone, logger=self.logger
+            ra=30,
+            dec=30,
+            radius=0.1,
+            t_min_jd=t_min_jd_cone,
+            t_max_jd=t_max_jd_cone,
+            logger=self.logger,
         )
 
         ztf_ids = []
@@ -62,7 +68,7 @@ class TestAPI(unittest.TestCase):
         ztf_ids = list(set(ztf_ids))
 
         nr_transients = len(ztf_ids)
-        ref = 94
+        ref = 7
 
         self.logger.info(f"Found {nr_transients} transients. Reference value is {ref}")
 
