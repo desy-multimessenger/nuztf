@@ -51,7 +51,7 @@ class TestAPI(unittest.TestCase):
         self.logger.info("Commencing API cone search")
 
         t_min_jd_cone = Time("2021-09-01", format="isot").jd
-        t_max_jd_cone = Time("2021-10-07", format="isot").jd
+        t_max_jd_cone = Time("2021-10-01", format="isot").jd
 
         api_cone = ampel_api_cone(
             ra=30,
