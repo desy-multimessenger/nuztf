@@ -2875,6 +2875,7 @@ files = [
     {file = "mocpy-0.12.0-cp310-cp310-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:1afd51531f1f5c4896410b4fbeb982a862a142e611c90709f0f977cb1a9994e4"},
     {file = "mocpy-0.12.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ccd51f5dd8c9ac9977d4700677f67ee7317cd5fb8fab0f7bd70ccc3dcd6cdfa9"},
     {file = "mocpy-0.12.0-cp310-cp310-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:f10a7a5f2e7ff37dbf72ac5e375851bb47e88d154ac9a3b8e54450d413bfde86"},
+    {file = "mocpy-0.12.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:98a5f1f2cbc25bc2c1df283390c26ff6efbdcd36ef2e77cbc4e7664c0c609045"},
     {file = "mocpy-0.12.0-cp310-cp310-musllinux_1_2_aarch64.whl", hash = "sha256:5ed1db7a4e034955d662c6a8413a2dac248adb109c36dce4e7c6d7731e6c7912"},
     {file = "mocpy-0.12.0-cp310-cp310-musllinux_1_2_i686.whl", hash = "sha256:76cd40637b52a3a9631ce85652477bcedaaf5707fe38d96b641f33d5defcabc5"},
     {file = "mocpy-0.12.0-cp310-cp310-musllinux_1_2_x86_64.whl", hash = "sha256:5635bf9fd1cbc45fda2177bfdcfa4b0373954217cb3a9a69cd4cbc141de158c5"},
@@ -5542,14 +5543,25 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 
 [[package]]
 name = "ztfquery"
-version = "1.21.6"
-description = "access ZTF data from python"
+version = "1.24.1"
+description = "Python package to access ZTF data"
 category = "main"
 optional = false
-python-versions = "*"
+python-versions = ">=3.9,<4.0"
 files = [
-    {file = "ztfquery-1.21.6.tar.gz", hash = "sha256:045bc671b2f041d6b63c791bec5254d254dc3dcb28d79bbfcbaf94237b8ebc8e"},
+    {file = "ztfquery-1.24.1-py3-none-any.whl", hash = "sha256:61e4a8077690d067cefa8e51bbf89f84d102cd807173ca14ad317bb4b10a0cc9"},
+    {file = "ztfquery-1.24.1.tar.gz", hash = "sha256:c17f4534ffb1e1818a0bdca9140a3e29cf272ffcc4330c855ae90c13d95c0915"},
 ]
+
+[package.dependencies]
+astropy = ">=5.2.1,<6.0.0"
+matplotlib = ">=3.7.0,<4.0.0"
+numpy = ">=1.24.2,<2.0.0"
+pandas = ">=1.5.3,<2.0.0"
+requests = ">=2.28.2,<3.0.0"
+
+[package.extras]
+dask = ["dask (>=2023.2.0,<2024.0.0)"]
 
 [metadata]
 lock-version = "2.0"
