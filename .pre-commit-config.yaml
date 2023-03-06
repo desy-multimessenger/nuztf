@@ -13,4 +13,4 @@ repos:
     -   id: black
         exclude: *exclude_pattern
 default_language_version:
-    python: python3.8
+    python: python3.10
