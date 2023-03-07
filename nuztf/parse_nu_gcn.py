@@ -67,6 +67,10 @@ def find_gcn_no(base_nu_name: str):
         "https://heasarc.gsfc.nasa.gov/wsgi-scripts/tach/gcn_v2/tach.wsgi/graphql_fast"
     )
 
+    # hard code missing entries
+    if base_nu_name == "IC220405B":
+        return 31839
+
     querystr = (
         '{ allEventCard( name: "'
         + base_nu_name
@@ -103,6 +107,7 @@ def find_gcn_no(base_nu_name: str):
         circular_nr = []
 
         for entry in result["data"]["allCirculars"]["edges"]:
+            print(entry)
             """
             do some filtering based on subjects (there are errorneous event associations on the server)
             """
