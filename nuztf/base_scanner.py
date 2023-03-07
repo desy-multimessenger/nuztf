@@ -1,43 +1,39 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-import os
 import logging
+import os
 import pickle
-import backoff
-import requests
-import pandas
-import healpy as hp
-import numpy as np
-from tqdm import tqdm
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from matplotlib.backends.backend_pdf import PdfPages
-from astropy.time import Time
-from astropy import units as u
-from astropy.coordinates import SkyCoord, Distance
-from astropy.cosmology import FlatLambdaCDM
-from ztfquery import fields as ztfquery_fields
-from gwemopt.ztf_tiling import get_quadrant_ipix
-from ampel.ztf.t0.DecentFilter import DecentFilter
-from ampel.ztf.dev.DevAlertConsumer import DevAlertConsumer
-from ampel.ztf.alert.ZiAlertSupplier import ZiAlertSupplier
-from ampel.ztf.dev.ZTFAlert import ZTFAlert
 
-from nuztf.ampel_api import (
-    ampel_api_cone,
-    ampel_api_timerange,
-    ampel_api_name,
-    ampel_api_lightcurve,
-    ampel_api_skymap,
-    ensure_cutouts,
-)
-from nuztf.cat_match import get_cross_match_info, ampel_api_tns, query_ned_for_z
+import backoff
+import healpy as hp
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas
+import requests
+from ampel.ztf.alert.ZiAlertSupplier import ZiAlertSupplier
+from ampel.ztf.dev.DevAlertConsumer import DevAlertConsumer
+from ampel.ztf.dev.ZTFAlert import ZTFAlert
+from ampel.ztf.t0.DecentFilter import DecentFilter
+from astropy import units as u
+from astropy.coordinates import Distance, SkyCoord
+from astropy.cosmology import FlatLambdaCDM
+from astropy.time import Time
+from gwemopt.ztf_tiling import get_quadrant_ipix
+from matplotlib.backends.backend_pdf import PdfPages
+from nuztf.ampel_api import (ampel_api_cone, ampel_api_lightcurve,
+                             ampel_api_name, ampel_api_skymap,
+                             ampel_api_timerange, ensure_cutouts)
+from nuztf.cat_match import (ampel_api_tns, get_cross_match_info,
+                             query_ned_for_z)
+from nuztf.flatpix import get_flatpix
+from nuztf.fritz import save_source_to_group
 from nuztf.observations import get_obs_summary
 from nuztf.plot import lightcurve_from_alert
 from nuztf.utils import cosmo
-from nuztf.fritz import save_source_to_group
-from nuztf.flatpix import get_flatpix
+from tqdm import tqdm
+from ztfquery import fields as ztfquery_fields
 
 DEBUG = False
 RATELIMIT_CALLS = 10
@@ -1051,9 +1047,6 @@ class BaseScanner:
         plane_area = hp.pixelfunc.nside2pixarea(self.nside, degrees=True) * n_plane
 
         self.overlap_fields = overlapping_fields
-
-        #     area = (2. * base_ztf_rad)**2 * float(len(overlapping_fields))
-        #     n_fields = len(overlapping_fields)
 
         self.logger.info(
             f"{n_pixels} pixels were covered, covering approximately {self.healpix_area:.2g} sq deg."

@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 # License: BSD-3-Clause
 
-import re, json, logging
+import json
+import logging
+import re
 
-import requests
 import numpy as np
+import requests
 from astropy.time import Time
 
 BASE_GCN_URL = "https://gcn.gsfc.nasa.gov/gcn3"
@@ -101,9 +103,12 @@ def find_gcn_no(base_nu_name: str):
         circular_nr = []
 
         for entry in result["data"]["allCirculars"]["edges"]:
-            received_date.append(entry["node"]["received"])
-            circular_nr.append(entry["node"]["cid"])
-
+            """
+            do some filtering based on subjects (there are errorneous event associations on the server)
+            """
+            if ("neutrino" in (subj:= entry["node"]["subject"])) and "event" in subj:
+                received_date.append(entry["node"]["received"])
+                circular_nr.append(entry["node"]["cid"])
         """
         I don't trust this webserver, let's go with the
         earliest GCN, not the last in the list
