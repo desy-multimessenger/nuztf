@@ -1829,13 +1829,13 @@ shapely = ">=1.7"
 
 [[package]]
 name = "gwemopt"
-version = "0.0.77"
+version = "0.0.80"
 description = "A python package for GW-EM Followup Optimization"
 category = "main"
 optional = false
 python-versions = "*"
 files = [
-    {file = "gwemopt-0.0.77.tar.gz", hash = "sha256:ea1b5dc674ab30bfea34376554186a515677f96ec84aff495dcf814ef7c9eacf"},
+    {file = "gwemopt-0.0.80.tar.gz", hash = "sha256:692d596fd3b998ad03004917903cebc4dbaf8e978315ff7156b3afda0975d8c9"},
 ]
 
 [package.dependencies]
@@ -1849,7 +1849,7 @@ joblib = "*"
 ligo-segments = "*"
 "ligo.skymap" = "*"
 matplotlib = ">=1.2.0"
-mocpy = "*"
+mocpy = ">=0.12.2"
 munkres = "*"
 numpy = ">=1.7.1"
 pandas = "*"
@@ -5679,4 +5679,4 @@ requests = ">=2.28.2,<3.0.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.11"
-content-hash = "49eb8c1f5144eb8441ab1cb62ef629e76e2f44dc4c6df7fbee412bc656f0c6d5"
+content-hash = "00e061f2805c6905aa9aed020f5d18980fd85aa62458f5c4ff5727edd5859eb6"
