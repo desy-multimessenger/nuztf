@@ -1,9 +1,10 @@
 import logging
 import os
 import pickle
+
+from gwemopt.ztf_tiling import get_quadrant_ipix
 from tqdm import tqdm
 from ztfquery.fields import FIELD_DATAFRAME
-from gwemopt.ztf_tiling import get_quadrant_ipix
 
 
 def get_flatpix_path(nside: int):

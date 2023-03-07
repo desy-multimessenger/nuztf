@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
+import logging
 import os
 import subprocess
+
 import matplotlib.pyplot as plt
 import seaborn as sns
-import logging
 from ztfquery.io import LOCALSOURCE
-
 
 logger = logging.getLogger(__name__)
 

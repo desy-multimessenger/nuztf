@@ -1,23 +1,24 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import os, time, json, logging
+import json
+import logging
+import os
+import time
 
-import requests
-import wget
-import numpy as np
-from numpy.lib.recfunctions import append_fields
 import healpy as hp
 import lxml.etree
-from lxml import html
-
-from astropy_healpix import HEALPix
+import numpy as np
+import requests
+import wget
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from astropy.time import Time
 from astropy.io import fits
+from astropy.time import Time
+from astropy_healpix import HEALPix
 from ligo.skymap.moc import rasterize
-
+from lxml import html
+from numpy.lib.recfunctions import append_fields
 from ztfquery.io import LOCALSOURCE
 
 

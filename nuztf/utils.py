@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-import re
-import logging
-import requests
 import json
-from json import JSONDecodeError
+import logging
+import re
 from collections import OrderedDict
+from json import JSONDecodeError
 
+import requests
 from astropy.cosmology import FlatLambdaCDM
-from nuztf.credentials import load_credentials
 from requests.auth import HTTPBasicAuth
+
+from nuztf.credentials import load_credentials
 
 # same cosmology everywhere
 cosmo = FlatLambdaCDM(H0=70, Om0=0.3)

@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 
+import gzip
 import io
 import logging
-import gzip
-import requests
-import backoff
 from base64 import b64encode
 from json import JSONDecodeError
+
+import backoff
 import numpy as np
-from astropy.time import Time  # type: ignore
+import requests
 from astropy.io import fits  # type: ignore
+from astropy.time import Time  # type: ignore
 from requests.auth import HTTPBasicAuth
+
 from nuztf.credentials import load_credentials
 
 API_BASEURL = "https://ampel.zeuthen.desy.de"

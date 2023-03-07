@@ -3,23 +3,22 @@
 
 import gzip
 import io
-import numpy as np
-import pandas as pd
-
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MultipleLocator
-from matplotlib.colors import Normalize
 from base64 import b64decode
 
-from astropy.time import Time
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 from astropy import units as u
-from astropy.io import fits
 from astropy import visualization
+from astropy.io import fits
+from astropy.time import Time
+from matplotlib.colors import Normalize
+from matplotlib.ticker import MultipleLocator
 from ztfquery.utils.stamps import get_ps_stamp
-from nuztf.utils import cosmo
 
-from nuztf.cat_match import get_cross_match_info
 from nuztf.ampel_api import ensure_cutouts
+from nuztf.cat_match import get_cross_match_info
+from nuztf.utils import cosmo
 
 
 def alert_to_pandas(alert):

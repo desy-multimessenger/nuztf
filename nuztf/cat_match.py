@@ -3,10 +3,11 @@
 
 import logging
 
-from astropy.coordinates import SkyCoord
-from astroquery.ipac.ned import Ned
-from astroquery.exceptions import RemoteServiceError
 from astropy import units as u
+from astropy.coordinates import SkyCoord
+from astroquery.exceptions import RemoteServiceError
+from astroquery.ipac.ned import Ned
+
 from nuztf.ampel_api import ampel_api_catalog, ampel_api_name
 
 

@@ -1,24 +1,23 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import os, time, json, logging, yaml
-
-from tqdm import tqdm
-import numpy as np
-import matplotlib.pyplot as plt
-
-from astropy_healpix import HEALPix
-from astropy.time import Time
+import json
+import logging
+import os
+import time
 
 import healpy as hp
+import matplotlib.pyplot as plt
+import numpy as np
+import yaml
+from astropy.time import Time
+from astropy_healpix import HEALPix
+from tqdm import tqdm
 from ztfquery.io import LOCALSOURCE
 
-from nuztf.skymap import Skymap
+from nuztf.ampel_api import ampel_api_lightcurve, ampel_api_skymap
 from nuztf.base_scanner import BaseScanner
-from nuztf.ampel_api import (
-    ampel_api_lightcurve,
-    ampel_api_skymap,
-)
+from nuztf.skymap import Skymap
 
 
 class RetractionError(Exception):

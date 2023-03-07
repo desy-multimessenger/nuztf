@@ -22,18 +22,23 @@ from astropy.cosmology import FlatLambdaCDM
 from astropy.time import Time
 from gwemopt.ztf_tiling import get_quadrant_ipix
 from matplotlib.backends.backend_pdf import PdfPages
-from nuztf.ampel_api import (ampel_api_cone, ampel_api_lightcurve,
-                             ampel_api_name, ampel_api_skymap,
-                             ampel_api_timerange, ensure_cutouts)
-from nuztf.cat_match import (ampel_api_tns, get_cross_match_info,
-                             query_ned_for_z)
+from tqdm import tqdm
+from ztfquery import fields as ztfquery_fields
+
+from nuztf.ampel_api import (
+    ampel_api_cone,
+    ampel_api_lightcurve,
+    ampel_api_name,
+    ampel_api_skymap,
+    ampel_api_timerange,
+    ensure_cutouts,
+)
+from nuztf.cat_match import ampel_api_tns, get_cross_match_info, query_ned_for_z
 from nuztf.flatpix import get_flatpix
 from nuztf.fritz import save_source_to_group
 from nuztf.observations import get_obs_summary
 from nuztf.plot import lightcurve_from_alert
 from nuztf.utils import cosmo
-from tqdm import tqdm
-from ztfquery import fields as ztfquery_fields
 
 DEBUG = False
 RATELIMIT_CALLS = 10

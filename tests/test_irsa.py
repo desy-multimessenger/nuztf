@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import unittest
 import logging
+import unittest
+
 import nuztf
-from nuztf.irsa import plot_irsa_lightcurve, load_irsa
+from nuztf.irsa import load_irsa, plot_irsa_lightcurve
 
 
 class TestIrsa(unittest.TestCase):

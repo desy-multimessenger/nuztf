@@ -1,30 +1,27 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-import os
 import logging
+import os
 
 import matplotlib.pyplot as plt
-
 import numpy as np
 import pandas as pd
-
-from astropy.time import Time
-from astropy import units as u
 from astropy import constants as const
+from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
+from astropy.time import Time
 from astroquery.exceptions import RemoteServiceError
 from astroquery.ipac.ned import Ned
-
 from ztfquery.io import LOCALSOURCE
 from ztfquery.lightcurve import LCQuery
 
 from nuztf.ampel_api import ampel_api_name
-from nuztf.style import plot_dir, big_fontsize, base_width, base_height, dpi
-from nuztf.utils import cosmo, is_ztf_name, is_tns_name, query_tns_by_name
 from nuztf.observations import get_most_recent_obs
 from nuztf.parse_nu_gcn import find_gcn_no, parse_gcn_circular
+from nuztf.style import base_height, base_width, big_fontsize, dpi, plot_dir
+from nuztf.utils import cosmo, is_tns_name, is_ztf_name, query_tns_by_name
 
 logger = logging.getLogger(__name__)
 

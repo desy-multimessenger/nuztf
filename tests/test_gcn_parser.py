@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import unittest, logging
+import logging
+import unittest
 
-from nuztf.parse_nu_gcn import get_latest_gcn, gcn_url, find_gcn_no
+from nuztf.parse_nu_gcn import find_gcn_no, gcn_url, get_latest_gcn
 
 
 class TestNeutrinoScanner(unittest.TestCase):

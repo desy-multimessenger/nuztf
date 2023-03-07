@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 # License: BSD-3-Clause
 
-import unittest
 import logging
-from astropy.time import Time
+import unittest
+
 import astropy.units as u
 import backoff
-from nuztf.fritz import save_source_to_group, delete_source_from_group
+from astropy.time import Time
+
+from nuztf.fritz import delete_source_from_group, save_source_to_group
 
 ztf_id = "ZTF21abyonuw"
 ztf_group = 1430

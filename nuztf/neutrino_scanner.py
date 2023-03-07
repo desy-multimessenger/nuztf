@@ -8,10 +8,11 @@ import healpy as hp
 import numpy as np
 import yaml
 from astropy.time import Time
-from nuztf.base_scanner import BaseScanner
-from nuztf.parse_nu_gcn import find_gcn_no, get_latest_gcn, parse_gcn_circular
 from tqdm import tqdm
 from ztfquery.io import LOCALSOURCE
+
+from nuztf.base_scanner import BaseScanner
+from nuztf.parse_nu_gcn import find_gcn_no, get_latest_gcn, parse_gcn_circular
 
 nu_candidate_output_dir = os.path.join(LOCALSOURCE, "neutrino_candidates")
 

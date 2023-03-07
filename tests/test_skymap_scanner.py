@@ -1,5 +1,6 @@
-import unittest
 import logging
+import unittest
+
 from nuztf.skymap_scanner import SkymapScanner
 
 

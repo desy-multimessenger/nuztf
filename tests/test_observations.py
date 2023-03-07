@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import unittest
 import logging
-from astropy.time import Time
+import unittest
+
 from astropy import units as u
+from astropy.time import Time
+
 from nuztf.observations import get_obs_summary_irsa, get_obs_summary_skyvision
 
 

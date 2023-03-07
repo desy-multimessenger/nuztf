@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 # License: BSD-3-Clause
 
-import unittest
 import logging
-from astropy.time import Time
+import unittest
+
 import astropy.units as u
+from astropy.time import Time
+
 from nuztf.ampel_api import (
-    ampel_api_name,
-    ampel_api_cutout,
     ampel_api_cone,
-    ampel_api_timerange,
+    ampel_api_cutout,
     ampel_api_healpix,
+    ampel_api_name,
+    ampel_api_timerange,
 )
 
 

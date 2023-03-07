@@ -1,6 +1,8 @@
-import requests  # type: ignore
-import backoff
 import os
+
+import backoff
+import requests  # type: ignore
+
 from nuztf.credentials import load_credentials
 
 # Fritz API URLs
