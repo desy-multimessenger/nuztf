@@ -47,5 +47,5 @@ If you make use of this code, please cite it! A DOI is provided by Zenodo, which
 This code stands on the shoulders of giants. We would particularly like to acknowledge:
 
 * [Ampel](https://ampelproject.github.io/), created primarily by [@wombaugh](https://github.com/wombaugh), [@vbrinnel](https://github.com/vbrinnel) and [@jvansanten](https://github.com/jvansanten)
-* [ztf_plan_obs](https://github.com/simeonreusch/ztf_plan_obs), created by [@simeonreusch](https://github.com/simeonreusch)
+* [planobs](https://github.com/simeonreusch/planobs), created by [@simeonreusch](https://github.com/simeonreusch)
 * [ztfquery](https://github.com/MickaelRigault/ztfquery), created by [@MickaelRigault](https://github.com/MickaelRigault)
