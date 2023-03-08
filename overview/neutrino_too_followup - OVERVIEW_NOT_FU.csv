@@ -59,7 +59,7 @@ IC210503A,BRONZE,143.53,"[7.71, -5.16]",41.81,"[5.02, -5.68]",0.41387,110.871,Po
 IC210516A,BRONZE,91.76,"[1.05, -0.97]",9.52,"[0.5, -0.58]",0.2886,109.12,Separation from galactic plane,8
 IC210519A,BRONZE,,,,,,,Alert retraction,1
 IC210608A,BRONZE,337.41,"[4.89, -11.64]",18.37,"[3.75, -3.24]",0.31467,105.187,Poor Signalness and Localization,4
-IC210717A,EXTRA,46.49,"[2.40, -2.57]",-1.34,"[2.63, -3.41]",n/a,n/a,Poor Signalness and Localization,4
+IC210717A,EXTRA,46.49,"[2.40, -2.57]",-1.34,"[2.63, -3.41]",,,Poor Signalness and Localization,4
 IC210730A,BRONZE,105.73,"[2.00, -1.85]",14.79,"[0.91, -0.86]",0.31923,109.445,Separation from galactic plane,8
 IC211023A,BRONZE,253.3,"[1.05, -1.08]",-1.72,"[1.16, -1.11]",0.32599,120.655,Low Altitude,6
 IC211116A,BRONZE,42.45,"[1.39, -1.50]",0.15,"[0.98, -0.94]",0.40159,161.345,Telescope Maintenance,3
@@ -89,7 +89,7 @@ IC220918A,BRONZE,75.15,"[3.79, -3.38]",3.58,"[3.70, -3.40]",0.41793,168.361,Poor
 IC220928A,BRONZE,207.42,"[1.41, -2.52]",10.43,"[0.98, -0.98]",0.37775,143.15,Proximity to sun,2
 IC221104A,BRONZE,209.62,"[0.74, -0.92]",15.09,"[0.79, -0.8]",0.31648,108.606,Proximity to sun,2
 IC221124A,BRONZE,298.92,"[2.65, -2.92]",3.73,"[1.04, -2.23]",0.34927,143.662,Poor Signalness and Localization,4
-IC221210A,BRONZE,,,,,,,Poor Signalness and Localization,4
+IC221210A,BRONZE,332.58,"[9.84, -11.77]",22.75,"[8.15, -4.13]",0.50771,164.702,Poor Signalness and Localization,4
 IC221224A,BRONZE,335.74,"[1.01, -0.72]",1.42,"[0.41, -0.30]",0.27817,110.624,Bad Weather,7
 IC221229A,GOLD,31.9,"[1.68, -1.55]",4.18,"[1.39, -0.84]",0.54429,205.35,Telescope Maintenance,3
 IC230122A,BRONZE,16.79,"[3.17, -2.56]",7.78,"[3.44, -3.26]",0.27305,107.66,Poor Signalness and Localization,4

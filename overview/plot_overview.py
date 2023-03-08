@@ -114,12 +114,10 @@ def plot_overview(
     counts = np.asarray(counts)[indices]
     labels = np.asarray(labels)[indices]
 
-    # declaring exploding pie
     explode = np.empty(len(counts))
     explode.fill(0.02)
     explode[0] = 0.1
 
-    # define Seaborn color palette to use
     palette_color = sns.color_palette("dark")
 
     fig, ax = plt.subplots(figsize=(width := 5, width / 1.62))
