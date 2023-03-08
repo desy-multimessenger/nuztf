@@ -4353,14 +4353,14 @@ files = [
 
 [[package]]
 name = "pyvo"
-version = "1.4"
+version = "1.4.1"
 description = "Astropy affiliated package for accessing Virtual Observatory data and services"
 category = "main"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "pyvo-1.4-py3-none-any.whl", hash = "sha256:b4c5156624d34d80d37007e92d265fa949c5a5633f945f52af2526e6571ab9ff"},
-    {file = "pyvo-1.4.tar.gz", hash = "sha256:476b6d2e815de88734299978f5dccde4db5602a3e95d169e922e97f02446b02c"},
+    {file = "pyvo-1.4.1-py3-none-any.whl", hash = "sha256:408ca0c06dc4e013ed0e0e236cb7c8362c958365746f762e7513b03c1d7e67dc"},
+    {file = "pyvo-1.4.1.tar.gz", hash = "sha256:07a4e7ddfe4b995b271e44440277542b9a23de0ed996e152d759860f7dd84c9d"},
 ]
 
 [package.dependencies]
@@ -4857,14 +4857,14 @@ win32 = ["pywin32"]
 
 [[package]]
 name = "setuptools"
-version = "67.5.1"
+version = "67.6.0"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "setuptools-67.5.1-py3-none-any.whl", hash = "sha256:1c39d42bda4cb89f7fdcad52b6762e3c309ec8f8715b27c684176b7d71283242"},
-    {file = "setuptools-67.5.1.tar.gz", hash = "sha256:15136a251127da2d2e77ac7a1bc231eb504654f7e3346d93613a13f2e2787535"},
+    {file = "setuptools-67.6.0-py3-none-any.whl", hash = "sha256:b78aaa36f6b90a074c1fa651168723acbf45d14cb1196b6f02c0fd07f17623b2"},
+    {file = "setuptools-67.6.0.tar.gz", hash = "sha256:2ee892cd5f29f3373097f5a814697e397cf3ce313616df0af11231e2ad118077"},
 ]
 
 [package.extras]

@@ -1,0 +1,99 @@
+Event,Class,RA,RA Unc (rectangle),Dec,Dec Unc (rectangle),Signalness,Energy estimate [TeV],Rejection reason,Code
+IC160427A,HESE,240.57,"[0.6, -0.6]",9.34,"[0.6, -0.6]",,,Pre-ZTF,0
+IC160731A,HESE+EHE,214.5,"[0.75, -0.75]",-0.33,"[0.75, -0.75]",0.84879,,Pre-ZTF,0
+IC160806A,EHE,122.81,"[0.5, -0.5]",-0.81,"[0.5, -0.5]",0.28016,,Pre-ZTF,0
+IC160814A,HESE,200.3,"[2.43, -3.03]",-32.4,"[1.39, -1.21]",,,Pre-ZTF,0
+IC161103A,HESE,40.83,"[1.10, -0.70]",12.56,"[1.10, -0.65]",,,Pre-ZTF,0
+IC161210A,EHE,46.58,"[1.10, -1.00]",14.98,"[0.45, -0.40]",0.49023,,Pre-ZTF,0
+IC170312A,HESE,305.15,"[0.5, -0.5]",-26.61,"[0.5, -0.5]",,,Pre-ZTF,0
+IC170321A,EHE,98.3,"[1.2, -1.2]",-15.02,"[1.2, -1.2]",0.28016,,Pre-ZTF,0
+IC170506A,HESE,221.8,"[3.0, -3.0]",-26,"[2.0, -2.0]",,,Alert retraction,1
+IC170922A,EHE,77.43,"[0.95, -0.65]",5.72,"[0.50, 0.30]",0.56507,,Pre-ZTF,0
+IC171015A,HESE,162.86,"[2.60, -1.70]",-15.44,"[1.60, -2.00]",,,Pre-ZTF,0
+IC171028A,HESE,,,,,,,Alert retraction,1
+IC171106A,EHE,340,"[0.7, -0.5]",7.4,"[0.35, -0.25]",0.74593,,Pre-ZTF,0
+IC180423A,HESE,,,,,,,Alert retraction,1
+IC180908A,EHE,144.58,"[1.55, -1.45]",-2.13,"[0.9, -1.2]",0.34364,,Proximity to sun,2
+IC181014A,HESE,225.15,"[1.4, -2.85]",-34.8,"[1.15, -1.85]",,,Proximity to sun,2
+IC181023A,EHE,270.18,"[2.0, -1.7]",-8.57,"[1.25, -1.3]",0.28016,,Telescope Maintenance,3
+IC181031A,HESE,,,,,,,Alert retraction,1
+IC190104A,HESE,357.98,"[2.3, -2.1]",-26.65,"[2.2, -2.5]",,,Southern Sky,5
+IC190124A,HESE,307.4,"[0.8, -0.9]",-32.18,"[0.7, -0.7]",,,Proximity to sun,2
+IC190205A,HESE,,,,,,,Alert retraction,1
+IC190221A,HESE,268.81,"[1.2,-1.8]",-17.04,"[1.3, -0.5]",,,Poor Signalness and Localization,4
+IC190331A,HESE,337.68,"[0.23, -0.34]",-20.7,"[0.3, -0.48]",,,Southern Sky,5
+IC190504A,HESE,65.7866,,-37.4431,,,,Southern Sky,5
+IC190529A,HESE,,,,,,,Alert retraction,1
+IC190629A,BRONZE,27.22,,84.33,"[4.95, -3.13]",0.33892,107.67,Poor Signalness and Localization,4
+IC190704A,BRONZE,161.85,"[2.16, -4.33]",27.11,"[1.81, -1.83]",0.48607,154.99,Proximity to sun,2
+IC190712A,BRONZE,76.46,"[5.09, -6.83]",13.06,"[4.48, -3.44]",0.30332,108.67,Proximity to sun,2
+IC190819A,BRONZE,148.8,"[2.07, -3.24]",1.38,"[1.0, -0.75]",0.29215,113.16,Proximity to sun,2
+IC190922A,GOLD,167.43,"[3.4, -2.63]",-22.39,"[2.88, -2.89]",0.20165,3113.9,Poor Signalness and Localization,4
+IC191119A,GOLD,230.1,"[4.76, -6.48]",3.17,"[3.36, -2.09]",0.44999,176.48,Proximity to sun,2
+IC191122A,BRONZE,27.25,"[1.7, -2.9]",-0.04,"[1.17, -1.49]",0.33128,128.44,Poor Signalness and Localization,4
+IC191204A,BRONZE,79.72,"[3.2, -1.74]",2.8,"[1.12, -1.23]",0.32711,130.2,Poor Signalness and Localization,4
+IC191215A,BRONZE,285.87,"[2.88, -3.19]",58.92,"[1.85, -2.25]",0.4749,132.65,Low Altitude,6
+IC191231A,BRONZE,46.36,"[4.27, -3.47]",20.42,"[2.11, -2.8]",0.46281,155.38,Poor Signalness and Localization,4
+IC200120A,BRONZE,,,,,,,Alert retraction,1
+IC200227A,BRONZE,348.26,,21.32,,0.35075,109.5,Proximity to sun,2
+IC200410A,BRONZE,242.58,"[14.05, -13.35]",11.61,"[7.87, -6.21]",0.30535,110,Poor Signalness and Localization,4
+IC200421A,BRONZE,87.93,"[3.44,-2.83]",8.23,"[2.09, -1.84]",0.33312,126.97,Proximity to sun,2
+IC200425A,BRONZE,100.1,"[4.67, -3.14]",53.57,"[2.45, -1.6]",0.48106,134.87,Poor Signalness and Localization,4
+IC200523A,BRONZE,338.64,"[10.77, -6.07]",1.75,"[1.84, -3.54]",0.24998,105.08,Poor Signalness and Localization,4
+IC200614A,BRONZE,33.84,"[4.77, -6.39]",31.61,"[2.75, -2.28]",0.41553,115.05,Poor Signalness and Localization,4
+IC200615A,GOLD,142.95,"[1.18, -1.45]",3.66,"[1.19, -1.06]",0.82832,496.36,Proximity to sun,2
+IC200728A,GOLD,,,,,,,Alert retraction,1
+IC200806A,BRONZE,157.25,"[1.21, -0.89]",47.75,"[0.65, -0.64]",0.39728,107.35,Proximity to sun,2
+IC200911A,BRONZE,51.11,"[4.42, -11.01]",38.11,"[2.35, -1.99]",0.40813,110.79,Poor Signalness and Localization,4
+IC200921A,BRONZE,195.29,"[2.35, -1.73]",26.24,"[1.51, -1.77]",0.40945,117.17,Proximity to sun,2
+IC200926B,BRONZE,184.75,"[3.64, -1.55]",32.93,"[1.15, -0.91]",0.43381,121.42,Proximity to sun,2
+IC201014A,BRONZE,221.22,"[1.0, -0.75]",14.44,"[0.67, -0.46]",0.41371,146.93,Proximity to sun,2
+IC201114A,BRONZE,105.25,"[1.28, -1.12]",6.05,"[0.95, -0.95]",0.56208,214.29,Separation from galactic plane,8
+IC201115A,GOLD,195.12,"[1.27, -1.49]",1.38,"[1.3, -1.11]",0.45973,177.38,Proximity to sun,2
+IC201115B,GOLD,,,,,,,Alert retraction,1
+IC201120A,BRONZE,307.53,"[5.34, -5.59]",40.77,"[4.97, -2.8]",0.50338,153.96,Separation from galactic plane,8
+IC201221A,GOLD,261.69,"[2.29, -2.5]",41.81,"[1.29, -1.2]",0.56429,174.54,Proximity to sun,2
+IC210213A,GOLD,,,,,,,Alert retraction,1
+IC210322A,BRONZE,,,,,,,Alert retraction,1
+IC210503A,BRONZE,143.53,"[7.71, -5.16]",41.81,"[5.02, -5.68]",0.41387,110.871,Poor Signalness and Localization,4
+IC210516A,BRONZE,91.76,"[1.05, -0.97]",9.52,"[0.5, -0.58]",0.2886,109.12,Separation from galactic plane,8
+IC210519A,BRONZE,,,,,,,Alert retraction,1
+IC210608A,BRONZE,337.41,"[4.89, -11.64]",18.37,"[3.75, -3.24]",0.31467,105.187,Poor Signalness and Localization,4
+IC210717A,EXTRA,46.49,"[2.40, -2.57]",-1.34,"[2.63, -3.41]",,,Poor Signalness and Localization,4
+IC210730A,BRONZE,105.73,"[2.00, -1.85]",14.79,"[0.91, -0.86]",0.31923,109.445,Separation from galactic plane,8
+IC211023A,BRONZE,253.3,"[1.05, -1.08]",-1.72,"[1.16, -1.11]",0.32599,120.655,Low Altitude,6
+IC211116A,BRONZE,42.45,"[1.39, -1.50]",0.15,"[0.98, -0.94]",0.40159,161.345,Telescope Maintenance,3
+IC211117A,GOLD,225.93,"[0.51, -0.51]",-0.2,"[0.51, -0.51]",0.52584,195.047,Proximity to sun,2
+IC211123A,BRONZE,265.52,"[3.14, -2.84]",7.33,"[2.38, -2.48]",0.3558,142.07,Proximity to sun,2
+IC211125A,BRONZE,43.59,"[3.13, -2.71]",22.59,"[1.54, -2.53]",0.38989,117.5,Poor Signalness and Localization,4
+IC211208A,BRONZE,114.52,"[2.82, -2.50]",15.56,"[1.81, -1.39]",0.50234,171.08,Telescope Maintenance,3
+IC211216A,BRONZE,316.05,"[2.58, -1.95]",15.79,"[1.29, -1.63]",0.34356,113.01,Poor Signalness and Localization,4
+IC211216B,BRONZE,199.34,"[1.66, -1.78]",17.04,"[1.39, -1.36]",0.34634,112.54,Telescope Maintenance,3
+IC220202A,GOLD,21.36,"[1.10 , -0.77]",-3.88,"[0.42, -0.64]",0.20563,150.94,Telescope Maintenance,3
+IC220205A,BRONZE,216.12,"[2.94, -3.52]",15.56,"[3.26, -2.65]",0.32225,109.589,Poor Signalness and Localization,4
+IC220205B,GOLD,266.8,,-3.58,,0.59536,215.881,Proximity to sun,2
+IC220221A,GOLD,287.84,"[4.00, -3.96]",20.74,"[4.31, -2.26]",0.67267,157.43,Separation from galactic plane,8
+IC220225A,BRONZE,34.7,"[3.1, -2.6]",0,"[1.8, -1.5]",0.3776,153.594,Proximity to sun,2
+IC220303A,GOLD,267.8,"[1.50, -1.17]",11.42,"[0.89, -1.14]",0.76416,398.17,Telescope Maintenance,3
+IC220304A,GOLD,48.78,"[7.68, -6.24]",4.48,"[5.91, -4.96]",0.63101,263.217,Poor Signalness and Localization,4
+IC220306A,GOLD,314.82,"[0.54, -0.52]",8.61,"[0.47, -0.55]",0.77357,413.05,Proximity to sun,2
+IC220317A,BRONZE,155.74,"[2.23, -1.74]",11.19,"[1.00, -1.39]",0.36461,132.64,Telescope Maintenance,3
+IC220421A,BRONZE,113.64,"[3.17, -2.74]",5.83,"[2.18, -1.69]",0.37458,155.084,Poor Signalness and Localization,4
+IC220424A,GOLD,346.11,"[1.26, -1.33]",8.91,"[0.95, -1.01]",0.49659,184.031,Proximity to sun,2
+IC220425A,GOLD,268.24,"[1.98, -1.66]",-10.73,"[1.71, -1.48]",0.16873,604.052,Separation from galactic plane,8
+IC220509A,GOLD,334.25,"[2.01, -1.44]",5.38,"[1.63, -1.65]",0.44645,176.838,Proximity to sun,2
+IC220627A,GOLD,165.59,"[2.83, -5.61]",5.3,"[1.76, -1.33]",0.31378,126.145,Proximity to sun,2
+IC220629A,BRONZE,163.92,"[0.80, -0.67]",4.33,"[0.51, -0.34]",0.30107,118.658,Proximity to sun,2
+IC220808A,BRONZE,,,,,,,Alert retraction,1
+IC220918A,BRONZE,75.15,"[3.79, -3.38]",3.58,"[3.70, -3.40]",0.41793,168.361,Poor Signalness and Localization,4
+IC220928A,BRONZE,207.42,"[1.41, -2.52]",10.43,"[0.98, -0.98]",0.37775,143.15,Proximity to sun,2
+IC221104A,BRONZE,209.62,"[0.74, -0.92]",15.09,"[0.79, -0.8]",0.31648,108.606,Proximity to sun,2
+IC221124A,BRONZE,298.92,"[2.65, -2.92]",3.73,"[1.04, -2.23]",0.34927,143.662,Poor Signalness and Localization,4
+IC221210A,BRONZE,332.58,"[9.84, -11.77]",22.75,"[8.15, -4.13]",0.50771,164.702,Poor Signalness and Localization,4
+IC221224A,BRONZE,335.74,"[1.01, -0.72]",1.42,"[0.41, -0.30]",0.27817,110.624,Bad Weather,7
+IC221229A,GOLD,31.9,"[1.68, -1.55]",4.18,"[1.39, -0.84]",0.54429,205.35,Telescope Maintenance,3
+IC230122A,BRONZE,16.79,"[3.17, -2.56]",7.78,"[3.44, -3.26]",0.27305,107.66,Poor Signalness and Localization,4
+IC230201A,BRONZE,345.41,"[2.50, -3.07]",12.1,"[1.62, -1.53]",0.34763,121,Proximity to sun,2
+IC230217A,BRONZE,124.54,"[1.67, -3.27]",20.74,"[2.14, -2.46]",0.45373,54.861,Poor Signalness and Localization,4
+IC230220A,BRONZE,359.33,,3.35,,0.36394,151.803,Proximity to sun,2
+IC230306A,GOLD,72.86,"[0.87, -0.89]",34.23,"[0.87, -0.86]",0.56405,174.655,Separation from galactic plane,8
