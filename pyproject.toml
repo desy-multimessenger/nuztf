@@ -11,7 +11,7 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.11"
+python = ">=3.10,<3.12"
 ampel = { version = "^0.8.3a0", allow-prereleases = true}
 ampel-ztf = {extras = ["archive"], version = "^0.8.3a2", allow-prereleases = true}
 astropy = "^5.1"
