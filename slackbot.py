@@ -41,7 +41,7 @@ class Slackbot:
 
         scan_message = "Scanning done."
         if len(self.nu.cache) > 0:
-            scan_message += f"Found {len(self.nu.cache)} candidates:\n\n"
+            scan_message += f" Found {len(self.nu.cache)} candidates:\n\n"
             for entry in list(self.nu.cache.keys()):
                 scan_message += f"{entry}\n"
         else:
