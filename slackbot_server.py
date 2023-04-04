@@ -42,7 +42,7 @@ def parse_name(name: str) -> str:
         raise ValueError()
 
 
-def get_help_message(user: str) -> str:
+def get_help_message(user: str) -> list[dict]:
     """
     Get the help message to display all commands for the user
     """
