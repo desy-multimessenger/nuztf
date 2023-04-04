@@ -5,26 +5,26 @@ import logging
 import os
 import pickle
 
-import backoff
-import healpy as hp
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas
 import requests
-from ampel.ztf.alert.ZiAlertSupplier import ZiAlertSupplier
-from ampel.ztf.dev.DevAlertConsumer import DevAlertConsumer
-from ampel.ztf.dev.ZTFAlert import ZTFAlert
-from ampel.ztf.t0.DecentFilter import DecentFilter
 from astropy import units as u
 from astropy.coordinates import Distance, SkyCoord
 from astropy.cosmology import FlatLambdaCDM
 from astropy.time import Time
-from gwemopt.ztf_tiling import get_quadrant_ipix
 from matplotlib.backends.backend_pdf import PdfPages
 from tqdm import tqdm
 from ztfquery import fields as ztfquery_fields
 
+import backoff
+import healpy as hp
+from ampel.ztf.alert.ZiAlertSupplier import ZiAlertSupplier
+from ampel.ztf.dev.DevAlertConsumer import DevAlertConsumer
+from ampel.ztf.dev.ZTFAlert import ZTFAlert
+from ampel.ztf.t0.DecentFilter import DecentFilter
+from gwemopt.ztf_tiling import get_quadrant_ipix
 from nuztf.ampel_api import (
     ampel_api_cone,
     ampel_api_lightcurve,
@@ -481,6 +481,8 @@ class BaseScanner:
 
     def create_candidate_summary(self, outfile=None):
         """Create pdf with lightcurve plots of all candidates"""
+        if len(self.cache.items()) == 0:
+            return
 
         if outfile is None:
             pdf_path = self.summary_path + ".pdf"
