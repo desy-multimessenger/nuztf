@@ -75,5 +75,6 @@ def message(payload):
                 return
 
 
+# for running directly with Flask (for debugging)
 if __name__ == "__main__":
-    app.run(port=4000, debug=True)
+    nuztf_slackbot.run(port=4000, debug=True)
