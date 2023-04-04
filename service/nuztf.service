@@ -1,0 +1,22 @@
+[Unit]
+Description=nuztf.service - A Flask application run with Gunicorn.
+After=network.target
+
+StartLimitIntervalSec=500
+StartLimitBurst=5
+
+[Service]
+User=root
+Group=root
+Environment=KOWALSKI_API_TOKEN="kowalski_token_here"
+Environment=SLACK_TOKEN="slack_token_here"
+Environment=SLACK_EVENTS_TOKEN="slack_events_token_here"
+WorkingDirectory=/root/nuztf/
+ExecStart=/root/miniconda3/envs/nuztf/bin/gunicorn --workers 1 --timeout 120  --bind 0.0.0.0:4000 wsgi:nuztf_slackbot
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Restart=on-failure
+RestartSec=15s
