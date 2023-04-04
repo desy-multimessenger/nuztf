@@ -73,3 +73,7 @@ def message(payload):
                     thread_ts=ts,
                 )
                 return
+
+
+if __name__ == "__main__":
+    app.run(port=4000, debug=True)
