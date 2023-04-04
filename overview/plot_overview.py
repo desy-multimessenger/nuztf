@@ -8,20 +8,23 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib import rc
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+rc("font", **{"family": "serif", "serif": ["Palatino"]})
+
 REJECTION_DIR = {
     0: "Pre-ZTF",
-    1: "Alert\nRetraction",
-    2: "Proximity\nto the Sun",
-    3: "Telescope\nMaintenance",
-    4: "Alert\nQuality",
-    5: "Southern Sky",
-    6: "Low Altitude",
-    7: "Bad Weather",
-    8: "Galactic Plane",
+    1: "Alert\nretraction",
+    2: "Proximity\nto the sun",
+    3: "Telescope\nmaintenance",
+    4: "Alert\nquality",
+    5: "Southern sky",
+    6: "Low altitude",
+    7: "Bad weather",
+    8: "Galactic plane",
     9: "Other",
 }
 
@@ -94,7 +97,7 @@ def plot_overview(
     Plot pie chart for observation rejection reasons
     """
     counts = [n := len(df_fu)]
-    labels = [f"Total\nFollow-Up ({n})"]
+    labels = [f"Total\nfollow-up ({n})"]
 
     _df = df_nofu.copy(deep=True)
 
@@ -120,7 +123,7 @@ def plot_overview(
 
     palette_color = sns.color_palette("dark")
 
-    fig, ax = plt.subplots(figsize=(width := 5, width / 1.62))
+    fig, ax = plt.subplots(figsize=(width := 4.5, width / 1.62))
 
     patches, texts, pcts = ax.pie(
         counts,
