@@ -21,15 +21,8 @@ slack_web_client = WebClient(token=os.environ.get("SLACK_TOKEN"))
 def scan(channel, ts, name: str, event_type: str, do_gcn: bool):
     """ """
     slack_bot = Slackbot(
-        channel=channel, name=name, event_type=event_type, do_gcn=do_gcn
+        channel=channel, ts=ts, name=name, event_type=event_type, do_gcn=do_gcn
     )
-
-    if do_gcn:
-        slack_web_client.chat_postMessage(
-            channel=channel,
-            text=slack_bot.gcn,
-            thread_ts=ts,
-        )
 
 
 def fuzzy_parameters(param_list) -> list:
