@@ -39,25 +39,22 @@ class Slackbot:
         self.nu = NeutrinoScanner(self.name)
         self.nu.scan_area(t_max=self.nu.t_min + self.time_window)
 
-        self.post("Scan complete")
+        scan_message = "Scanning done."
+        if len(self.nu.cache) > 0:
+            scan_message += f"Found {len(self.nu.cache)} candidates:\n\n"
+            for entry in list(self.nu.cache.keys()):
+                scan_message += f"{entry}\n"
+        else:
+            scan_message += "\nNo candidates found."
 
-        self.nu.peak_mag_summary()
+        self.post(scan_message)
 
-        self.post(self.nu.observations)
-
-        if do_gcn:
-            self.post("Creating GCN (obtaining and unpacking observations)")
+        if do_gcn and len(self.nu.cache) > 0:
             self.create_gcn()
-            # self.nu.plot_overlap_with_observations(first_det_window_days=time_window)
-            # self.gcn = nu.draft_gcn()
-            # self.webclient.chat_postMessage(
-            #     channel=channel,
-            #     text=slack_bot.gcn,
-            #     thread_ts=ts,
-            # )
 
     def create_gcn(self):
         self.nu.plot_overlap_with_observations(first_det_window_days=self.time_window)
+        self.post(f"observations:\n{self.nu.observations}")
         gcn = self.nu.draft_gcn()
         self.post(text=gcn)
 
