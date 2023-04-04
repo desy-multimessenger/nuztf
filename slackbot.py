@@ -3,6 +3,7 @@
 
 import logging
 import os
+from pathlib import Path
 
 from astropy.time import Time  # type: ignore
 
@@ -49,6 +50,10 @@ class Slackbot:
 
         self.post(scan_message)
 
+        if len(self.nu.cache) > 0:
+            pdf_overview_path = self.nu.summary_path + ".pdf"
+            self.post_file(pdf_overview_path, f"{self.name} candidates")
+
         if do_gcn and len(self.nu.cache) > 0:
             self.create_gcn()
 
@@ -65,3 +70,13 @@ class Slackbot:
             text=text,
             thread_ts=self.ts,
         )
+
+    def post_file(self, filepath, filename):
+        """Post a file to Slack"""
+        with open(filepath, "rb") as file:
+            self.webclient.files_upload(
+                file=file,
+                filename=filename,
+                channels=self.channel,
+                thread_ts=self.ts,
+            )
