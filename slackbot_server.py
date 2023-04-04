@@ -7,6 +7,7 @@ import os
 
 from flask import Flask  # type: ignore
 from slack import WebClient  # type: ignore
+from slackbot import Slackbot
 from slackeventsapi import SlackEventAdapter  # type: ignore
 
 nuztf_slackbot = Flask(__name__)
@@ -17,6 +18,20 @@ slack_events_adapter = SlackEventAdapter(
 slack_web_client = WebClient(token=os.environ.get("SLACK_TOKEN"))
 
 
+def scan(channel, ts, name: str, event_type: str, do_gcn: bool):
+    """ """
+    slack_bot = Slackbot(
+        channel=channel, name=name, event_type=event_type, do_gcn=do_gcn
+    )
+
+    if do_gcn:
+        slack_web_client.chat_postMessage(
+            channel=channel,
+            text=slack_bot.gcn,
+            thread_ts=ts,
+        )
+
+
 def fuzzy_parameters(param_list) -> list:
     """ """
     fuzzy_parameters = []
@@ -24,6 +39,14 @@ def fuzzy_parameters(param_list) -> list:
         for character in ["", "-", "--", "–"]:
             fuzzy_parameters.append(f"{character}{param}")
     return fuzzy_parameters
+
+
+def parse_name(name: str) -> str:
+    """ """
+    if name[0:2] == "IC":
+        return "nu"
+    else:
+        raise ValueError()
 
 
 def get_help_message(user: str) -> str:
@@ -60,6 +83,9 @@ def message(payload):
         split_text = text.split()
         logging.info(split_text)
 
+        do_scan = False
+        do_gcn = False
+
         if len(split_text) == 0:
             return
 
@@ -76,9 +102,34 @@ def message(payload):
                 )
                 return
 
-            scan = True
+            for i, parameter in enumerate(split_text):
+                if parameter in fuzzy_parameters(["gcn", "GCN"]):
+                    do_gcn = True
+
+            do_scan = True
             display_help = False
-            print(split_text[1])
+            name = split_text[1]
+            event_type = parse_name(name)
+
+            if event_type == "nu":
+                message = (
+                    f"Hi there; running neutrino scan for *{name}*. One moment please."
+                )
+
+            slack_web_client.chat_postMessage(
+                channel=channel_id,
+                text=message,
+                thread_ts=ts,
+            )
+
+            if do_scan:
+                scan(
+                    channel=channel_id,
+                    ts=ts,
+                    name=name,
+                    event_type=event_type,
+                    do_gcn=do_gcn,
+                )
 
 
 # for running directly with Flask (for debugging)
