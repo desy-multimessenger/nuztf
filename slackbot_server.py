@@ -63,7 +63,7 @@ def message(payload):
         if len(split_text) == 0:
             return
 
-        elif split_text[0] == "NU" or split_text[0] == "nu":
+        elif split_text[0] in ["Scan", "SCAN", "scan"]:
             channel_id = event.get("channel")
 
             if len(split_text) == 1:
@@ -75,6 +75,10 @@ def message(payload):
                     thread_ts=ts,
                 )
                 return
+
+            scan = True
+            display_help = False
+            print(split_text[1])
 
 
 # for running directly with Flask (for debugging)
