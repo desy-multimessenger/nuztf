@@ -6,13 +6,13 @@ import logging
 from base64 import b64encode
 from json import JSONDecodeError
 
-import backoff
 import numpy as np
 import requests
 from astropy.io import fits  # type: ignore
 from astropy.time import Time  # type: ignore
 from requests.auth import HTTPBasicAuth
 
+import backoff
 from nuztf.credentials import load_credentials
 
 API_BASEURL = "https://ampel.zeuthen.desy.de"
@@ -219,8 +219,6 @@ def ensure_cutouts(alert: list, logger=None):
             final_cutouts[f"cutout{k.title()}"] = {
                 "stampData": cutouts[k]  # b64decode(cutouts[k]),
             }
-
-    # alert[0].update({"cutouts": final_cutouts})
 
     alert[0] = {**alert[0], **final_cutouts}
 

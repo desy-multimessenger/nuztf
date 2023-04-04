@@ -302,8 +302,8 @@ def create_stamp_plot(alert: dict, ax, cutout_type: str):
     }
 
     if alert.get(f"cutout{cutout_type}") is None:
-        cutout_type = v3_cutout_names[cutout_type]
-        data = alert[f"cutout{cutout_type}"]["stampData"]["stampData"]
+        v3_cutout_type = v3_cutout_names[cutout_type]
+        data = alert[f"cutout{v3_cutout_type}"]["stampData"]["stampData"]
     else:
         data = alert[f"cutout{cutout_type}"]["stampData"]
 
@@ -318,4 +318,4 @@ def create_stamp_plot(alert: dict, ax, cutout_type: str):
     )
     ax.set_xticks([])
     ax.set_yticks([])
-    ax.set_title(type, fontdict={"fontsize": "small"})
+    ax.set_title(cutout_type, fontdict={"fontsize": "small"})
