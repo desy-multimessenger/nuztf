@@ -13,3 +13,63 @@ slack_events_adapter = SlackEventAdapter(
     os.environ.get("SLACK_EVENTS_TOKEN"), "/slack/events", nuztf_slackbot
 )
 slack_web_client = WebClient(token=os.environ.get("SLACK_TOKEN"))
+
+
+def fuzzy_parameters(param_list) -> list:
+    """ """
+    fuzzy_parameters = []
+    for param in param_list:
+        for character in ["", "-", "--", "–"]:
+            fuzzy_parameters.append(f"{character}{param}")
+    return fuzzy_parameters
+
+
+def get_help_message(user: str) -> str:
+    """
+    Get the help message to display all commands for the user
+    """
+    blocks = [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"Hi <@{user}>. This is a bot for skymap scanning for neutrino/GW/GRB events with AMPEL. Just type *Neutrino IceCube-Name*, or *GW GW-Event*",
+            },
+        }
+    ]
+
+    return blocks
+
+
+ts_old = []
+
+
+@slack_events_adapter.on("message")
+def message(payload):
+    """ """
+    event = payload.get("event", {})
+    text = event.get("text")
+    user = event.get("user")
+    ts = event.get("ts")
+    if ts not in ts_old:
+        ts_old.append(ts)
+
+        text = text.replace("*", "")
+        split_text = text.split()
+        logging.info(split_text)
+
+        if len(split_text) == 0:
+            return
+
+        elif split_text[0] == "NU" or split_text[0] == "nu":
+            channel_id = event.get("channel")
+
+            if len(split_text) == 1:
+                blocks = get_help_message(user)
+                slack_web_client.chat_postMessage(
+                    channel=channel_id,
+                    text=" ",
+                    blocks=blocks,
+                    thread_ts=ts,
+                )
+                return
