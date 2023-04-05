@@ -413,7 +413,7 @@ def ampel_api_healpix(
 @backoff.on_exception(
     backoff.expo,
     requests.exceptions.RequestException,
-    max_time=600,
+    max_time=1200,
 )
 def ampel_api_skymap(
     pixels: list,
@@ -429,7 +429,7 @@ def ampel_api_skymap(
     logger=None,
 ) -> tuple:
     """
-    Function to query ampel based on a healpix pixel-index (nside is the pixelization degree)
+    Function to query ampel based on a list of healpix pixels (nside is the pixelization degree)
     """
 
     if logger is None:
@@ -479,8 +479,8 @@ def ampel_api_skymap(
 
     queryurl_skymap = API_ZTF_ARCHIVE_URL + f"/alerts/healpix/skymap"
 
-    logger.debug(queryurl_skymap)
-    logger.debug(query)
+    logger.debug(f"Query url:\n{queryurl_skymap}")
+    logger.debug(f"Query:\n{query}")
 
     response = requests.post(url=queryurl_skymap, json=query, headers=headers)
 
