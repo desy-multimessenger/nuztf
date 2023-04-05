@@ -59,7 +59,7 @@ class Slackbot:
 
     def create_gcn(self):
         self.nu.plot_overlap_with_observations(first_det_window_days=self.time_window)
-        self.post(f"observations:\n{self.nu.observations}")
+        self.post(f"*Observations*\n{self.nu.observations}")
         gcn = self.nu.draft_gcn()
         self.post(text=gcn)
 
