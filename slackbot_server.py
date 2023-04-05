@@ -6,6 +6,7 @@ import logging
 import os
 
 from flask import Flask  # type: ignore
+from nuztf.utils import is_icecube_name, is_ligo_name
 from slack import WebClient  # type: ignore
 from slackbot import Slackbot
 from slackeventsapi import SlackEventAdapter  # type: ignore
@@ -36,8 +37,10 @@ def fuzzy_parameters(param_list) -> list:
 
 def parse_name(name: str) -> str:
     """ """
-    if name[0:2] == "IC":
+    if is_icecube_name(name):
         return "nu"
+    elif is_ligo_name(name):
+        return "gw"
     else:
         raise ValueError()
 
@@ -108,6 +111,8 @@ def message(payload):
                 message = (
                     f"Hi there; running neutrino scan for *{name}*. One moment please."
                 )
+            elif event_type == "gw":
+                message = f"Hi there; running GW scan for *{name}*. One moment please."
 
             slack_web_client.chat_postMessage(
                 channel=channel_id,
