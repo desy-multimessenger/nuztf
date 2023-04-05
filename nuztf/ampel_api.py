@@ -208,9 +208,19 @@ def ensure_cutouts(alert: list, logger=None):
 
     cutouts = ampel_api_cutout(candid)
 
+    print(cutouts.keys())
+
     if "detail" in cutouts.keys():
+        print(cutouts["detail"])
         if cutouts["detail"] == "Not Found":
-            for k in ["science", "difference", "template"]:
+            for k in [
+                "science",
+                "difference",
+                "template",
+                "Cutoutscience",
+                "Cutoutdifference",
+                "Cutouttemplate",
+            ]:
                 final_cutouts[f"cutout{k.title()}"] = {
                     "stampData": create_empty_cutout()
                 }
