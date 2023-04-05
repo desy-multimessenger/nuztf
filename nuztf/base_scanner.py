@@ -244,7 +244,7 @@ class BaseScanner:
         query_res = []
 
         resume = True
-        chunk_size = 8000
+        chunk_size = 500
         resume_token = None
 
         while resume:

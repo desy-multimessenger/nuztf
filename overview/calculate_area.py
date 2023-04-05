@@ -5,8 +5,8 @@ import logging
 
 import numpy as np
 import pandas as pd
-from ampel.log.AmpelLogger import AmpelLogger
 
+from ampel.log.AmpelLogger import AmpelLogger
 from nuztf.neutrino_scanner import NeutrinoScanner
 from nuztf.parse_nu_gcn import find_gcn_no, get_latest_gcn, parse_gcn_circular
 
@@ -79,6 +79,8 @@ if RECALC:
             correction = np.cos(np.radians(Dec_0))
 
             rectangular_area = RA_width * Dec_width * correction
+            print(rectangular_area)
+            quit()
 
             nu.plot_overlap_with_observations(first_det_window_days=4)
 
@@ -112,7 +114,7 @@ if RECALC:
     df["obs_area_corr"] = corrected_areas
 
     print(df)
-    df.to_csv("areas.csv")
+    # df.to_csv("areas.csv")
 
 else:
     df = pd.read_csv("areas.csv").drop(columns=["Unnamed: 0"])

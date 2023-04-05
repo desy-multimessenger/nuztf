@@ -111,7 +111,10 @@ def find_gcn_no(base_nu_name: str):
             """
             do some filtering based on subjects (there are errorneous event associations on the server)
             """
-            if "neutrino" in (subj := entry["node"]["subject"]) and "event" in subj:
+            if (
+                "neutrino" in (subj := entry["node"]["subject"])
+                and "high-energy" in subj
+            ):
                 received_date.append(entry["node"]["received"])
                 circular_nr.append(entry["node"]["cid"])
         """
