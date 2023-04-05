@@ -37,30 +37,38 @@ class Slackbot:
         else:
             self.time_window = time_window
 
-        self.nu = NeutrinoScanner(self.name)
-        self.nu.scan_area(t_max=self.nu.t_min + self.time_window)
+        self.scanner: NeutrinoScanner | SkymapScanner
+
+        if self.event_type == "nu":
+            self.scanner = NeutrinoScanner(self.name)
+        elif self.event_type == "gw":
+            self.scanner = SkymapScanner(self.name)
+
+        self.scanner.scan_area(t_max=self.scanner.t_min + self.time_window)
 
         scan_message = "Scanning done."
-        if len(self.nu.cache) > 0:
-            scan_message += f" Found {len(self.nu.cache)} candidates:\n\n"
-            for entry in list(self.nu.cache.keys()):
+        if len(self.scanner.cache) > 0:
+            scan_message += f" Found {len(self.scanner.cache)} candidates:\n\n"
+            for entry in list(self.scanner.cache.keys()):
                 scan_message += f"{entry}\n"
         else:
             scan_message += "\nNo candidates found."
 
         self.post(scan_message)
 
-        if len(self.nu.cache) > 0:
-            pdf_overview_path = self.nu.summary_path + ".pdf"
+        if len(self.scanner.cache) > 0:
+            pdf_overview_path = self.scanner.summary_path + ".pdf"
             self.post_file(pdf_overview_path, f"{self.name} candidates")
 
-        if do_gcn and len(self.nu.cache) > 0:
+        if do_gcn and len(self.scanner.cache) > 0:
             self.create_gcn()
 
     def create_gcn(self):
-        self.nu.plot_overlap_with_observations(first_det_window_days=self.time_window)
-        self.post(f"*Observations*\n{self.nu.observations}")
-        gcn = self.nu.draft_gcn()
+        self.scanner.plot_overlap_with_observations(
+            first_det_window_days=self.time_window
+        )
+        self.post(f"*Observations*\n{self.scanner.observations}")
+        gcn = self.scanner.draft_gcn()
         self.post(text=gcn)
 
     def post(self, text: str):
