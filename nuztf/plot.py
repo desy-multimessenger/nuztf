@@ -16,7 +16,7 @@ from matplotlib.colors import Normalize
 from matplotlib.ticker import MultipleLocator
 from ztfquery.utils.stamps import get_ps_stamp
 
-from nuztf.ampel_api import ensure_cutouts
+from nuztf.ampel_api import create_empty_cutout, ensure_cutouts
 from nuztf.cat_match import get_cross_match_info
 from nuztf.utils import cosmo
 
@@ -301,9 +301,17 @@ def create_stamp_plot(alert: dict, ax, cutout_type: str):
         "Difference": "Cutoutdifference",
     }
 
+    # print(alert.keys())
+
     if alert.get(f"cutout{cutout_type}") is None:
         v3_cutout_type = v3_cutout_names[cutout_type]
-        data = alert[f"cutout{v3_cutout_type}"]["stampData"]["stampData"]
+        _data = alert.get(f"cutout{v3_cutout_type}", {}).get("stampData", {})
+        if _data is not None:
+            data = _data.get("stampData")
+        else:
+            data = None
+        if data is None:
+            data = create_empty_cutout()
     else:
         data = alert[f"cutout{cutout_type}"]["stampData"]
 
