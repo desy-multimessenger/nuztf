@@ -15,7 +15,36 @@ from nuztf.credentials import load_credentials
 
 # same cosmology everywhere
 cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
-# test
+
+
+def is_icecube_name(name) -> bool:
+    """
+    Checks if a string adheres to the IceCube naming scheme
+    (e.g. IC201021B)
+    """
+    if re.match(
+        r"^IC((\d{2}((0[13578]|1[02])(0[1-9]|[12]\d|3[01])|(0[13456789]|1[012])(0[1-9]|[12]\d|30)|02(0[1-9]|1\d|2[0-8])))|([02468][048]|[13579][26])0229)[a-zA-Z]$",
+        name,
+    ):
+        match = True
+    else:
+        match = False
+    return match
+
+
+def is_ligo_name(name) -> bool:
+    """
+    Checks if a string adheres to the LVT naming scheme
+    (e.g. S190814bv)
+    """
+    if re.match(
+        r"^S((\d{2}((0[13578]|1[02])(0[1-9]|[12]\d|3[01])|(0[13456789]|1[012])(0[1-9]|[12]\d|30)|02(0[1-9]|1\d|2[0-8])))|([02468][048]|[13579][26])0229)[a-z]{1,4}$",
+        name,
+    ):
+        match = True
+    else:
+        match = False
+    return match
 
 
 def is_ztf_name(name: str) -> bool:
@@ -23,10 +52,10 @@ def is_ztf_name(name: str) -> bool:
     Checks if a string adheres to the ZTF naming scheme
     """
     if re.match(r"^ZTF[1-2]\d[a-z]{7}$", name):
-        matches = True
+        match = True
     else:
-        matches = False
-    return matches
+        match = False
+    return match
 
 
 def is_tns_name(name: str) -> bool:
