@@ -208,10 +208,7 @@ def ensure_cutouts(alert: list, logger=None):
 
     cutouts = ampel_api_cutout(candid)
 
-    print(cutouts.keys())
-
     if "detail" in cutouts.keys():
-        print(cutouts["detail"])
         if cutouts["detail"] == "Not Found":
             for k in [
                 "science",
@@ -226,9 +223,7 @@ def ensure_cutouts(alert: list, logger=None):
                 }
     else:
         for k in cutouts:
-            final_cutouts[f"cutout{k.title()}"] = {
-                "stampData": cutouts[k]  # b64decode(cutouts[k]),
-            }
+            final_cutouts[f"cutout{k.title()}"] = {"stampData": cutouts[k]}
 
     alert[0] = {**alert[0], **final_cutouts}
 
