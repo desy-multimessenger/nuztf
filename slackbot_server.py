@@ -42,7 +42,7 @@ def parse_name(name: str) -> str:
     elif is_ligo_name(name):
         return "gw"
     else:
-        raise ValueError()
+        return "invalid"
 
 
 def get_help_message(user: str) -> list[dict]:
@@ -114,6 +114,10 @@ def message(payload):
             elif event_type == "gw":
                 message = f"Hi there; running GW scan for *{name}*. One moment please."
 
+            elif event_type == "invalid":
+                message = f"Hi there; please enter either the name of a GW event (e.g. S190814bv) or a neutrino event (e.g. IC200620A)."
+                do_scan = False
+
             slack_web_client.chat_postMessage(
                 channel=channel_id,
                 text=message,
@@ -128,6 +132,8 @@ def message(payload):
                     event_type=event_type,
                     do_gcn=do_gcn,
                 )
+            else:
+                return
 
 
 # for running directly with Flask (for debugging)
