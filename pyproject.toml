@@ -50,7 +50,7 @@ slackeventsapi = {version = "^3.0.1", optional = true}
 
 [tool.poetry.dev-dependencies]
 coveralls = "^3.3.1"
-pytest = "^7.2.2"
+pytest = "^7.3.0"
 
 [tool.poetry.extras]
 slackbot = ["slackclient", "gunicorn", "slackeventsapi", "flask"]
