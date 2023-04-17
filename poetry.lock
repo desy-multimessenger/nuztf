@@ -1788,13 +1788,13 @@ tornado = ["tornado (>=0.2)"]
 
 [[package]]
 name = "gwemopt"
-version = "0.0.80"
+version = "0.0.84"
 description = "A python package for GW-EM Followup Optimization"
 category = "main"
 optional = false
 python-versions = "*"
 files = [
-    {file = "gwemopt-0.0.80.tar.gz", hash = "sha256:692d596fd3b998ad03004917903cebc4dbaf8e978315ff7156b3afda0975d8c9"},
+    {file = "gwemopt-0.0.84.tar.gz", hash = "sha256:2071d823df94ef742bced488abba32cd3bd5819371bccbd2a5636de3bb739f25"},
 ]
 
 [package.dependencies]
@@ -5687,4 +5687,4 @@ slackbot = ["slackclient", "gunicorn", "slackeventsapi", "flask"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.12"
-content-hash = "682da18a0200cefc8c70c6ce8aeb79cfe68ac9f9e4d9f0af9cfb95803e1108cb"
+content-hash = "63151a7cd92e27293dddde7040b32c25bca346c97eab13a649982da30c85c077"
