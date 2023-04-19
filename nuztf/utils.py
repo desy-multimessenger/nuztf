@@ -3,15 +3,15 @@
 
 import json
 import logging
+import math
 import re
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from json import JSONDecodeError
 
 import requests
 from astropy.cosmology import FlatLambdaCDM
-from requests.auth import HTTPBasicAuth
-
 from nuztf.credentials import load_credentials
+from requests.auth import HTTPBasicAuth
 
 # same cosmology everywhere
 cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
@@ -67,6 +67,41 @@ def is_tns_name(name: str) -> bool:
     else:
         matches = False
     return matches
+
+
+def deres(nside, ipix, min_nside=1):
+    """
+    Originally from Ampel-ZTF-archive/ampel/ztf/archive/server (by JvS)
+
+    Decompose a set of (nested) HEALpix indices into sets of complete superpixels at lower resolutions.
+    :param nside: nside of given indices
+    :param ipix: pixel indices
+    :min_nside: minimum nside of complete pixels
+    """
+    remaining_pixels = set(ipix)
+    decomposed = defaultdict(list)
+    for log2_nside in range(int(math.log2(min_nside)), int(math.log2(nside)) + 1):
+        super_nside = 2**log2_nside
+        # number of base_nside pixels per nside superpixel
+        scale = (nside // super_nside) ** 2
+        # sort remaining base_nside pixels by superpixel
+        by_superpixel = defaultdict(list)
+        for pix in remaining_pixels:
+            by_superpixel[pix // scale].append(pix)
+        # represent sets of pixels that fill a superpixel
+        # as a single superpixel, and remove from the working set
+        for superpix, members in by_superpixel.items():
+            if len(members) == scale:
+                decomposed[super_nside].append(superpix)
+                remaining_pixels.difference_update(members)
+
+    result = dict(decomposed)
+    res_list = []
+
+    for nside, pixels in result.items():
+        res_list.append({"nside": nside, "pixels": pixels})
+
+    return res_list
 
 
 def query_tns_by_name(name, logger=None):

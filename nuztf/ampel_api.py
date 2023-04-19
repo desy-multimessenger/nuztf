@@ -6,14 +6,14 @@ import logging
 from base64 import b64encode
 from json import JSONDecodeError
 
+import backoff
 import numpy as np
 import requests
 from astropy.io import fits  # type: ignore
 from astropy.time import Time  # type: ignore
-from requests.auth import HTTPBasicAuth
-
-import backoff
 from nuztf.credentials import load_credentials
+from nuztf.utils import deres
+from requests.auth import HTTPBasicAuth
 
 API_BASEURL = "https://ampel.zeuthen.desy.de"
 API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive/v3"
@@ -458,9 +458,11 @@ def ampel_api_skymap(
         lt = "$lt"
         gt = "$gt"
 
+    # Now we reduce the query size
+    regions = deres(nside=nside, ipix=pixels)
+
     query = {
-        "nside": nside,
-        "pixels": pixels,
+        "regions": regions,
         "jd": {
             lt: t_max_jd,
             gt: t_min_jd,
