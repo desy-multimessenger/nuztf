@@ -97,8 +97,12 @@ class SkymapScanner(BaseScanner):
         self.queue = []
 
         resume = True
-        chunk_size = 8000
+        chunk_size = 2000
         resume_token = None
+
+        i = 0
+        total_chunks = 0
+        t0 = time.time()
 
         while resume:
             res, resume_token, chunk_id, remaining_chunks = ampel_api_skymap(
