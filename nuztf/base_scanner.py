@@ -278,7 +278,7 @@ class BaseScanner:
                 time_per_chunk = (t1 - t0) / processed_chunks
                 remaining_time = time_per_chunk * remaining_chunks
                 self.logger.info(
-                    f"Remaining chunks: {remaining_chunks}. Estimated time: {remaining_time} s"
+                    f"Remaining chunks: {remaining_chunks}. Estimated time to finish: {remaining_time/60:.0f} min"
                 )
 
             if len(res) < chunk_size:
