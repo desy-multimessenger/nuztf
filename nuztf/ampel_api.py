@@ -11,9 +11,10 @@ import numpy as np
 import requests
 from astropy.io import fits  # type: ignore
 from astropy.time import Time  # type: ignore
+from requests.auth import HTTPBasicAuth
+
 from nuztf.credentials import load_credentials
 from nuztf.utils import deres
-from requests.auth import HTTPBasicAuth
 
 API_BASEURL = "https://ampel.zeuthen.desy.de"
 API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive/v3"
@@ -415,6 +416,36 @@ def ampel_api_healpix(
     requests.exceptions.RequestException,
     max_time=1200,
 )
+def ampel_api_acknowledge_chunk(resume_token: str, chunk_id: int, logger=None):
+    """
+    After receiving a chunk, acknowledge that we got it
+    (otherwise large alert queries will start looping)
+    """
+    if logger is None:
+        logger = logging.getLogger(__name__)
+
+    endpoint = (
+        API_ZTF_ARCHIVE_URL + f"/stream/{resume_token}/chunk/{chunk_id}/acknowledge"
+    )
+
+    headers = {
+        "accept": "application/json",
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {ampel_api_archive_token}",
+    }
+
+    payload = {"resume_token": resume_token, "chunk_id": chunk_id}
+
+    logger.debug(f"Acknowledging:\n{payload}")
+
+    response = requests.post(url=endpoint, json=payload, headers=headers)
+
+
+@backoff.on_exception(
+    backoff.expo,
+    requests.exceptions.RequestException,
+    max_time=1200,
+)
 def ampel_api_skymap(
     pixels: list,
     nside: int = 64,
@@ -493,6 +524,10 @@ def ampel_api_skymap(
         raise requests.exceptions.RequestException
 
     try:
+        res_json = response.json()
+        remaining_chunks = res_json["remaining"]["chunks"]
+        logger.info(f"Remaining chunks: {remaining_chunks}")
+        chunk_id = res_json["chunk"]
         resume_token = response.json()["resume_token"]
         query_res = [i for i in response.json()["alerts"]]
     except JSONDecodeError:
@@ -509,7 +544,7 @@ def ampel_api_skymap(
             f"Query result limited by chunk size! You will most likely be missing alerts!"
         )
 
-    return query_res, resume_token
+    return query_res, resume_token, chunk_id, remaining_chunks
 
 
 @backoff.on_exception(

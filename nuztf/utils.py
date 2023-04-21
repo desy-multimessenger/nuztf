@@ -95,13 +95,13 @@ def deres(nside, ipix, min_nside=1):
                 decomposed[super_nside].append(superpix)
                 remaining_pixels.difference_update(members)
 
-    result = dict(decomposed)
-    res_list = []
+    decomposed_dict = dict(decomposed)
 
-    for nside, pixels in result.items():
-        res_list.append({"nside": nside, "pixels": pixels})
+    healpix_regions = [
+        {"nside": nside, "pixels": pixels} for nside, pixels in decomposed_dict.items()
+    ]
 
-    return res_list
+    return healpix_regions
 
 
 def query_tns_by_name(name, logger=None):

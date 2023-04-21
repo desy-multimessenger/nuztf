@@ -5,11 +5,16 @@ import logging
 import os
 import pickle
 
+import backoff
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas
 import requests
+from ampel.ztf.alert.ZiAlertSupplier import ZiAlertSupplier
+from ampel.ztf.dev.DevAlertConsumer import DevAlertConsumer
+from ampel.ztf.dev.ZTFAlert import ZTFAlert
+from ampel.ztf.t0.DecentFilter import DecentFilter
 from astropy import units as u
 from astropy.coordinates import Distance, SkyCoord
 from astropy.cosmology import FlatLambdaCDM
@@ -18,14 +23,10 @@ from matplotlib.backends.backend_pdf import PdfPages
 from tqdm import tqdm
 from ztfquery import fields as ztfquery_fields
 
-import backoff
 import healpy as hp
-from ampel.ztf.alert.ZiAlertSupplier import ZiAlertSupplier
-from ampel.ztf.dev.DevAlertConsumer import DevAlertConsumer
-from ampel.ztf.dev.ZTFAlert import ZTFAlert
-from ampel.ztf.t0.DecentFilter import DecentFilter
 from gwemopt.ztf_tiling import get_quadrant_ipix
 from nuztf.ampel_api import (
+    ampel_api_acknowledge_chunk,
     ampel_api_cone,
     ampel_api_lightcurve,
     ampel_api_name,
@@ -244,11 +245,11 @@ class BaseScanner:
         query_res = []
 
         resume = True
-        chunk_size = 500
+        chunk_size = 1000
         resume_token = None
 
         while resume:
-            res, resume_token = ampel_api_skymap(
+            res, resume_token, chunk_id, remaining_chunks = ampel_api_skymap(
                 pixels=self.cone_ids,
                 nside=self.cone_nside,
                 t_min_jd=t_min.jd,
@@ -259,6 +260,8 @@ class BaseScanner:
                 warn_exceeding_chunk=False,
             )
             query_res.extend(res)
+
+            ampel_api_acknowledge_chunk(resume_token=resume_token, chunk_id=chunk_id)
 
             if len(res) < chunk_size:
                 resume = False
