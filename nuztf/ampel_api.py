@@ -526,7 +526,7 @@ def ampel_api_skymap(
     try:
         res_json = response.json()
         remaining_chunks = res_json["remaining"]["chunks"]
-        logger.info(f"Remaining chunks: {remaining_chunks}")
+        logger.debug(f"Remaining chunks: {remaining_chunks}")
         chunk_id = res_json["chunk"]
         resume_token = response.json()["resume_token"]
         query_res = [i for i in response.json()["alerts"]]

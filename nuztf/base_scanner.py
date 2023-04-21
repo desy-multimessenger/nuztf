@@ -263,11 +263,14 @@ class BaseScanner:
 
             ampel_api_acknowledge_chunk(resume_token=resume_token, chunk_id=chunk_id)
 
+            if remaining_chunks % 10 == 0:
+                self.logger.info(f"Remaining Chunks: {remaining_chunks}")
+
             if len(res) < chunk_size:
                 resume = False
                 self.logger.info("Done.")
             else:
-                self.logger.info(
+                self.logger.debug(
                     f"Chunk size reached ({chunk_size}), commencing next query."
                 )
 

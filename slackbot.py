@@ -3,15 +3,32 @@
 
 import logging
 import os
+from logging import Handler
 from pathlib import Path
 
 from astropy.time import Time  # type: ignore
+from slack import WebClient  # type: ignore
 
 from nuztf.neutrino_scanner import NeutrinoScanner
 from nuztf.skymap_scanner import SkymapScanner
-from slack import WebClient  # type: ignore
 
 logging.basicConfig()
+
+
+class SlackLogHandler(Handler):
+    def __init__(self, channel: str, ts: str, webclient: WebClient):
+        Handler.__init__(self)
+
+        self.webclient = webclient
+        self.channel = channel
+        self.ts = ts
+
+    def emit(self, record) -> None:
+        self.webclient.chat_postMessage(
+            channel=self.channel,
+            thread_ts=self.ts,
+            text=record,
+        )
 
 
 class Slackbot:
@@ -44,9 +61,13 @@ class Slackbot:
         elif self.event_type == "gw":
             self.scanner = SkymapScanner(self.name)
 
+        self.scanner.logger = SlackLogHandler(
+            channel=self.channel, ts=self.ts, webclient=self.webclient
+        )
         self.scanner.scan_area(t_max=self.scanner.t_min + self.time_window)
 
         scan_message = "Scanning done."
+
         if len(self.scanner.cache) > 0:
             scan_message += f" Found {len(self.scanner.cache)} candidates:\n\n"
             for entry in list(self.scanner.cache.keys()):
