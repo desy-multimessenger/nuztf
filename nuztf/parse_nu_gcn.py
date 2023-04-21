@@ -192,22 +192,33 @@ def parse_radec(string: str):
 
 
 def parse_gcn_circular(gcn_number: int):
-    """ """
-    url = f"https://gcn.gsfc.nasa.gov/gcn3/{gcn_number}.gcn3"
-    response = requests.get(url)
+    """
+    Parse the content of the Circular in question
+    """
+
     returndict = {}
     mainbody_starts_here = 999
-    splittext = response.text.splitlines()
+
+    endpoint = f"https://gcn.nasa.gov/circulars/{gcn_number}/json"
+    res = requests.get(endpoint)
+    res_json = res.json()
+
+    subject = res_json.get("subject")
+    submitter = res_json.get("submitter")
+    body = res_json.get("body")
+
+    base = submitter.split("at")[0].split(" ")
+    author = [x for x in base if x != ""][1]
+    returndict.update({"author": author})
+
+    name = subject.split(" - ")[0]
+    returndict.update({"name": name})
+
+    splittext = body.splitlines()
     splittext = list(filter(None, splittext))
+
     for i, line in enumerate(splittext):
-        if "SUBJECT" in line:
-            name = line.split(" - ")[0].split(": ")[1]
-            returndict.update({"name": name})
-        elif "FROM" in line:
-            base = line.split("at")[0].split(": ")[1].split(" ")
-            author = [x for x in base if x != ""][1]
-            returndict.update({"author": author})
-        elif (
+        if (
             ("RA" in line or "Ra" in line)
             and ("DEC" in splittext[i + 1] or "Dec" in splittext[i + 1])
             and i < mainbody_starts_here
