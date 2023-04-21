@@ -314,9 +314,11 @@ class BaseScanner:
 
         ztf_ids_first_stage = list(set(ztf_ids_first_stage))
 
-        self.logger.info(f"{len(ztf_ids_first_stage)} candidates survive filtering")
+        self.logger.info(
+            f"{len(ztf_ids_first_stage)} candidates survive filtering stage 1"
+        )
 
-        self.logger.info(f"Retrieving alert history from AMPEL")
+        self.logger.info(f"Retrieving alert history from AMPEL for filtering stage 2")
 
         results = self.ampel_object_search(ztf_ids=ztf_ids_first_stage)
 
