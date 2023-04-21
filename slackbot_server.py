@@ -6,8 +6,9 @@ import logging
 import os
 
 from flask import Flask  # type: ignore
-from nuztf.utils import is_icecube_name, is_ligo_name
 from slack import WebClient  # type: ignore
+
+from nuztf.utils import is_icecube_name, is_ligo_name
 from slackbot import Slackbot
 from slackeventsapi import SlackEventAdapter  # type: ignore
 
@@ -19,10 +20,22 @@ slack_events_adapter = SlackEventAdapter(
 slack_web_client = WebClient(token=os.environ.get("SLACK_TOKEN"))
 
 
-def scan(channel, ts, name: str, event_type: str, do_gcn: bool):
+def scan(
+    channel: str,
+    ts: str,
+    name: str,
+    event_type: str,
+    do_gcn: bool,
+    time_window: int | None,
+):
     """ """
     slack_bot = Slackbot(
-        channel=channel, ts=ts, name=name, event_type=event_type, do_gcn=do_gcn
+        channel=channel,
+        ts=ts,
+        name=name,
+        event_type=event_type,
+        do_gcn=do_gcn,
+        time_window=time_window,
     )
 
 
@@ -98,9 +111,23 @@ def message(payload):
                 )
                 return
 
+            time_window = None
+
             for i, parameter in enumerate(split_text):
                 if parameter in fuzzy_parameters(["gcn", "GCN"]):
                     do_gcn = True
+                elif parameter in fuzzy_parameters(
+                    ["window", "timewindow", "time-window"]
+                ):
+                    try:
+                        time_window = int(split_message[i + 1])
+                    except ValueError:
+                        wc.chat_postMessage(
+                            channel=channel_id,
+                            text="Error: --window has to be an integer.",
+                            thread_ts=ts,
+                        )
+                        return
 
             do_scan = True
             display_help = False
@@ -109,13 +136,13 @@ def message(payload):
 
             if event_type == "nu":
                 message = (
-                    f"Hi there; running neutrino scan for *{name}*. One moment please."
+                    f"Hi there; running a neutrino scan for *{name}*. One moment please"
                 )
             elif event_type == "gw":
-                message = f"Hi there; running GW scan for *{name}*. One moment please."
+                message = f"Hi there; running a GW scan for *{name}*. One moment please"
 
             elif event_type == "invalid":
-                message = f"Hi there; please enter either the name of a GW event (e.g. S190814bv) or a neutrino event (e.g. IC200620A)."
+                message = f"Hi there; please enter either the name of a GW event (e.g. S190814bv) or a neutrino event (e.g. IC200620A)"
                 do_scan = False
 
             slack_web_client.chat_postMessage(
@@ -131,6 +158,7 @@ def message(payload):
                     name=name,
                     event_type=event_type,
                     do_gcn=do_gcn,
+                    time_window=time_window,
                 )
             else:
                 return
