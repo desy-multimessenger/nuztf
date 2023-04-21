@@ -120,7 +120,7 @@ def message(payload):
                     ["window", "timewindow", "time-window"]
                 ):
                     try:
-                        time_window = int(split_message[i + 1])
+                        time_window = int(split_text[i + 1])
                     except ValueError:
                         wc.chat_postMessage(
                             channel=channel_id,
