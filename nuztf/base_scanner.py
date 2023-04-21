@@ -532,8 +532,8 @@ class BaseScanner:
         else:
             csv_path = outfile
 
-        self.logger.info(f"Creating overview csv_path at {csv_path}")
-        self.logger.debug(f"Saving overview csv to {csv_path}")
+        self.logger.info(f"Creating overview csv")
+        self.logger.debug(f"Saving to: {csv_path}")
 
         ztf_ids = []
         ras = []
