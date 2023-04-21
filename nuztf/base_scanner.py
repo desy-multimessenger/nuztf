@@ -501,7 +501,8 @@ class BaseScanner:
         else:
             pdf_path = outfile
 
-        self.logger.info(f"Saving lightcurves to: {pdf_path}")
+        self.logger.info("Creating overview pdf")
+        self.logger.debug(f"Saving to: {pdf_path}")
 
         with PdfPages(pdf_path) as pdf:
             for name, alert in tqdm(sorted(self.cache.items())):
@@ -522,7 +523,8 @@ class BaseScanner:
         else:
             csv_path = outfile
 
-        self.logger.info(f"Saving overview table to {csv_path}")
+        self.logger.info(f"Creating overview csv_path at {csv_path}")
+        self.logger.debug(f"Saving overview csv to {csv_path}")
 
         ztf_ids = []
         ras = []
