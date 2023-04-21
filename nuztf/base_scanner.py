@@ -4,6 +4,7 @@
 import logging
 import os
 import pickle
+import timeit
 
 import backoff
 import matplotlib.patches as mpatches
@@ -268,7 +269,7 @@ class BaseScanner:
             if i == 0:
                 self.logger.info(f"Total chunks: {remaining_chunks+1}")
 
-            if remaining_chunks % 50 == 0:
+            if remaining_chunks % 50 == 0 and remaining_chunks != 0:
                 self.logger.info(f"Remaining chunks: {remaining_chunks}")
 
             if len(res) < chunk_size:
@@ -280,9 +281,8 @@ class BaseScanner:
                 )
             i += 1
 
-        self.logger.info(
-            f"Before filtering: Found {len(query_res)} candidates. Commencing filtering now."
-        )
+        self.logger.info(f"Ingested {len(query_res)} alerts. Commencing filtering now.")
+
         return query_res
 
     def scan_area(
