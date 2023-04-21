@@ -53,7 +53,10 @@ class Slackbot:
         self.webclient = WebClient(token=os.environ.get("SLACK_TOKEN"))
 
         if time_window is None:
-            self.time_window = 10
+            if self.event_type == "nu":
+                self.time_window = 10
+            elif self.event_type == "gw":
+                self.time_window = 2
         else:
             self.time_window = time_window
 
