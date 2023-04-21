@@ -12,7 +12,11 @@ import numpy as np
 import yaml
 from astropy.time import Time
 from astropy_healpix import HEALPix
-from nuztf.ampel_api import ampel_api_lightcurve, ampel_api_skymap
+from nuztf.ampel_api import (
+    ampel_api_acknowledge_chunk,
+    ampel_api_lightcurve,
+    ampel_api_skymap,
+)
 from nuztf.base_scanner import BaseScanner
 from nuztf.skymap import Skymap
 from tqdm import tqdm
