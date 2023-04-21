@@ -4,7 +4,7 @@
 import logging
 import os
 import pickle
-import timeit
+import time
 
 import backoff
 import matplotlib.patches as mpatches
@@ -250,6 +250,8 @@ class BaseScanner:
         resume_token = None
 
         i = 0
+        total_chunks = 0
+        t0 = time.time()
 
         while resume:
             res, resume_token, chunk_id, remaining_chunks = ampel_api_skymap(
@@ -267,10 +269,17 @@ class BaseScanner:
             ampel_api_acknowledge_chunk(resume_token=resume_token, chunk_id=chunk_id)
 
             if i == 0:
-                self.logger.info(f"Total chunks: {remaining_chunks+1}")
+                total_chunks = remaining_chunks + 1
+                self.logger.info(f"Total chunks: {total_chunks}")
 
             if remaining_chunks % 50 == 0 and remaining_chunks != 0:
-                self.logger.info(f"Remaining chunks: {remaining_chunks}")
+                t1 = time.time()
+                processed_chunks = total_chunks - remaining_chunks
+                time_per_chunk = (t1 - t0) / processed_chunks
+                remaining_time = time_per_chunk * remaining_chunks
+                self.logger.info(
+                    f"Remaining chunks: {remaining_chunks}. Estimated time: {remaining_time} s"
+                )
 
             if len(res) < chunk_size:
                 resume = False
