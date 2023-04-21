@@ -193,7 +193,8 @@ def parse_radec(string: str):
 
 def parse_gcn_circular(gcn_number: int):
     """
-    Parse the content of the Circular in question
+    Parses the handwritten text of a given GCN;
+    extracts author, time and RA/Dec (with errors)
     """
 
     returndict = {}
