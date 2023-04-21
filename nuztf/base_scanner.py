@@ -512,7 +512,9 @@ class BaseScanner:
         else:
             pdf_path = outfile
 
-        self.logger.info("Creating overview pdf")
+        self.logger.info(
+            "Creating overview pdf (this might take a moment as it involves catalog matching)"
+        )
         self.logger.debug(f"Saving to: {pdf_path}")
 
         with PdfPages(pdf_path) as pdf:
