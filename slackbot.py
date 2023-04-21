@@ -23,12 +23,15 @@ class SlackLogHandler(Handler):
         self.channel = channel
         self.ts = ts
 
-    def emit(self, record) -> None:
+    def info(self, record) -> None:
         self.webclient.chat_postMessage(
             channel=self.channel,
             thread_ts=self.ts,
             text=record,
         )
+
+    def debug(self, record) -> None:
+        return None
 
 
 class Slackbot:

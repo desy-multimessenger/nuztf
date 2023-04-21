@@ -248,6 +248,8 @@ class BaseScanner:
         chunk_size = 2000
         resume_token = None
 
+        i = 0
+
         while resume:
             res, resume_token, chunk_id, remaining_chunks = ampel_api_skymap(
                 pixels=self.cone_ids,
@@ -263,8 +265,11 @@ class BaseScanner:
 
             ampel_api_acknowledge_chunk(resume_token=resume_token, chunk_id=chunk_id)
 
-            if remaining_chunks % 10 == 0:
-                self.logger.info(f"Remaining Chunks: {remaining_chunks}")
+            if i == 0:
+                self.logger.info(f"Total chunks: {remaining_chunks+1}")
+
+            if remaining_chunks % 50 == 0:
+                self.logger.info(f"Remaining chunks: {remaining_chunks}")
 
             if len(res) < chunk_size:
                 resume = False
@@ -273,6 +278,7 @@ class BaseScanner:
                 self.logger.debug(
                     f"Chunk size reached ({chunk_size}), commencing next query."
                 )
+            i += 1
 
         self.logger.info(
             f"Before filtering: Found {len(query_res)} candidates. Commencing filtering now."
