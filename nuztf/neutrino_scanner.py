@@ -169,7 +169,7 @@ class NeutrinoScanner(BaseScanner):
             )
             return False
 
-        self.logger.info(f"{ztf_id}: Passes first filtering stage.")
+        self.logger.debug(f"{ztf_id}: Passes first filtering stage.")
         return True
 
     def filter_f_history(self, res: dict):
