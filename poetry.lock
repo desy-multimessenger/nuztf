@@ -2584,13 +2584,13 @@ test = ["pytest"]
 
 [[package]]
 name = "ligo-gracedb"
-version = "2.10.0"
+version = "2.11.0"
 description = "A Python package for accessing the GraceDB API."
 category = "main"
 optional = false
 python-versions = "*"
 files = [
-    {file = "ligo-gracedb-2.10.0.tar.gz", hash = "sha256:b3e7cf03cff8c80c5e833b94f5acd08da7a2f8633cdcc475a23589a73d8d03d6"},
+    {file = "ligo-gracedb-2.11.0.tar.gz", hash = "sha256:88759dc6602e9ddc792379d188b78e6a7434c77717619d7438f1bf028a1d54da"},
 ]
 
 [package.dependencies]
