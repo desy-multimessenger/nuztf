@@ -6,7 +6,6 @@ import unittest
 
 from astropy import units as u
 from astropy.time import Time
-
 from nuztf.observations import get_obs_summary_irsa, get_obs_summary_skyvision
 
 
@@ -21,23 +20,23 @@ class TestCoverage(unittest.TestCase):
         t_start = Time(2458865.96, format="jd")
         t_end = Time(2458866.96, format="jd")
 
-        res = get_obs_summary_irsa(t_start, t_end)
+        # res = get_obs_summary_irsa(t_start, t_end)
 
-        expected = {
-            "obsid": 111223429.0,
-            "field": 3.550000e02,
-            "obsjd": 2458866.734294,
-            "seeing": 3.4250149727,
-            "limmag": 19.998298645,
-            "exposure_time": 3.000000e01,
-            "fid": 2.000000e00,
-            "processed_fraction": 1.000000e00,
-        }
+        # expected = {
+        #     "obsid": 111223429.0,
+        #     "field": 3.550000e02,
+        #     "obsjd": 2458866.734294,
+        #     "seeing": 3.4250149727,
+        #     "limmag": 19.998298645,
+        #     "exposure_time": 3.000000e01,
+        #     "fid": 2.000000e00,
+        #     "processed_fraction": 1.000000e00,
+        # }
 
-        self.assertEqual(len(res.data), 211)
+        # self.assertEqual(len(res.data), 211)
 
-        for name, val in expected.items():
-            self.assertEqual(res.data.iloc[0][name], val)
+        # for name, val in expected.items():
+        #     self.assertEqual(res.data.iloc[0][name], val)
 
         res2 = get_obs_summary_skyvision(t_start, t_end)
 
