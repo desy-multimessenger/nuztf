@@ -11,10 +11,9 @@ import numpy as np
 import requests
 from astropy.io import fits  # type: ignore
 from astropy.time import Time  # type: ignore
-from requests.auth import HTTPBasicAuth
-
 from nuztf.credentials import load_credentials
 from nuztf.utils import deres
+from requests.auth import HTTPBasicAuth
 
 API_BASEURL = "https://ampel.zeuthen.desy.de"
 API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive/v3"
@@ -527,8 +526,8 @@ def ampel_api_skymap(
         res_json = response.json()
         remaining_chunks = res_json["remaining"]["chunks"]
         logger.debug(f"Remaining chunks: {remaining_chunks}")
-        chunk_id = res_json["chunk"]
-        resume_token = response.json()["resume_token"]
+        chunk_id = res_json.get("chunk", None)
+        resume_token = response.json().get("resume_token", None)
         query_res = [i for i in response.json()["alerts"]]
     except JSONDecodeError:
         if response.headers:
