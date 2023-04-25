@@ -7,8 +7,8 @@ from logging import Handler
 from pathlib import Path
 
 from astropy.time import Time  # type: ignore
-from nutzf.skymap import EventNotFound
 from nuztf.neutrino_scanner import NeutrinoScanner
+from nuztf.skymap import EventNotFound
 from nuztf.skymap_scanner import SkymapScanner
 from slack import WebClient  # type: ignore
 
