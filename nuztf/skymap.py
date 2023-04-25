@@ -16,10 +16,17 @@ from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.time import Time
 from astropy_healpix import HEALPix
+from ligo.gracedb.exceptions import HTTPError
 from ligo.skymap.moc import rasterize
 from lxml import html
 from numpy.lib.recfunctions import append_fields
 from ztfquery.io import LOCALSOURCE
+
+
+class EventNotFound(Exception):
+    """Base class for non-existing event"""
+
+    pass
 
 
 class Skymap:
@@ -181,7 +188,18 @@ class Skymap:
             ]
             event_name = superevent_ids[0]
 
-        voevents = ligo_client.voevents(event_name).json()["voevents"]
+        try:
+            res = ligo_client.voevents(event_name)
+            if res.status_code == 200:
+                voevents = res.json()["voevents"]
+            else:
+                raise EventNotFound(
+                    f"The specified LIGO event, {event_name}, was not found on GraceDB. Please check that you entered the correct event name."
+                )
+        except HTTPError:
+            raise EventNotFound(
+                f"The specified LIGO event, {event_name}, was not found on GraceDB. Please check that you entered the correct event name."
+            )
 
         if rev is None:
             rev = len(voevents)

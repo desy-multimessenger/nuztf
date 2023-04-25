@@ -7,10 +7,10 @@ from logging import Handler
 from pathlib import Path
 
 from astropy.time import Time  # type: ignore
-from slack import WebClient  # type: ignore
-
+from nutzf.skymap import EventNotFound
 from nuztf.neutrino_scanner import NeutrinoScanner
 from nuztf.skymap_scanner import SkymapScanner
+from slack import WebClient  # type: ignore
 
 logging.basicConfig()
 
@@ -65,7 +65,13 @@ class Slackbot:
         if self.event_type == "nu":
             self.scanner = NeutrinoScanner(self.name)
         elif self.event_type == "gw":
-            self.scanner = SkymapScanner(self.name)
+            try:
+                self.scanner = SkymapScanner(self.name)
+            except EventNotFound:
+                self.post(
+                    f"The specified LIGO event, {self.name}, was not found on GraceDB. Please check that you entered the correct event name."
+                )
+                return
 
         self.scanner.logger = SlackLogHandler(
             channel=self.channel, ts=self.ts, webclient=self.webclient
