@@ -2558,28 +2558,28 @@ files = [
 
 [[package]]
 name = "lalsuite"
-version = "7.14"
+version = "7.15"
 description = "LIGO Scientific Collaboration Algorithm Library - minimal Python package"
 category = "main"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "lalsuite-7.14-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:6eeea4d174c7de1f8a57c983b46523ac085a1d935275fcbbbbb42dbaaad51930"},
-    {file = "lalsuite-7.14-cp310-cp310-macosx_12_0_arm64.whl", hash = "sha256:42807b661d64501517140afd9bb3c6060611606caa6ac417dae75c04775e48e7"},
-    {file = "lalsuite-7.14-cp310-cp310-manylinux_2_28_aarch64.whl", hash = "sha256:142d5a38713b626898f0e35573e8b7a8f6215ec2e208db00624228e9c5ea9a6b"},
-    {file = "lalsuite-7.14-cp310-cp310-manylinux_2_28_x86_64.whl", hash = "sha256:4137c3f07923bb33147a9336fbd8f907e4333ca9a79024126b7ba66bf5a8aefc"},
-    {file = "lalsuite-7.14-cp311-cp311-macosx_10_15_x86_64.whl", hash = "sha256:174802da1ca46e718b6a90d5a4e13ed64d92561f2c88f7ed433b864675375027"},
-    {file = "lalsuite-7.14-cp311-cp311-macosx_12_0_arm64.whl", hash = "sha256:4561310df4a2e0b7c13994f7c2919a37e51c62d132d7c5958a87c8b834d901c3"},
-    {file = "lalsuite-7.14-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:3645336cd9d9b0ef544e732bf7d02e97124f35d3326301faae2b76ab9a680fed"},
-    {file = "lalsuite-7.14-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:2029f2c0bb3a1329e466354b41ddffef9e477054e9e76576297b4b134e275cd5"},
-    {file = "lalsuite-7.14-cp38-cp38-macosx_10_15_x86_64.whl", hash = "sha256:53a0a43271df3ddef9f3e6c875ee57770048692b3d7d7a9d382e40406086b294"},
-    {file = "lalsuite-7.14-cp38-cp38-macosx_12_0_arm64.whl", hash = "sha256:fe17f1ec7a701b65406c5ca4934f4aee2e60697a4057f79e88c174efd0c8bf8f"},
-    {file = "lalsuite-7.14-cp38-cp38-manylinux_2_28_aarch64.whl", hash = "sha256:22f34cf78bf75f6dc2d68513e23f54d4198d4582717c2b5d4c423bec974a2f43"},
-    {file = "lalsuite-7.14-cp38-cp38-manylinux_2_28_x86_64.whl", hash = "sha256:989aadef800a886329a5e4109c47b10e55cc21aaf692a754359257f18126d0fd"},
-    {file = "lalsuite-7.14-cp39-cp39-macosx_10_15_x86_64.whl", hash = "sha256:f803427558df1343a233928571a998d4bb32a682fffb5e6b8b45514fe071bc5d"},
-    {file = "lalsuite-7.14-cp39-cp39-macosx_12_0_arm64.whl", hash = "sha256:b753a1aa31d412a12e5f9f0626a271bd4de0840f9a3e2bf8301d7ddb9e1e8b62"},
-    {file = "lalsuite-7.14-cp39-cp39-manylinux_2_28_aarch64.whl", hash = "sha256:6209ca36319bf0abc1d336e8c00bc84bdeecbc0bd966fb5f46715f944ad2a491"},
-    {file = "lalsuite-7.14-cp39-cp39-manylinux_2_28_x86_64.whl", hash = "sha256:5ae3c7a57da5cbdf8b91654422efe367f136e9c5982611db6bf132c4960b517c"},
+    {file = "lalsuite-7.15-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:861c95423af8ccd00569386325cf53da209882cf7a9c92785cf22b9335494c9c"},
+    {file = "lalsuite-7.15-cp310-cp310-macosx_12_0_arm64.whl", hash = "sha256:44ff86663ffa9e419731602536729b601a5f370b0acf31bf97e4890510b69534"},
+    {file = "lalsuite-7.15-cp310-cp310-manylinux_2_28_aarch64.whl", hash = "sha256:08f6885a13f3fef8d526a9cea30550ccb335c12d881304a98d1684d015414b1f"},
+    {file = "lalsuite-7.15-cp310-cp310-manylinux_2_28_x86_64.whl", hash = "sha256:6b650dc5d064a3485dbb7f788a753e8e2ff4d4ea9ea36125f58f14da656ad2bb"},
+    {file = "lalsuite-7.15-cp311-cp311-macosx_10_15_x86_64.whl", hash = "sha256:9fcb89844790c12bc12e92c44cfea65528af224486128e02dec8956aa09b3b7d"},
+    {file = "lalsuite-7.15-cp311-cp311-macosx_12_0_arm64.whl", hash = "sha256:dffa5ee6e89628952df0da3c2299bf93fb82ad7cf59c1b5d299d8078bbda98e4"},
+    {file = "lalsuite-7.15-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:c53eb078fea6fa2f5d322a6811e97b1096932d04c8bc67254617d854e25491f5"},
+    {file = "lalsuite-7.15-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:2628968456af66f1597a2286645fba11e747d883207734a2f6e5a58dc335ca64"},
+    {file = "lalsuite-7.15-cp38-cp38-macosx_10_15_x86_64.whl", hash = "sha256:921f271fa1f73e055e5c028f5a32a8308f6c747059fbc57f47c19c287c2a936d"},
+    {file = "lalsuite-7.15-cp38-cp38-macosx_12_0_arm64.whl", hash = "sha256:22da75b2521139f1e70aa6e4dfcb5c9a1fb711d7a49651790bd0be176b048fda"},
+    {file = "lalsuite-7.15-cp38-cp38-manylinux_2_28_aarch64.whl", hash = "sha256:f89e14cb7810ff462dd3f1860ea88e706437b172bb916a17b2bf9cbac3a0c96c"},
+    {file = "lalsuite-7.15-cp38-cp38-manylinux_2_28_x86_64.whl", hash = "sha256:3c29b10ba09e3287b3086f52b657dff876831775574eeeaa1c1c5a12f851b013"},
+    {file = "lalsuite-7.15-cp39-cp39-macosx_10_15_x86_64.whl", hash = "sha256:32cbc8a176da9c582b8adfb99bd77dcae7db6e6fdc6a0424bc517874ec7b7fbf"},
+    {file = "lalsuite-7.15-cp39-cp39-macosx_12_0_arm64.whl", hash = "sha256:3728604ce4bf6e4e4b8bdbe0b256898922ca8c796de1f14a741930aa1a3371ba"},
+    {file = "lalsuite-7.15-cp39-cp39-manylinux_2_28_aarch64.whl", hash = "sha256:636bd41d90e0be5d1a068c0321ce2e23b9321860d98b82adbe83679711053e21"},
+    {file = "lalsuite-7.15-cp39-cp39-manylinux_2_28_x86_64.whl", hash = "sha256:172ace080dab2632faf5f4663897fe79aee77491d7678be277954bc760625627"},
 ]
 
 [package.dependencies]
