@@ -8,7 +8,7 @@ from ztfquery.fields import FIELD_DATAFRAME
 
 
 def get_flatpix_path(nside: int):
-    outdir = os.path.join("nuztf", "data")
+    outdir = os.path.join(os.path.dirname(__file__), "data")
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
