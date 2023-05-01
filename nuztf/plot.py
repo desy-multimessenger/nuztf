@@ -241,6 +241,20 @@ def lightcurve_from_alert(
 
         fig.text(0.77, 0.55, "\n".join(info), va="top", fontsize="medium", alpha=0.5)
 
+    # Add annotations
+
+    lc_ax1.annotate(
+        "See On Fritz",
+        xy=(0.5, 1),
+        xytext=(0.78, 0.10),
+        xycoords="figure fraction",
+        verticalalignment="top",
+        color="royalblue",
+        url=f"https://fritz.science/source/{name}",
+        fontsize=12,
+        bbox=dict(boxstyle="round", fc="cornflowerblue", ec="royalblue", alpha=0.4),
+    )
+
     if include_crossmatch:
         xmatch_info = get_cross_match_info(alert[0])
         if include_cutouts:
