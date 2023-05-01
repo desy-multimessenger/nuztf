@@ -298,7 +298,8 @@ class SkymapScanner(BaseScanner):
             startdate_jd = res["candidate"]["jdstarthist"]
             startdate_date = Time(startdate_jd, format="jd").isot
             self.logger.debug(
-                f"{res['objectId']}: Transient is too old (jdstarthist predates event; first detection at {startdate_date})."
+                f"{res['objectId']}: Transient is too old "
+                f"(jdstarthist predates event; first detection at {startdate_date})."
             )
             return False
 
@@ -307,7 +308,10 @@ class SkymapScanner(BaseScanner):
             startdate_jd = res["candidate"]["jdstarthist"]
             startdate_date = Time(startdate_jd, format="jd").isot
             self.logger.debug(
-                f"{res['objectId']}: Transient is too new (jdstarthist too late after event; first detection at {startdate_date})"
+                f"{res['objectId']}: Transient is too new "
+                f"(jdstarthist too late after event; "
+                f"first detection at {startdate_date}, "
+                f"filter searches only up to {Time(t_max_jd, format='jd').isot})."
             )
             return False
 
