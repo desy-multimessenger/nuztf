@@ -7,6 +7,7 @@ import pickle
 import time
 
 import backoff
+import healpy as hp
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,12 +21,8 @@ from astropy import units as u
 from astropy.coordinates import Distance, SkyCoord
 from astropy.cosmology import FlatLambdaCDM
 from astropy.time import Time
-from matplotlib.backends.backend_pdf import PdfPages
-from tqdm import tqdm
-from ztfquery import fields as ztfquery_fields
-
-import healpy as hp
 from gwemopt.ztf_tiling import get_quadrant_ipix
+from matplotlib.backends.backend_pdf import PdfPages
 from nuztf.ampel_api import (
     ampel_api_acknowledge_chunk,
     ampel_api_cone,
@@ -41,6 +38,8 @@ from nuztf.fritz import save_source_to_group
 from nuztf.observations import get_obs_summary
 from nuztf.plot import lightcurve_from_alert
 from nuztf.utils import cosmo
+from tqdm import tqdm
+from ztfquery import fields as ztfquery_fields
 
 DEBUG = False
 RATELIMIT_CALLS = 10
