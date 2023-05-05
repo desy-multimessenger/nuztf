@@ -207,6 +207,8 @@ class Skymap:
         elif rev > len(voevents):
             raise Exception("Revision {0} not found".format(rev))
 
+        self.rev = rev
+
         latest_voevent = voevents[rev - 1]
         self.logger.info(f"Found voevent {latest_voevent['filename']}")
 

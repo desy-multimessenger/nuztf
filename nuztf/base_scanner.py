@@ -31,6 +31,7 @@ from nuztf.ampel_api import (
     ampel_api_skymap,
     ampel_api_timerange,
     ensure_cutouts,
+    get_preprocessed_results,
 )
 from nuztf.cat_match import ampel_api_tns, get_cross_match_info, query_ned_for_z
 from nuztf.flatpix import get_flatpix
@@ -54,6 +55,7 @@ class BaseScanner:
         run_config,
         t_min,
         allow_result_download=False,
+        file_basename=None,
         resource=None,
         filter_class=DecentFilter,
         cone_nside=64,
@@ -61,6 +63,9 @@ class BaseScanner:
         logger=None,
     ):
         self.allow_result_download = allow_result_download
+        if self.allow_result_download:
+            assert file_basename is not None
+        self.file_basename = file_basename
         self.cone_nside = cone_nside
         self.t_min = t_min
         (
@@ -304,34 +309,39 @@ class BaseScanner:
         Retrieve alerts for the healpix map from AMPEL API,
         filter the candidates and create a summary
         """
-        print(self.allow_result_download)
+        if not self.allow_result_download:
+            query_res = self.query_ampel(t_min=t_min, t_max=t_max)
+
+            ztf_ids_zero_stage = [res["objectId"] for res in query_res]
+
+            ztf_ids_first_stage = []
+            for res in tqdm(query_res):
+                if self.filter_f_no_prv(res):
+                    if self.filter_ampel(res):
+                        ztf_ids_first_stage.append(res["objectId"])
+
+            ztf_ids_first_stage = list(set(ztf_ids_first_stage))
+
+            self.logger.info(
+                f"{len(ztf_ids_first_stage)} candidates survive filtering stage 1"
+            )
+
+            self.logger.info(
+                f"Retrieving alert history from AMPEL for filtering stage 2"
+            )
+
+            results = self.ampel_object_search(ztf_ids=ztf_ids_first_stage)
+
+        else:
+            self.logger.info("Looking for precomputed results at the DESY Cloud.")
+            get_preprocessed_results(file_basename=self.file_basename)
+
         quit()
-
-        query_res = self.query_ampel(t_min=t_min, t_max=t_max)
-
-        ztf_ids_zero_stage = [res["objectId"] for res in query_res]
-
-        ztf_ids_first_stage = []
-        for res in tqdm(query_res):
-            if self.filter_f_no_prv(res):
-                if self.filter_ampel(res):
-                    ztf_ids_first_stage.append(res["objectId"])
-
-        ztf_ids_first_stage = list(set(ztf_ids_first_stage))
-
-        self.logger.info(
-            f"{len(ztf_ids_first_stage)} candidates survive filtering stage 1"
-        )
-
-        self.logger.info(f"Retrieving alert history from AMPEL for filtering stage 2")
-
-        results = self.ampel_object_search(ztf_ids=ztf_ids_first_stage)
 
         for res in results:
             self.add_res_to_cache(res)
 
         self.logger.info(f"Found {len(self.cache)} candidates")
-        quit()
 
         self.create_candidate_summary()
 
