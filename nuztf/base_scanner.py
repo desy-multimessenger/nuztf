@@ -55,17 +55,12 @@ class BaseScanner:
         run_config,
         t_min,
         allow_result_download=False,
-        file_basename=None,
         resource=None,
         filter_class=DecentFilter,
         cone_nside=64,
         cones_to_scan=None,
         logger=None,
     ):
-        self.allow_result_download = allow_result_download
-        if self.allow_result_download:
-            assert file_basename is not None
-        self.file_basename = file_basename
         self.cone_nside = cone_nside
         self.t_min = t_min
         (
