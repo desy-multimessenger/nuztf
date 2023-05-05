@@ -31,7 +31,6 @@ from nuztf.ampel_api import (
     ampel_api_skymap,
     ampel_api_timerange,
     ensure_cutouts,
-    get_preprocessed_results,
 )
 from nuztf.cat_match import ampel_api_tns, get_cross_match_info, query_ned_for_z
 from nuztf.flatpix import get_flatpix
