@@ -77,7 +77,6 @@ class SkymapScanner(BaseScanner):
             self,
             run_config=self.config,
             t_min=self.t_min,
-            file_basename=file_basename,
             cone_nside=cone_nside,
         )
 
@@ -255,6 +254,8 @@ class SkymapScanner(BaseScanner):
         )
 
         self.final_candidates = final_objects
+        print(self.final_candidates)
+        quit()
 
     def remove_duplicates(self, ztf_ids: list):
         """ """
