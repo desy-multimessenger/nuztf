@@ -16,6 +16,7 @@ from nuztf.ampel_api import (
     ampel_api_acknowledge_chunk,
     ampel_api_lightcurve,
     ampel_api_skymap,
+    get_preprocessed_results,
 )
 from nuztf.base_scanner import BaseScanner
 from nuztf.skymap import Skymap
@@ -89,6 +90,12 @@ class SkymapScanner(BaseScanner):
             return self.skymap.event_name
         else:
             return "?????"
+
+    def download_results():
+        """
+        Retrieve computed results from the DESY cloud
+        """
+        self.logger.info("Retrieving results from the DESY cloud")
 
     def get_alerts(self):
         """Scan the skymap area and get ZTF transients"""
