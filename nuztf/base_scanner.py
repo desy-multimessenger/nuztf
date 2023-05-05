@@ -309,42 +309,28 @@ class BaseScanner:
         Retrieve alerts for the healpix map from AMPEL API,
         filter the candidates and create a summary
         """
-        if self.allow_result_download:
-            self.logger.info("Looking for precomputed results at the DESY Cloud.")
-            results = get_preprocessed_results(file_basename=self.file_basename)
-            if len(results) == 0:
-                self.logger.info(
-                    "No results found, or login failed. Continue with normal scan"
-                )
-            else:
-                self.logger.info(f"Found {len(results)} on the DESY Cloud")
-                self.add_res_to_cache(results)
+        query_res = self.query_ampel(t_min=t_min, t_max=t_max)
 
-        if len(results) == 0 or not self.allow_result_download:
-            query_res = self.query_ampel(t_min=t_min, t_max=t_max)
+        ztf_ids_zero_stage = [res["objectId"] for res in query_res]
 
-            ztf_ids_zero_stage = [res["objectId"] for res in query_res]
+        ztf_ids_first_stage = []
+        for res in tqdm(query_res):
+            if self.filter_f_no_prv(res):
+                if self.filter_ampel(res):
+                    ztf_ids_first_stage.append(res["objectId"])
 
-            ztf_ids_first_stage = []
-            for res in tqdm(query_res):
-                if self.filter_f_no_prv(res):
-                    if self.filter_ampel(res):
-                        ztf_ids_first_stage.append(res["objectId"])
+        ztf_ids_first_stage = list(set(ztf_ids_first_stage))
 
-            ztf_ids_first_stage = list(set(ztf_ids_first_stage))
+        self.logger.info(
+            f"{len(ztf_ids_first_stage)} candidates survive filtering stage 1"
+        )
 
-            self.logger.info(
-                f"{len(ztf_ids_first_stage)} candidates survive filtering stage 1"
-            )
+        self.logger.info(f"Retrieving alert history from AMPEL for filtering stage 2")
 
-            self.logger.info(
-                f"Retrieving alert history from AMPEL for filtering stage 2"
-            )
+        results = self.ampel_object_search(ztf_ids=ztf_ids_first_stage)
 
-            results = self.ampel_object_search(ztf_ids=ztf_ids_first_stage)
-
-            for res in results:
-                self.add_res_to_cache(res)
+        for res in results:
+            self.add_res_to_cache(res)
 
         self.logger.info(f"Found {len(self.cache)} candidates")
 
