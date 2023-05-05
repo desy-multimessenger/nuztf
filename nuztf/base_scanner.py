@@ -53,7 +53,6 @@ class BaseScanner:
         self,
         run_config,
         t_min,
-        allow_result_download=False,
         resource=None,
         filter_class=DecentFilter,
         cone_nside=64,
