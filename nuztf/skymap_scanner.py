@@ -34,6 +34,7 @@ class SkymapScanner(BaseScanner):
         self,
         event: str = None,
         rev: int = None,
+        allow_result_download: bool = False,  # try to download the result from the DESY cloud instead of scanning
         prob_threshold: float = 0.9,
         cone_nside: int = 64,
         n_days: float = 3.0,  # By default, accept things detected within 72 hours of event time
@@ -71,6 +72,7 @@ class SkymapScanner(BaseScanner):
             self,
             run_config=self.config,
             t_min=self.t_min,
+            allow_result_download=allow_result_download,
             cone_nside=cone_nside,
         )
 
@@ -495,17 +497,6 @@ class SkymapScanner(BaseScanner):
         self.logger.info(message)
 
         return fig, message
-
-    # def interpolate_map(self, ra_deg, dec_deg):
-    #     """ """
-    #     interpol_map = self.skymap.hpm.interpolate_bilinear_skycoord(
-    #         SkyCoord(ra_deg * u.deg, dec_deg * u.deg), self.data[self.key]
-    #     )
-    #     return interpol_map
-
-    # def in_contour(self, ra_deg, dec_deg):
-    #     """ """
-    #     return self.interpolate_map(ra_deg, dec_deg) > self.skymap.pixel_threshold
 
 
 if __name__ == "__main__":

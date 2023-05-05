@@ -663,3 +663,9 @@ def ampel_api_catalog(
         raise requests.exceptions.RequestException
 
     return res
+
+
+def get_preprocessed_result(event_name: str) -> list:
+    """
+    Access the DESY Cloud to look if there are precomputed results from an AMPEL run there
+    """
