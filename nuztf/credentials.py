@@ -61,7 +61,18 @@ try:
         logging.info('Set up "tns_api_token" credentials')
 
 except KeyError:
-    logging.info("No Token for TNS API found in environment" "Assume they are set.")
+    logging.info("No Token for TNS API found in environment" "Assume it is set.")
+
+try:
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning)
+        io.set_account(
+            "desy_cloud_token", token=os.environ["DESY_CLOUD_TOKEN"], token_based=True
+        )
+        logging.info('Set up "desy_cloud_token" credentials')
+
+except KeyError:
+    logging.info("No Token for DESY Cloud found in environment" "Assume it is set.")
 
 try:
     with warnings.catch_warnings():
@@ -70,4 +81,4 @@ try:
         logging.info('Set up "fritz" credentials')
 
 except KeyError:
-    logging.info("No Token for Fritz API found in environment" "Assume they are set.")
+    logging.info("No Token for Fritz API found in environment" "Assume it is set.")
