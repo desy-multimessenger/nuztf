@@ -680,7 +680,7 @@ def get_preprocessed_results(file_basename: str) -> list:
         headers={"X-Requested-With": "XMLHttpRequest"},
         auth=(desy_cloud_token, "bla"),
     )
-    print(res.status_code)
+
     if res.status_code != 200:
         return []
 
