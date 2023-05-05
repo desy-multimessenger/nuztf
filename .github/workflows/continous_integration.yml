@@ -58,6 +58,7 @@ jobs:
           SKYVISION_USER: ${{ secrets.skyvision_user }}
           SKYVISION_PASSWORD: ${{ secrets.skyvision_password }}
           FRITZ_TOKEN: ${{ secrets.fritz_token }}
+          DESY_CLOUD_TOKEN: ${{ secrets.desy_cloud_token }}
           ZTFDATA: ./
         run: |
           poetry run coverage run -m pytest -v
