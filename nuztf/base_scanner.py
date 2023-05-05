@@ -311,12 +311,16 @@ class BaseScanner:
         """
         if self.allow_result_download:
             self.logger.info("Looking for precomputed results at the DESY Cloud.")
-            res = get_preprocessed_results(file_basename=self.file_basename)
-            self.logger.info(
-                "No results found, or login failed. Continue with normal scan"
-            )
+            results = get_preprocessed_results(file_basename=self.file_basename)
+            if len(results) == 0:
+                self.logger.info(
+                    "No results found, or login failed. Continue with normal scan"
+                )
+            else:
+                self.logger.info(f"Found {len(results)} on the DESY Cloud")
+                self.add_res_to_cache(results)
 
-        if len(res) == 0 or not self.allow_result_download:
+        if len(results) == 0 or not self.allow_result_download:
             query_res = self.query_ampel(t_min=t_min, t_max=t_max)
 
             ztf_ids_zero_stage = [res["objectId"] for res in query_res]
@@ -339,8 +343,8 @@ class BaseScanner:
 
             results = self.ampel_object_search(ztf_ids=ztf_ids_first_stage)
 
-        for res in results:
-            self.add_res_to_cache(res)
+            for res in results:
+                self.add_res_to_cache(res)
 
         self.logger.info(f"Found {len(self.cache)} candidates")
 
