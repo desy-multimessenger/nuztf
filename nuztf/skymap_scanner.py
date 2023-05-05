@@ -68,11 +68,17 @@ class SkymapScanner(BaseScanner):
         if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir)
 
+        if allow_result_download:
+            file_basename = f"{event}_{self.skymap.rev}"
+        else:
+            file_basename = None
+
         BaseScanner.__init__(
             self,
             run_config=self.config,
             t_min=self.t_min,
             allow_result_download=allow_result_download,
+            file_basename=file_basename,
             cone_nside=cone_nside,
         )
 

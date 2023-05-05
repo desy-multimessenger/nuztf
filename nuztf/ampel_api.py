@@ -9,10 +9,12 @@ from json import JSONDecodeError
 import backoff
 import numpy as np
 import requests
+from ampel.util.json import load
+from ampel.ztf.util.ZTFIdMapper import ZTFIdMapper
 from astropy.io import fits  # type: ignore
 from astropy.time import Time  # type: ignore
+from nuztf import utils
 from nuztf.credentials import load_credentials
-from nuztf.utils import deres
 from requests.auth import HTTPBasicAuth
 
 API_BASEURL = "https://ampel.zeuthen.desy.de"
@@ -489,7 +491,7 @@ def ampel_api_skymap(
         gt = "$gt"
 
     # Now we reduce the query size
-    regions = deres(nside=nside, ipix=pixels)
+    regions = utils.deres(nside=nside, ipix=pixels)
 
     query = {
         "regions": regions,
@@ -665,7 +667,32 @@ def ampel_api_catalog(
     return res
 
 
-def get_preprocessed_result(event_name: str) -> list:
+def get_preprocessed_results(file_basename: str) -> list:
     """
     Access the DESY Cloud to look if there are precomputed results from an AMPEL run there
     """
+    desy_cloud_token = load_credentials("desy_cloud_token", token_based=True)
+
+    filename = file_basename + ".json.gz"
+
+    res = requests.get(
+        f"https://syncandshare.desy.de/public.php/webdav/{filename}",
+        headers={"X-Requested-With": "XMLHttpRequest"},
+        auth=(desy_cloud_token, "bla"),
+    )
+
+    with open(f"{filename}", "wb") as f:
+        f.write(res.content)
+
+    res = []
+    with gzip.open(filename, "rb") as f_in:
+        data = load(f_in)
+        for t in data:
+            ztf_id = ZTFIdMapper.to_ext_id(t.stock.get("stock"))
+            pp = t.get_photopoints()
+            pp_reformatted = utils.reformat_downloaded_results(
+                photopoints=pp, ztf_id=ztf_id
+            )
+            res.append(pp_reformatted)
+
+    return res
