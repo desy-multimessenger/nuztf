@@ -35,7 +35,6 @@ class SkymapScanner(BaseScanner):
         self,
         event: str = None,
         rev: int = None,
-        allow_result_download: bool = False,  # try to download the result from the DESY cloud instead of scanning
         prob_threshold: float = 0.9,
         cone_nside: int = 64,
         n_days: float = 3.0,  # By default, accept things detected within 72 hours of event time
@@ -69,11 +68,6 @@ class SkymapScanner(BaseScanner):
         if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir)
 
-        if allow_result_download:
-            file_basename = f"{event}_{self.skymap.rev}"
-        else:
-            file_basename = None
-
         BaseScanner.__init__(
             self,
             run_config=self.config,
@@ -91,11 +85,24 @@ class SkymapScanner(BaseScanner):
         else:
             return "?????"
 
-    def download_results():
+    def download_results(self):
         """
         Retrieve computed results from the DESY cloud
         """
         self.logger.info("Retrieving results from the DESY cloud")
+        file_basename = f"{self.skymap.event_name}_{self.skymap.rev}"
+
+        res = get_preprocessed_results(file_basename=file_basename)
+
+        final_objects = [alert["objectId"] for alert in res]
+
+        final_objects = self.remove_duplicates(final_objects)
+
+        self.logger.info(
+            f"Retrieved {len(final_objects)} final objects for event {self.skymap.event_name} / Revision {self.skymap.rev} from DESY cloud."
+        )
+
+        self.final_candidates = final_objects
 
     def get_alerts(self):
         """Scan the skymap area and get ZTF transients"""
@@ -261,8 +268,6 @@ class SkymapScanner(BaseScanner):
         )
 
         self.final_candidates = final_objects
-        print(self.final_candidates)
-        quit()
 
     def remove_duplicates(self, ztf_ids: list):
         """ """
