@@ -673,7 +673,7 @@ def get_preprocessed_results(file_basename: str) -> list:
     """
     desy_cloud_token = load_credentials("desy_cloud_token", token_based=True)
 
-    filename = file_basename + "55.json.gz"
+    filename = file_basename + ".json.gz"
 
     res = requests.get(
         f"https://syncandshare.desy.de/public.php/webdav/{filename}",
