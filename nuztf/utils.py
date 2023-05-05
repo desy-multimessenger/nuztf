@@ -8,6 +8,7 @@ import re
 from collections import OrderedDict, defaultdict
 from json import JSONDecodeError
 
+import numpy as np
 import requests
 from astropy.cosmology import FlatLambdaCDM
 from nuztf.credentials import load_credentials
@@ -67,6 +68,33 @@ def is_tns_name(name: str) -> bool:
     else:
         matches = False
     return matches
+
+
+def reformat_downloaded_results(photopoints: list, ztf_id: str) -> dict:
+    """
+    Massage the TransientView photopoint output so it matches what the archive DB returns
+    """
+
+    # Find the index of the latest detection
+    latest_jd_index = np.argmax(np.asarray([pp["body"]["jd"] for pp in photopoints]))
+
+    resdict = {
+        "candid": photopoints[latest_jd_index]["id"],
+        "objectId": ztf_id,
+        "schemavsn": "3.3",
+        "publisher": "Ampel",
+        "candidate": photopoints[latest_jd_index]["body"],
+    }
+
+    prv_candidates = []
+
+    for i, pp in enumerate(photopoints):
+        if i != latest_jd_index:  # dict is readonly, we can't pop
+            prv_candidates.append(pp["body"])
+
+    resdict["prv_candidates"] = prv_candidates
+
+    return resdict
 
 
 def deres(nside, ipix, min_nside=1):

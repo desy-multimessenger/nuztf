@@ -53,12 +53,14 @@ class BaseScanner:
         self,
         run_config,
         t_min,
+        allow_result_download=False,
         resource=None,
         filter_class=DecentFilter,
         cone_nside=64,
         cones_to_scan=None,
         logger=None,
     ):
+        self.allow_result_download = allow_result_download
         self.cone_nside = cone_nside
         self.t_min = t_min
         (
@@ -302,8 +304,12 @@ class BaseScanner:
         Retrieve alerts for the healpix map from AMPEL API,
         filter the candidates and create a summary
         """
+        print(self.allow_result_download)
+        quit()
 
         query_res = self.query_ampel(t_min=t_min, t_max=t_max)
+
+        ztf_ids_zero_stage = [res["objectId"] for res in query_res]
 
         ztf_ids_first_stage = []
         for res in tqdm(query_res):
@@ -325,6 +331,7 @@ class BaseScanner:
             self.add_res_to_cache(res)
 
         self.logger.info(f"Found {len(self.cache)} candidates")
+        quit()
 
         self.create_candidate_summary()
 
