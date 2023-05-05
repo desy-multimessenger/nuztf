@@ -77,7 +77,6 @@ class SkymapScanner(BaseScanner):
             self,
             run_config=self.config,
             t_min=self.t_min,
-            allow_result_download=allow_result_download,
             file_basename=file_basename,
             cone_nside=cone_nside,
         )
