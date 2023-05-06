@@ -13,10 +13,9 @@ from ampel.util.json import load
 from ampel.ztf.util.ZTFIdMapper import ZTFIdMapper
 from astropy.io import fits  # type: ignore
 from astropy.time import Time  # type: ignore
-from requests.auth import HTTPBasicAuth
-
 from nuztf import utils
 from nuztf.credentials import load_credentials
+from requests.auth import HTTPBasicAuth
 
 API_BASEURL = "https://ampel.zeuthen.desy.de"
 API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive/v3"
@@ -703,6 +702,8 @@ def get_preprocessed_results(file_basename: str, logger=None) -> None | list:
             pp_reformatted = utils.reformat_downloaded_results(
                 photopoints=pp, ztf_id=ztf_id
             )
+            kilonova_eval = t.get_latest_t2_body(unit="T2KilonovaEval")
+            pp_reformatted.update({"kilonova_eval": kilonova_eval})
             res.append(pp_reformatted)
 
     return res
