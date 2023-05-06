@@ -95,7 +95,10 @@ class SkymapScanner(BaseScanner):
 
         res = get_preprocessed_results(file_basename=file_basename)
 
-        final_objects = [alert["objectId"] for alert in res]
+        if res is None:
+            final_objects = []
+        else:
+            final_objects = [alert["objectId"] for alert in res]
 
         final_objects = self.remove_duplicates(final_objects)
 
