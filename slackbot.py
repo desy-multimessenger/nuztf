@@ -106,6 +106,7 @@ class Slackbot:
         self.post(scan_message)
 
         if len(self.scanner.cache) > 0:
+            self.scanner.create_candidate_summary()
             pdf_overview_path = self.scanner.summary_path + ".pdf"
             self.post_file(pdf_overview_path, f"{self.name}_candidates.pdf")
 
