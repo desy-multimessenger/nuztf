@@ -99,11 +99,13 @@ class SkymapScanner(BaseScanner):
             final_objects = []
         else:
             final_objects = [alert["objectId"] for alert in res]
+            for alert in res:
+                self.cache[alert["objectId"]] = alert
 
         final_objects = self.remove_duplicates(final_objects)
 
         self.logger.info(
-            f"Retrieved {len(final_objects)} final objects for event {self.skymap.event_name} / Revision {self.skymap.rev} from DESY cloud."
+            f"Retrieved {len(final_objects)} final objects for event {self.skymap.event_name} / map revision {self.skymap.rev} from DESY cloud."
         )
 
         self.final_candidates = final_objects
@@ -527,7 +529,7 @@ if __name__ == "__main__":
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
 
-    scanner = SkymapScanner(logger=logger)
+    scanner = SkymapScanner()
     scanner.plot_skymap()
     scanner.get_alerts()
     scanner.filter_alerts()
