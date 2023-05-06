@@ -86,6 +86,10 @@ class Slackbot:
         elif self.event_type == "gw":
             if self.dl_results:
                 self.scanner.download_results()
+                if len(self.scanner.cache) == 0:
+                    self.post("No candidates found on DESY cloud, rerunning scan")
+                    self.scanner.get_alerts()
+                    self.scanner.filter_alerts()
             else:
                 self.scanner.get_alerts()
                 self.scanner.filter_alerts()
