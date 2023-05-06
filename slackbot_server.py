@@ -7,10 +7,10 @@ import os
 
 from flask import Flask  # type: ignore
 from slack import WebClient  # type: ignore
+from slackeventsapi import SlackEventAdapter  # type: ignore
 
 from nuztf.utils import is_icecube_name, is_ligo_name
 from slackbot import Slackbot
-from slackeventsapi import SlackEventAdapter  # type: ignore
 
 nuztf_slackbot = Flask(__name__)
 
@@ -24,6 +24,7 @@ def scan(
     channel: str,
     ts: str,
     name: str,
+    dl_results: bool,
     event_type: str,
     do_gcn: bool,
     time_window: int | None,
@@ -33,6 +34,7 @@ def scan(
         channel=channel,
         ts=ts,
         name=name,
+        dl_results=dl_results,
         event_type=event_type,
         do_gcn=do_gcn,
         time_window=time_window,
@@ -112,10 +114,13 @@ def message(payload):
                 return
 
             time_window = None
+            dl_results = True
 
             for i, parameter in enumerate(split_text):
                 if parameter in fuzzy_parameters(["gcn", "GCN"]):
                     do_gcn = True
+                elif parameter in fuzzy_parameters(["rerun", "nodl"]):
+                    dl_results = False
                 elif parameter in fuzzy_parameters(
                     ["window", "timewindow", "time-window"]
                 ):
@@ -156,6 +161,7 @@ def message(payload):
                     channel=channel_id,
                     ts=ts,
                     name=name,
+                    dl_results=dl_results,
                     event_type=event_type,
                     do_gcn=do_gcn,
                     time_window=time_window,
