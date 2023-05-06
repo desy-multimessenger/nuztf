@@ -23,6 +23,9 @@ from astropy.cosmology import FlatLambdaCDM
 from astropy.time import Time
 from gwemopt.ztf_tiling import get_quadrant_ipix
 from matplotlib.backends.backend_pdf import PdfPages
+from tqdm import tqdm
+from ztfquery import fields as ztfquery_fields
+
 from nuztf.ampel_api import (
     ampel_api_acknowledge_chunk,
     ampel_api_cone,
@@ -38,8 +41,6 @@ from nuztf.fritz import save_source_to_group
 from nuztf.observations import get_obs_summary
 from nuztf.plot import lightcurve_from_alert
 from nuztf.utils import cosmo
-from tqdm import tqdm
-from ztfquery import fields as ztfquery_fields
 
 DEBUG = False
 RATELIMIT_CALLS = 10
@@ -505,6 +506,7 @@ class BaseScanner:
     def create_candidate_summary(self, outfile=None):
         """Create pdf with lightcurve plots of all candidates"""
         if len(self.cache.items()) == 0:
+            self.logger.info("No candidates found, skipping pdf creation")
             return
 
         if outfile is None:
@@ -531,6 +533,10 @@ class BaseScanner:
 
     def create_overview_table(self, outfile=None):
         """Create csv table of all candidates"""
+        if len(self.cache.items()) == 0:
+            self.logger.info("No candidates found, skipping csv creation")
+            return
+
         if outfile is None:
             csv_path = self.summary_path + ".csv"
         else:

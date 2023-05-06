@@ -12,6 +12,9 @@ import numpy as np
 import yaml
 from astropy.time import Time
 from astropy_healpix import HEALPix
+from tqdm import tqdm
+from ztfquery.io import LOCALSOURCE
+
 from nuztf.ampel_api import (
     ampel_api_acknowledge_chunk,
     ampel_api_lightcurve,
@@ -20,8 +23,6 @@ from nuztf.ampel_api import (
 )
 from nuztf.base_scanner import BaseScanner
 from nuztf.skymap import Skymap
-from tqdm import tqdm
-from ztfquery.io import LOCALSOURCE
 
 
 class RetractionError(Exception):
