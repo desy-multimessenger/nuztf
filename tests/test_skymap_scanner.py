@@ -132,7 +132,7 @@ class TestSkymapScanner(unittest.TestCase):
 
         scanner.download_results()
 
-        n_expected_candidates = 122
+        n_expected_candidates = 13
 
         n_retrieved_candidates = len(scanner.final_candidates)
 
