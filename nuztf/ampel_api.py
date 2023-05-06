@@ -13,9 +13,10 @@ from ampel.util.json import load
 from ampel.ztf.util.ZTFIdMapper import ZTFIdMapper
 from astropy.io import fits  # type: ignore
 from astropy.time import Time  # type: ignore
+from requests.auth import HTTPBasicAuth
+
 from nuztf import utils
 from nuztf.credentials import load_credentials
-from requests.auth import HTTPBasicAuth
 
 API_BASEURL = "https://ampel.zeuthen.desy.de"
 API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive/v3"
@@ -667,7 +668,7 @@ def ampel_api_catalog(
     return res
 
 
-def get_preprocessed_results(file_basename: str) -> list:
+def get_preprocessed_results(file_basename: str) -> None | list:
     """
     Access the DESY Cloud to look if there are precomputed results from an AMPEL run there
     """
@@ -682,7 +683,10 @@ def get_preprocessed_results(file_basename: str) -> list:
     )
 
     if res.status_code != 200:
-        return []
+        self.logger.warning(
+            "Something went wrong with your query. Check your credentials and make sure Ampel has run correctly at Desy."
+        )
+        return None
 
     with open(f"{filename}", "wb") as f:
         f.write(res.content)
