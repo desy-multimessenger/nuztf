@@ -14,10 +14,11 @@ from astropy.io import fits
 from astropy.time import Time
 from matplotlib.colors import Normalize
 from matplotlib.ticker import MultipleLocator
+from ztfquery.utils.stamps import get_ps_stamp
+
 from nuztf.ampel_api import create_empty_cutout, ensure_cutouts
 from nuztf.cat_match import get_cross_match_info
 from nuztf.utils import cosmo
-from ztfquery.utils.stamps import get_ps_stamp
 
 
 def alert_to_pandas(alert):
@@ -238,7 +239,7 @@ def lightcurve_from_alert(
 
         if alert[0].get("kilonova_eval") is not None:
             info.append(
-                f"------------------------\nKilonova score: {alert[0]['kilonova_eval']['kilonovaness']}"
+                f"------------------------\nAMPEL KN score: {alert[0]['kilonova_eval']['kilonovaness']}"
             )
 
         fig.text(0.77, 0.55, "\n".join(info), va="top", fontsize="medium", alpha=0.5)
