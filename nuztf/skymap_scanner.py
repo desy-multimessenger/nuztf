@@ -136,6 +136,7 @@ class SkymapScanner(BaseScanner):
                 nside=self.cone_nside,
                 t_min_jd=self.t_min.jd,
                 t_max_jd=self.default_t_max.jd,
+                max_n_detections=10,
                 logger=self.logger,
                 chunk_size=chunk_size,
                 resume_token=resume_token,

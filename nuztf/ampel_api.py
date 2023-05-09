@@ -13,9 +13,10 @@ from ampel.util.json import load
 from ampel.ztf.util.ZTFIdMapper import ZTFIdMapper
 from astropy.io import fits  # type: ignore
 from astropy.time import Time  # type: ignore
+from requests.auth import HTTPBasicAuth
+
 from nuztf import utils
 from nuztf.credentials import load_credentials
-from requests.auth import HTTPBasicAuth
 
 API_BASEURL = "https://ampel.zeuthen.desy.de"
 API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive/v3"
@@ -452,6 +453,7 @@ def ampel_api_skymap(
     nside: int = 64,
     t_min_jd=Time("2018-04-01T00:00:00.123456789", format="isot", scale="utc").jd,
     t_max_jd=Time.now().jd,
+    max_n_detections: int = 99999999,
     with_history: bool = False,
     with_cutouts: bool = False,
     chunk_size: int = 500,
@@ -500,6 +502,11 @@ def ampel_api_skymap(
             gt: t_min_jd,
         },
         "latest": "false",
+        "candidate": {
+            "rb": {"$gt": 0.3},
+            "magpsf": {"$gt": 15},
+            "ndethist": {"$gt": 0, "$lte": max_n_detections},
+        },
         "with_history": hist,
         "with_cutouts": cutouts,
         "chunk_size": chunk_size,
