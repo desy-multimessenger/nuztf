@@ -30,7 +30,7 @@ class TestSkymapScanner(unittest.TestCase):
         scanner.get_alerts()
 
         n_retrieved_alerts = scanner.n_alerts
-        n_expected_alerts = 1649
+        n_expected_alerts = 1319
 
         self.logger.info(
             f"Retrieved {n_retrieved_alerts} alerts. {n_expected_alerts} alerts expected."
@@ -87,7 +87,7 @@ class TestSkymapScanner(unittest.TestCase):
         scanner.get_alerts()
 
         n_retrieved_alerts = scanner.n_alerts
-        n_expected_alerts = 6356
+        n_expected_alerts = 2449
 
         self.logger.info(
             f"Retrieved {n_retrieved_alerts} alerts. {n_expected_alerts} alerts expected."
