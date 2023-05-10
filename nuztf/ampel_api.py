@@ -709,8 +709,10 @@ def get_preprocessed_results(file_basename: str, logger=None) -> None | list:
             pp_reformatted = utils.reformat_downloaded_results(
                 photopoints=pp, ztf_id=ztf_id
             )
+            redshifts = t.get_latest_t2_body(unit="T2DigestRedshifts")
             kilonova_eval = t.get_latest_t2_body(unit="T2KilonovaEval")
             pp_reformatted.update({"kilonova_eval": kilonova_eval})
+            pp_reformatted.update({"redshifts": redshifts})
             res.append(pp_reformatted)
 
     return res
