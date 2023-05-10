@@ -243,9 +243,10 @@ def lightcurve_from_alert(
             )
 
         if (redshift := alert[0].get("redshifts", {}).get("ampel_z")) is not None:
-            info.append(
-                f"z: {redshift:.3f} +/- {alert[0]['redshifts']['group_z_precision']}"
-            )
+            if alert[0]["redshifts"]["group_z_nbr"] in [1, 2]:
+                info.append(f"spec z: {redshift:.3f}")
+            else:
+                info.append(f"photo z: {redshift:.3f}")
 
         fig.text(0.77, 0.55, "\n".join(info), va="top", fontsize="medium", alpha=0.5)
 
