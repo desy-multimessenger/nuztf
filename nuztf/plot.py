@@ -242,6 +242,11 @@ def lightcurve_from_alert(
                 f"------------------------\nAMPEL KN score: {alert[0]['kilonova_eval']['kilonovaness']}"
             )
 
+        if (redshift := alert[0].get("redshifts", {}).get("ampel_z")) is not None:
+            info.append(
+                f"z: {redshift:.3f} +/- {alert[0]['redshifts']['group_z_precision']}"
+            )
+
         fig.text(0.77, 0.55, "\n".join(info), va="top", fontsize="medium", alpha=0.5)
 
     # Add annotations
