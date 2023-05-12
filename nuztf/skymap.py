@@ -337,7 +337,6 @@ class Skymap:
             )
 
         # Optionally interpolate to a different nside
-
         if output_nside is not None:
             if output_nside != hp.npix2nside(len(data["PROB"])):
                 self.logger.info(f"Regridding to nside {output_nside}")
@@ -375,9 +374,10 @@ class Skymap:
 
                 data = new_data
 
-        hpm = HEALPix(
-            nside=hp.npix2nside(len(data["PROB"])), order="NESTED", frame="icrs"
-        )
+        else:
+            output_nside = h["NSIDE"]
+
+        hpm = HEALPix(nside=output_nside, order="NESTED", frame="icrs")
 
         return data, t_obs, hpm, key, dist, dist_unc
 
