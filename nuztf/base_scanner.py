@@ -33,9 +33,11 @@ from nuztf.ampel_api import (
     ensure_cutouts,
 )
 from nuztf.cat_match import ampel_api_tns, get_cross_match_info, query_ned_for_z
-from nuztf.flatpix import get_flatpix
+from nuztf.flatpix import get_flatpix, get_nested_pix
 from nuztf.fritz import save_source_to_group
-from nuztf.observations import get_obs_summary
+
+# from nuztf.observations import get_obs_summary
+from nuztf.observations_depot import get_obs_summary as alt_get_obs_summary
 from nuztf.plot import lightcurve_from_alert
 from nuztf.utils import cosmo
 from tqdm import tqdm
@@ -223,7 +225,7 @@ class BaseScanner:
         self.get_multi_night_summary().show_gri_fields(**kwargs)
 
     def get_multi_night_summary(self, max_days=None):
-        return get_obs_summary(self.t_min, max_days=max_days)
+        return alt_get_obs_summary(self.t_min, max_days=max_days)
 
     def query_ampel(
         self,
@@ -738,7 +740,6 @@ class BaseScanner:
     def calculate_overlap_with_observations(
         self, fields=None, pid=None, first_det_window_days=3.0, min_sep=0.01
     ):
-        print(fields)
         if fields is None:
             mns = self.get_multi_night_summary(first_det_window_days)
 
@@ -949,14 +950,152 @@ class BaseScanner:
             overlapping_fields,
         )
 
-    def plot_overlap_with_observations(
-        self, fields=None, pid=None, first_det_window_days=None, min_sep=0.01
+    def calculate_overlap_with_depot_observations(
+        self, first_det_window_days=3.0, min_sep=0.01
     ):
+        mns = alt_get_obs_summary(t_min=self.t_min, max_days=first_det_window_days)
+
+        data = mns.data.copy()
+
+        mask = data["status"] == 0
+        self.logger.info(
+            f"Found {mask.sum()} successful observations in the depot, "
+            f"corresponding to {np.mean(mask)*100:.2f}% of the total."
+        )
+
+        self.logger.info("Unpacking observations")
+
+        pix_map = dict()
+        pix_obs_times = dict()
+
+        # field_pix = get_flatpix(nside=self.nside, logger=self.logger)
+        nested_pix = get_nested_pix(nside=self.nside, logger=self.logger)
+
+        for i, obs_time in enumerate(tqdm(list(set(data["obsjd"])))):
+            obs = data[data["obsjd"] == obs_time]
+
+            field = obs["field_id"].iloc[0]
+
+            flat_pix = nested_pix[field]
+
+            mask = obs["status"] == 0
+            indices = obs["qid"].values[mask]
+
+            for qid in indices:
+                pixels = flat_pix[qid]
+
+                for p in pixels:
+                    if p not in pix_obs_times.keys():
+                        pix_obs_times[p] = [obs_time]
+                    else:
+                        pix_obs_times[p] += [obs_time]
+
+                    if p not in pix_map.keys():
+                        pix_map[p] = [field]
+                    else:
+                        pix_map[p] += [field]
+
+        npix = hp.nside2npix(self.nside)
+        theta, phi = hp.pix2ang(self.nside, np.arange(npix), nest=False)
+        radecs = SkyCoord(ra=phi * u.rad, dec=(0.5 * np.pi - theta) * u.rad)
+        idx = np.where(np.abs(radecs.galactic.b.deg) <= 10.0)[0]
+
+        double_in_plane_pixels = []
+        double_in_plane_probs = []
+        single_in_plane_pixels = []
+        single_in_plane_prob = []
+        veto_pixels = []
+        plane_pixels = []
+        plane_probs = []
+        times = []
+        double_no_plane_prob = []
+        double_no_plane_pixels = []
+        single_no_plane_prob = []
+        single_no_plane_pixels = []
+
+        overlapping_fields = []
+
+        for i, p in enumerate(tqdm(hp.nest2ring(self.nside, self.pixel_nos))):
+            if p in pix_obs_times.keys():
+                if p in idx:
+                    plane_pixels.append(p)
+                    plane_probs.append(self.map_probs[i])
+
+                obs = pix_obs_times[p]
+
+                # check which healpix are observed twice
+                if max(obs) - min(obs) > min_sep:
+                    # is it in galactic plane or not?
+                    if p not in idx:
+                        double_no_plane_prob.append(self.map_probs[i])
+                        double_no_plane_pixels.append(p)
+                    else:
+                        double_in_plane_probs.append(self.map_probs[i])
+                        double_in_plane_pixels.append(p)
+
+                else:
+                    if p not in idx:
+                        single_no_plane_pixels.append(p)
+                        single_no_plane_prob.append(self.map_probs[i])
+                    else:
+                        single_in_plane_prob.append(self.map_probs[i])
+                        single_in_plane_pixels.append(p)
+
+                overlapping_fields += pix_map[p]
+
+                times += list(obs)
+            else:
+                veto_pixels.append(p)
+
+        overlapping_fields = sorted(list(set(overlapping_fields)))
+
+        _observations = data.query("obsjd in @times").reset_index(drop=True)[
+            ["obsjd", "exposure_time", "filter_id"]
+        ]
+        bands = [self.fid_to_band(fid) for fid in _observations["filter_id"].values]
+        _observations["band"] = bands
+        _observations.drop(columns=["filter_id"], inplace=True)
+        self.observations = _observations
+
+        self.logger.info("All observations:")
+        self.logger.info(f"\n{self.observations}")
+
+        try:
+            self.first_obs = Time(min(times), format="jd")
+            self.first_obs.utc.format = "isot"
+            self.last_obs = Time(max(times), format="jd")
+            self.last_obs.utc.format = "isot"
+
+        except ValueError:
+            err = (
+                f"No observations of this field were found at any time between {self.t_min} and"
+                f"{times[-1]}. Coverage overlap is 0%, but recent observations might be missing!"
+            )
+            self.logger.error(err)
+            raise ValueError(err)
+
+        self.logger.info(f"Observations started at {self.first_obs.isot}")
+
+        return (
+            double_in_plane_pixels,
+            double_in_plane_probs,
+            single_in_plane_pixels,
+            single_in_plane_prob,
+            veto_pixels,
+            plane_pixels,
+            plane_probs,
+            times,
+            double_no_plane_prob,
+            double_no_plane_pixels,
+            single_no_plane_prob,
+            single_no_plane_pixels,
+            overlapping_fields,
+        )
+
+    def plot_overlap_with_observations(self, first_det_window_days=None, min_sep=0.01):
         """ """
 
-        overlap_res = self.calculate_overlap_with_observations(
-            fields=fields,
-            pid=pid,
+        overlap_res = self.calculate_overlap_with_depot_observations(
             first_det_window_days=first_det_window_days,
             min_sep=min_sep,
         )
