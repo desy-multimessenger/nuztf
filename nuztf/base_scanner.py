@@ -666,7 +666,7 @@ class BaseScanner:
             if tns_name:
                 tns_result = f"({tns_name})"
 
-            cache_file = Path(self.cache_dir) / f"{name}_catchmatch.json"
+            cache_file = Path(self.cache_dir) / f"{name}_catmatch.json"
             xmatch_info = get_cross_match_info(
                 raw=res, cache_file=cache_file, logger=self.logger
             )

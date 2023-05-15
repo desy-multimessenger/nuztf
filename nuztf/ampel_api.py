@@ -636,8 +636,14 @@ def ampel_api_catalog(
     https://ampel.zeuthen.desy.de/api/catalogmatch/catalogs
 
     """
-    assert catalog_type in ["extcats", "catsHTM"]
-    assert search_type in ["all", "nearest"]
+    if not catalog_type in ["extcats", "catsHTM"]:
+        raise ValueError(
+            f"Expected parameter catalog_type in ['extcats', 'catsHTM'], got {catalog_type}"
+        )
+    if not search_type in ["all", "nearest"]:
+        raise ValueError(
+            f"Expected parameter catalog_type in ['all', 'nearest'], got {search_type}"
+        )
 
     if logger is None:
         logger = logging.getLogger(__name__)
