@@ -35,8 +35,7 @@ from nuztf.ampel_api import (
 from nuztf.cat_match import ampel_api_tns, get_cross_match_info, query_ned_for_z
 from nuztf.flatpix import get_flatpix, get_nested_pix
 from nuztf.fritz import save_source_to_group
-
-# from nuztf.observations import get_obs_summary
+from nuztf.observations import get_obs_summary
 from nuztf.observations_depot import get_obs_summary as alt_get_obs_summary
 from nuztf.plot import lightcurve_from_alert
 from nuztf.utils import cosmo
@@ -225,7 +224,10 @@ class BaseScanner:
         self.get_multi_night_summary().show_gri_fields(**kwargs)
 
     def get_multi_night_summary(self, max_days=None):
-        return alt_get_obs_summary(self.t_min, max_days=max_days)
+        mns = alt_get_obs_summary(self.t_min, max_days=max_days)
+        if mns is None:
+            mns = get_obs_summary(self.t_min, max_days=max_days)
+        return mns
 
     def query_ampel(
         self,
@@ -955,6 +957,9 @@ class BaseScanner:
     ):
         mns = alt_get_obs_summary(t_min=self.t_min, max_days=first_det_window_days)
 
+        if mns is None:
+            return None
+
         data = mns.data.copy()
 
         mask = data["status"] == 0
@@ -1099,6 +1104,12 @@ class BaseScanner:
             first_det_window_days=first_det_window_days,
             min_sep=min_sep,
         )
+        if overlap_res is None:
+            self.logger.info("IPAC depot failed, using ztfquery to obtain observations")
+            overlap_res = self.calculate_overlap_with_observations(
+                first_det_window_days=first_det_window_days,
+                min_sep=min_sep,
+            )
 
         if overlap_res is None:
             self.logger.warning("Not plotting overlap with observations.")

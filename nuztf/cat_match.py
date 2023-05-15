@@ -6,11 +6,10 @@ import warnings
 
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from astroquery.exceptions import RemoteServiceError
-from astroquery.ipac.ned import Ned
-from astroquery.ipac.irsa import Irsa
 from astropy.utils.exceptions import AstropyWarning
-
+from astroquery.exceptions import RemoteServiceError
+from astroquery.ipac.irsa import Irsa
+from astroquery.ipac.ned import Ned
 from nuztf.ampel_api import ampel_api_catalog, ampel_api_name
 
 
@@ -205,20 +204,19 @@ def get_cross_match_info(raw: dict, logger=None):
             if len(res) == 1:
                 w1mw2 = res["w1mpro"][0] - res["w2mpro"][0]
 
-                # w1mw2 = res[0]["body"]["W1mW2"]
                 if w1mw2 > 0.8:
                     label = (
-                        f"[Probable WISE-selected quasar:W1-W2={w1mw2:.1f}>0.8  "
+                        f"[Probable WISE-selected quasar:W1-W2={w1mw2:.2f}>0.8  "
                         f"({res[0]['dist']:.2f} arsec)]"
                     )
                 elif w1mw2 > 0.5:
                     label = (
-                        f"[Possible WISE-selected quasar:W1-W2={w1mw2:.1f}>0.5  "
+                        f"[Possible WISE-selected quasar:W1-W2={w1mw2:.2f}>0.5  "
                         f"({res[0]['dist']:.2f} arsec)]"
                     )
                 else:
                     label = (
-                        f"WISE DETECTION: W1-W2={w1mw2:.1f} "
+                        f"WISE DETECTION: W1-W2={w1mw2:.2f} "
                         f"({res[0]['dist']:.2f} arsec)"
                     )
             else:

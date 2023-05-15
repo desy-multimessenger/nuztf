@@ -1,17 +1,18 @@
-import os
 import json
-import requests
-from requests.auth import HTTPBasicAuth
-import pandas as pd
-from astropy.time import Time
-from tqdm import tqdm
-from glob import glob
 import logging
-from nuztf.observations import coverage_dir, partial_flag, MNS
-from nuztf import credentials
+import os
+from glob import glob
+
 import numpy as np
+import pandas as pd
+import requests
 from astropy import units as u
+from astropy.time import Time
+from nuztf import credentials
+from nuztf.observations import MNS, coverage_dir, partial_flag
+from requests.auth import HTTPBasicAuth
 from requests.exceptions import HTTPError
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +124,7 @@ def get_coverage_depot(jds: [int]) -> pd.DataFrame | None:
         return None
 
 
-def get_obs_summary_depot(t_min: Time, t_max: Time) -> MNS:
+def get_obs_summary_depot(t_min: Time, t_max: Time) -> MNS | None:
     """
     Get observation summary from depot
     """
@@ -131,6 +132,9 @@ def get_obs_summary_depot(t_min: Time, t_max: Time) -> MNS:
     jds = np.arange(t_min.jd, t_max.jd + 1)
 
     res = get_coverage_depot(jds)
+
+    if len(res) == 0:
+        return None
 
     res["date"] = Time(res["obsjd"].to_numpy(), format="jd").isot
 
@@ -144,7 +148,7 @@ def get_obs_summary_depot(t_min: Time, t_max: Time) -> MNS:
     return mns
 
 
-def get_obs_summary(t_min, t_max=None, max_days: float = None):
+def get_obs_summary(t_min, t_max=None, max_days: float = None) -> MNS | None:
     """
     Get observation summary from IPAC depot
     """
@@ -165,6 +169,11 @@ def get_obs_summary(t_min, t_max=None, max_days: float = None):
     logger.info("Getting observation logs from IPAC depot.")
     mns = get_obs_summary_depot(t_min=t_min, t_max=t_max)
 
-    logger.debug(f"Found {len(set(mns.data['exposure_id']))} observations in total.")
+    if mns is not None:
+        logger.debug(
+            f"Found {len(set(mns.data['exposure_id']))} observations in total."
+        )
+    else:
+        logger.debug("Found no observations on IPAC depot.")
 
     return mns
