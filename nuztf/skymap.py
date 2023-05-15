@@ -36,6 +36,7 @@ class Skymap:
         rev: int = None,
         prob_threshold: float = 0.9,
         custom_prefix: str = "",
+        output_nside: int | None = None,
     ):
         self.base_skymap_dir = os.path.join(LOCALSOURCE, f"{custom_prefix}skymaps")
         self.candidate_output_dir = os.path.join(
@@ -100,7 +101,7 @@ class Skymap:
             self.key,
             self.dist,
             self.dist_unc,
-        ) = self.read_map()
+        ) = self.read_map(output_nside=output_nside)
 
         t_min = Time(self.t_obs, format="isot", scale="utc")
 
@@ -245,10 +246,14 @@ class Skymap:
 
         return savepath, summary_path, event_name
 
-    def read_map(
-        self,
-    ):
-        """Read the skymap"""
+    def read_map(self, output_nside: int | None = None):
+        """
+        Read the skymap
+
+        :param output_nside: The nside of the output skymap.
+            If None, the nside of the input skymap will be used.
+
+        """
 
         self.logger.info(f"Reading file: {self.skymap_path}")
 
@@ -331,7 +336,48 @@ class Skymap:
                 f"Please enter the ordewring (NESTED/RING/NUNIQ)"
             )
 
-        hpm = HEALPix(nside=h["NSIDE"], order=h["ORDERING"], frame="icrs")
+        # Optionally interpolate to a different nside
+        if output_nside is not None:
+            if output_nside != hp.npix2nside(len(data["PROB"])):
+                self.logger.info(f"Regridding to nside {output_nside}")
+
+                new_prob = hp.ud_grade(
+                    data["PROB"],
+                    nside_out=output_nside,
+                    order_in=h["ORDERING"],
+                    order_out="NESTED",
+                    power=-2,
+                )
+
+                new_data = np.array(new_prob, dtype=np.dtype([("PROB", float)]))
+
+                if "DISTMEAN" in h.keys():
+                    dist = hp.ud_grade(
+                        data["DISTMEAN"],
+                        nside_out=output_nside,
+                        order_in=h["ORDERING"],
+                        order_out="NESTED",
+                        power=0,
+                    )
+
+                    new_data["DISTMEAN"] = dist
+
+                if "DISTSTD" in h.keys():
+                    dist_unc = hp.ud_grade(
+                        data["DISTSTD"],
+                        nside_out=output_nside,
+                        order_in=h["ORDERING"],
+                        order_out="NESTED",
+                        power=0,
+                    )
+                    new_data["DISTSTD"] = dist_unc
+
+                data = new_data
+
+        else:
+            output_nside = h["NSIDE"]
+
+        hpm = HEALPix(nside=output_nside, order="NESTED", frame="icrs")
 
         return data, t_obs, hpm, key, dist, dist_unc
 

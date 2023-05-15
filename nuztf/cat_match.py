@@ -2,12 +2,14 @@
 # coding: utf-8
 
 import logging
+import warnings
 
 from astropy import units as u
 from astropy.coordinates import SkyCoord
+from astropy.utils.exceptions import AstropyWarning
 from astroquery.exceptions import RemoteServiceError
+from astroquery.ipac.irsa import Irsa
 from astroquery.ipac.ned import Ned
-
 from nuztf.ampel_api import ampel_api_catalog, ampel_api_name
 
 
@@ -52,6 +54,27 @@ def query_ned_astroquery(
         return None
 
 
+def query_wise_astroquery(
+    ra_deg: float, dec_deg: float, searchradius_arcsec: float = 3.0
+):
+    """
+    Function to obtain WISE crossmatches via astroquery
+
+    :param ra_deg: Right ascension (deg)
+    :param dec_deg: Declination (deg)
+    :param searchradius_arcsec: Search radius (arcsec)
+    :return: result of query
+    """
+    c = SkyCoord(ra_deg, dec_deg, unit=u.deg, frame="icrs")
+
+    r = searchradius_arcsec * u.arcsecond
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", AstropyWarning)
+        allwise = Irsa.query_region(c, catalog="allwise_p3as_psd", radius=r)
+    return allwise
+
+
 def ampel_api_tns(
     ra_deg: float, dec_deg: float, searchradius_arcsec: float = 3, logger=None
 ):
@@ -83,8 +106,16 @@ def ampel_api_tns(
     return full_name, discovery_date, source_group
 
 
+NUZTF_LABEL = "nuztf_xmatch_label"
+
+
 def get_cross_match_info(raw: dict, logger=None):
     """ """
+
+    # Cache crossmatch in alert!
+    if NUZTF_LABEL in raw:
+        return raw[NUZTF_LABEL]
+
     alert = raw["candidate"]
 
     label = ""
@@ -164,29 +195,30 @@ def get_cross_match_info(raw: dict, logger=None):
     # WISE colour cuts (https://iopscience.iop.org/article/10.3847/1538-4365/)
 
     if label == "":
-        res = ampel_api_catalog(
-            catalog="wise_color",
-            catalog_type="extcats",
+        res = query_wise_astroquery(
             ra_deg=alert["ra"],
             dec_deg=alert["dec"],
-            search_radius_arcsec=6.0,
-            logger=logger,
+            searchradius_arcsec=6.0,
         )
         if res is not None:
             if len(res) == 1:
-                w1mw2 = res[0]["body"]["W1mW2"]
+                w1mw2 = res["w1mpro"][0] - res["w2mpro"][0]
+
                 if w1mw2 > 0.8:
                     label = (
-                        f"[Probable WISE-selected quasar:W1-W2={w1mw2:.1f}>0.8  "
-                        f"({res[0]['dist_arcsec']:.2f} arsec)]"
+                        f"[Probable WISE-selected quasar:W1-W2={w1mw2:.2f}>0.8  "
+                        f"({res[0]['dist']:.2f} arsec)]"
                     )
                 elif w1mw2 > 0.5:
                     label = (
-                        f"[Possible WISE-selected quasar:W1-W2={w1mw2:.1f}>0.5  "
-                        f"({res[0]['dist_arcsec']:.2f} arsec)]"
+                        f"[Possible WISE-selected quasar:W1-W2={w1mw2:.2f}>0.5  "
+                        f"({res[0]['dist']:.2f} arsec)]"
                     )
                 else:
-                    label = "WISE DETECTIOM"
+                    label = (
+                        f"WISE DETECTION: W1-W2={w1mw2:.2f} "
+                        f"({res[0]['dist']:.2f} arsec)"
+                    )
             else:
                 label = "[MULTIPLE WISE MATCHES]"
 
@@ -218,6 +250,8 @@ def get_cross_match_info(raw: dict, logger=None):
 
     if full_name is not None:
         label += f" [TNS NAME={full_name}]"
+
+    raw[NUZTF_LABEL] = label
 
     return label
 

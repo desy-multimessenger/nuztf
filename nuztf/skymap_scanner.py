@@ -32,12 +32,15 @@ class RetractionError(Exception):
 
 
 class SkymapScanner(BaseScanner):
+    default_fritz_group = 1563
+
     def __init__(
         self,
         event: str = None,
         rev: int = None,
         prob_threshold: float = 0.9,
         cone_nside: int = 64,
+        output_nside: int | None = None,
         n_days: float = 3.0,  # By default, accept things detected within 72 hours of event time
         custom_prefix: str = "",
         config: dict = None,
@@ -60,6 +63,7 @@ class SkymapScanner(BaseScanner):
             rev=rev,
             prob_threshold=prob_threshold,
             custom_prefix=custom_prefix,
+            output_nside=output_nside,
         )
 
         self.t_min = Time(self.skymap.t_obs, format="isot", scale="utc")

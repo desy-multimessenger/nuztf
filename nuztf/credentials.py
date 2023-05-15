@@ -40,6 +40,19 @@ except KeyError:
     )
 
 try:
+    io.set_account(
+        "ipacdepot",
+        username=os.environ["DEPOT_USER"],
+        password=os.environ["DEPOT_PASSWORD"],
+    )
+    logging.info('Set up "DEPOT" credentials')
+
+except KeyError:
+    logging.info(
+        'No Credentials for "DEPOT" found in environment' "Assuming they are set."
+    )
+
+try:
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=UserWarning)
         io.set_account(
