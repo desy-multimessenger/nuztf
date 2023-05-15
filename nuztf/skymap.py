@@ -115,6 +115,9 @@ class Skymap:
         # if not os.path.exists(self.cache_dir):
         #     os.makedirs(self.cache_dir)
 
+    def get_candidate_cache_dir(self):
+        return self.candidate_cache
+
     def get_grb_skymap(self, event_name: str):
         """ """
         if event_name is None:

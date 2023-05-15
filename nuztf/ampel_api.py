@@ -5,6 +5,7 @@ import io
 import logging
 from base64 import b64encode
 from json import JSONDecodeError
+from pathlib import Path
 
 import backoff
 import numpy as np
@@ -13,10 +14,9 @@ from ampel.util.json import load
 from ampel.ztf.util.ZTFIdMapper import ZTFIdMapper
 from astropy.io import fits  # type: ignore
 from astropy.time import Time  # type: ignore
-from requests.auth import HTTPBasicAuth
-
 from nuztf import utils
 from nuztf.credentials import load_credentials
+from requests.auth import HTTPBasicAuth
 
 API_BASEURL = "https://ampel.zeuthen.desy.de"
 API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive/v3"
@@ -636,8 +636,14 @@ def ampel_api_catalog(
     https://ampel.zeuthen.desy.de/api/catalogmatch/catalogs
 
     """
-    assert catalog_type in ["extcats", "catsHTM"]
-    assert search_type in ["all", "nearest"]
+    if not catalog_type in ["extcats", "catsHTM"]:
+        raise ValueError(
+            f"Expected parameter catalog_type in ['extcats', 'catsHTM'], got {catalog_type}"
+        )
+    if not search_type in ["all", "nearest"]:
+        raise ValueError(
+            f"Expected parameter catalog_type in ['all', 'nearest'], got {search_type}"
+        )
 
     if logger is None:
         logger = logging.getLogger(__name__)

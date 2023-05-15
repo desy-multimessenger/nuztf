@@ -3,6 +3,7 @@
 
 import logging
 import os
+from pathlib import Path
 
 import healpy as hp
 import numpy as np
@@ -43,6 +44,10 @@ class NeutrinoScanner(BaseScanner):
                 self.config = yaml.safe_load(f)
 
         self.prob_threshold = 0.9
+
+        self.cache_dir = Path(LOCALSOURCE) / "cache" / nu_name
+
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
 
         if manual_args is None:
             if nu_name is not None:

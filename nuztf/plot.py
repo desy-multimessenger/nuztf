@@ -4,10 +4,13 @@
 import gzip
 import io
 from base64 import b64decode
+from pathlib import Path
+from time import time
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import PIL
 from astropy import units as u
 from astropy import visualization
 from astropy.io import fits
@@ -59,6 +62,7 @@ def lightcurve_from_alert(
     legend: bool = False,
     grid_interval: int = None,
     t_0_mjd: float = None,
+    cache_dir: str | None = None,
     logger=None,
 ):
     """plot AMPEL alerts as lightcurve"""
@@ -121,9 +125,18 @@ def lightcurve_from_alert(
         ):
             create_stamp_plot(alert=cutout_, ax=ax_, cutout_type=type_)
 
-        img = get_ps_stamp(
-            candidate["ra"], candidate["dec"], size=240, color=["y", "g", "i"]
-        )
+        img_cache = Path(cache_dir) / f"{name}_PS1.png"
+        if not img_cache.is_file():
+            img = get_ps_stamp(
+                candidate["ra"], candidate["dec"], size=240, color=["y", "g", "i"]
+            )
+            img.save(img_cache)
+
+        else:
+            from PIL import Image
+
+            img = Image.open(img_cache)
+
         cutoutps1.imshow(np.asarray(img))
         cutoutps1.set_title("PS1", fontdict={"fontsize": "small"})
         cutoutps1.set_xticks([])
@@ -263,7 +276,12 @@ def lightcurve_from_alert(
     )
 
     if include_crossmatch:
-        xmatch_info = get_cross_match_info(alert[0])
+        cache_file = Path(cache_dir) / f"{name}_catmatch.json"
+
+        xmatch_info = get_cross_match_info(
+            raw=alert[0],
+            cache_file=cache_file,
+        )
         if include_cutouts:
             ypos = 0.975
         else:

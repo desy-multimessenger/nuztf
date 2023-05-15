@@ -5,6 +5,7 @@ import logging
 import os
 import pickle
 import time
+from pathlib import Path
 
 import backoff
 import healpy as hp
@@ -529,6 +530,7 @@ class BaseScanner:
                     include_cutouts=True,
                     logger=self.logger,
                     t_0_mjd=self.t_min.mjd,
+                    cache_dir=self.cache_dir,
                 )
 
                 pdf.savefig()
@@ -568,7 +570,12 @@ class BaseScanner:
             data["RA"].append(alert["candidate"]["ra"])
             data["Dec"].append(alert["candidate"]["dec"])
             data["mag"].append(alert["candidate"]["magpsf"])
-            data["xmatch"].append(get_cross_match_info(raw=alert, logger=self.logger))
+            cache_file = Path(self.cache_dir) / f"{ztf_id}_catmatch.json"
+            data["xmatch"].append(
+                get_cross_match_info(
+                    raw=alert, cache_file=cache_file, logger=self.logger
+                )
+            )
             if alert.get("kilonova_eval") is not None:
                 data["kilonova_score"].append(alert["kilonova_eval"]["kilonovaness"])
             else:
@@ -659,7 +666,10 @@ class BaseScanner:
             if tns_name:
                 tns_result = f"({tns_name})"
 
-            xmatch_info = get_cross_match_info(raw=res, logger=self.logger)
+            cache_file = Path(self.cache_dir) / f"{name}_catmatch.json"
+            xmatch_info = get_cross_match_info(
+                raw=res, cache_file=cache_file, logger=self.logger
+            )
 
             print(
                 f"Candidate {name} peaked at {brightest['magpsf']:.1f} {tns_result}on "
@@ -730,7 +740,10 @@ class BaseScanner:
             if abs(g_lat) < 15.0:
                 text += f"It is located at a galactic latitude of {g_lat:.2f} degrees. "
 
-            xmatch_info = get_cross_match_info(raw=res, logger=self.logger)
+            cache_file = Path(self.cache_dir) / f"{name}_catmatch.json"
+            xmatch_info = get_cross_match_info(
+                raw=res, cache_file=cache_file, logger=self.logger
+            )
             text += xmatch_info
             text += "\n"
 
