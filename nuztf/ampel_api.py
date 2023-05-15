@@ -626,7 +626,6 @@ def ampel_api_catalog(
     dec_deg: float,
     search_radius_arcsec: float = 10,
     search_type: str = "all",
-    cache_dir: Path | str | None = None,
     logger=None,
 ):
     """

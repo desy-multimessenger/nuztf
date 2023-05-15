@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import json
 import logging
 import warnings
+from pathlib import Path
 
 from astropy import units as u
 from astropy.coordinates import SkyCoord
@@ -109,12 +111,22 @@ def ampel_api_tns(
 NUZTF_LABEL = "nuztf_xmatch_label"
 
 
-def get_cross_match_info(raw: dict, logger=None):
+def get_cross_match_info(raw: dict, cache_file: Path | str | None = None, logger=None):
     """ """
-
     # Cache crossmatch in alert!
     if NUZTF_LABEL in raw:
         return raw[NUZTF_LABEL]
+
+    if cache_file is not None:
+        if cache_file.is_file():
+            if cache_file.stat().st_size > 0:
+                with open(cache_file) as f:
+                    res = json.load(f)
+                    label = res["xmatch"]
+                    return label
+
+    print("QUERYING BAD BAD BAD")
+    print("------")
 
     alert = raw["candidate"]
 
@@ -252,6 +264,9 @@ def get_cross_match_info(raw: dict, logger=None):
         label += f" [TNS NAME={full_name}]"
 
     raw[NUZTF_LABEL] = label
+
+    with open(cache_file, "w") as f:
+        json.dump({"xmatch": label}, f)
 
     return label
 

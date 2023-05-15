@@ -4,6 +4,7 @@
 import gzip
 import io
 from base64 import b64decode
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -59,6 +60,7 @@ def lightcurve_from_alert(
     legend: bool = False,
     grid_interval: int = None,
     t_0_mjd: float = None,
+    cache_dir: str | None = None,
     logger=None,
 ):
     """plot AMPEL alerts as lightcurve"""
@@ -263,7 +265,12 @@ def lightcurve_from_alert(
     )
 
     if include_crossmatch:
-        xmatch_info = get_cross_match_info(alert[0])
+        cache_file = Path(cache_dir) / f"{name}_catmatch.json"
+
+        xmatch_info = get_cross_match_info(
+            raw=alert[0],
+            cache_file=cache_file,
+        )
         if include_cutouts:
             ypos = 0.975
         else:

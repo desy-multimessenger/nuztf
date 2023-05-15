@@ -529,6 +529,7 @@ class BaseScanner:
                     include_cutouts=True,
                     logger=self.logger,
                     t_0_mjd=self.t_min.mjd,
+                    cache_dir=self.cache_dir,
                 )
 
                 pdf.savefig()
