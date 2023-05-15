@@ -1,7 +1,8 @@
 min_ndet: 1 # Default:2
 min_tspan: -1  # Default 0, but that rejects everything!
 max_tspan: 365
-min_rb: 0.3
+min_drb: 0.3
+min_rb: 0.0
 max_fwhm: 5.5
 max_elong: 1.4
 max_magdiff: 1.0
