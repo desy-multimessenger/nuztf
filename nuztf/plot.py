@@ -5,6 +5,7 @@ import gzip
 import io
 from base64 import b64decode
 from pathlib import Path
+from time import time
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -98,6 +99,7 @@ def lightcurve_from_alert(
             alert = ensure_cutouts(alert, logger=logger)
 
     logger.debug(f"Plotting {name}")
+    t0 = time()
 
     df, df_ulims = alert_to_pandas(alert)
 
@@ -115,6 +117,7 @@ def lightcurve_from_alert(
 
     plt.subplots_adjust(wspace=0.4, hspace=1.8)
 
+    t1 = time()
     if include_cutouts:
         for cutout_, ax_, type_ in zip(
             [alert[0], alert[0], alert[0]],
@@ -123,13 +126,18 @@ def lightcurve_from_alert(
         ):
             create_stamp_plot(alert=cutout_, ax=ax_, cutout_type=type_)
 
+        t1a = time()
         img = get_ps_stamp(
             candidate["ra"], candidate["dec"], size=240, color=["y", "g", "i"]
         )
+        img_cache = Path(cache_dir) / f"{name}_PS1.png"
+        img.save(img_cache)
         cutoutps1.imshow(np.asarray(img))
         cutoutps1.set_title("PS1", fontdict={"fontsize": "small"})
         cutoutps1.set_xticks([])
         cutoutps1.set_yticks([])
+
+    t2 = time()
 
     # If redshift is given, calculate absolute magnitude via luminosity distance
     # and plot as right axis
@@ -174,6 +182,8 @@ def lightcurve_from_alert(
         lc_ax1.set_ylim([max_mag, min_mag])
     else:
         lc_ax1.set_ylim([np.max(mag_range), np.min(mag_range)])
+
+    t3 = time()
 
     for fid in BAND_NAMES.keys():
         # Plot older datapoints
@@ -335,6 +345,16 @@ def lightcurve_from_alert(
         axes = [lc_ax1, lc_ax2, lc_ax3]
     else:
         axes = [lc_ax1, lc_ax2]
+
+    tend = time()
+
+    print("-------")
+    print(t1 - t0)
+    print(t1a - t1)
+    print(t2 - t1a)
+    print(t3 - t2)
+    print("total")
+    print(tend - t0)
 
     return fig, axes
 

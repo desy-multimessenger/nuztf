@@ -125,9 +125,6 @@ def get_cross_match_info(raw: dict, cache_file: Path | str | None = None, logger
                     label = res["xmatch"]
                     return label
 
-    print("QUERYING BAD BAD BAD")
-    print("------")
-
     alert = raw["candidate"]
 
     label = ""
@@ -265,8 +262,9 @@ def get_cross_match_info(raw: dict, cache_file: Path | str | None = None, logger
 
     raw[NUZTF_LABEL] = label
 
-    with open(cache_file, "w") as f:
-        json.dump({"xmatch": label}, f)
+    if cache_file is not None:
+        with open(cache_file, "w") as f:
+            json.dump({"xmatch": label}, f)
 
     return label
 
