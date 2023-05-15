@@ -14,11 +14,10 @@ from astropy.io import fits
 from astropy.time import Time
 from matplotlib.colors import Normalize
 from matplotlib.ticker import MultipleLocator
-from ztfquery.utils.stamps import get_ps_stamp
-
 from nuztf.ampel_api import create_empty_cutout, ensure_cutouts
 from nuztf.cat_match import get_cross_match_info
 from nuztf.utils import cosmo
+from ztfquery.utils.stamps import get_ps_stamp
 
 
 def alert_to_pandas(alert):
@@ -50,7 +49,6 @@ def alert_to_pandas(alert):
 
 def lightcurve_from_alert(
     alert: list,
-    # figsize: list=[6.47, 4],
     figsize: list = [8, 5],
     title: str = None,
     include_ulims: bool = True,
@@ -270,6 +268,24 @@ def lightcurve_from_alert(
             ypos = 0.975
         else:
             ypos = 0.035
+
+        if "[TNS NAME=" in xmatch_info:
+            tns_name = (
+                xmatch_info.split("[TNS NAME=")[1].split("]")[0].strip("AT").strip("SN")
+            )
+            lc_ax1.annotate(
+                "See On TNS",
+                xy=(0.5, 1),
+                xytext=(0.78, 0.05),
+                xycoords="figure fraction",
+                verticalalignment="top",
+                color="royalblue",
+                url=f"https://www.wis-tns.org/object/{tns_name}",
+                fontsize=12,
+                bbox=dict(
+                    boxstyle="round", fc="cornflowerblue", ec="royalblue", alpha=0.4
+                ),
+            )
 
         fig.text(
             0.5,
