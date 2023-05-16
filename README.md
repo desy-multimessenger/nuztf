@@ -5,8 +5,8 @@ This package enables ZTF follow-up analysis of neutrinos/gravitational waves/gam
 [![DOI](https://zenodo.org/badge/193068064.svg)](https://zenodo.org/badge/latestdoi/193068064)
 [![CI](https://github.com/desy-multimessenger/nuztf/actions/workflows/continous_integration.yml/badge.svg)](https://github.com/desy-multimessenger/nuztf/actions/workflows/continous_integration.yml)
 [![PyPI version](https://badge.fury.io/py/nuztf.svg)](https://badge.fury.io/py/nuztf)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/desy-multimessenger/nuztf/master)
-[![Coverage Status](https://coveralls.io/repos/github/desy-multimessenger/nuztf/badge.svg?branch=master)](https://coveralls.io/github/desy-multimessenger/nuztf?branch=master)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/desy-multimessenger/nuztf/main)
+[![Coverage Status](https://coveralls.io/repos/github/desy-multimessenger/nuztf/badge.svg?branch=main)](https://coveralls.io/github/desy-multimessenger/nuztf?branch=main)
 
 ## Installation Instructions
 
