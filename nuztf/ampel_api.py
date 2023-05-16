@@ -528,7 +528,7 @@ def ampel_api_skymap(
     logger.debug(response)
     logger.debug(response.status_code)
 
-    if response.status_code == 503:
+    if response.status_code in [424, 503]:
         raise requests.exceptions.RequestException
 
     try:
