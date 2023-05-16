@@ -4,7 +4,6 @@
 import json
 import logging
 import warnings
-from pathlib import Path
 
 from astropy import units as u
 from astropy.coordinates import SkyCoord
@@ -12,7 +11,9 @@ from astropy.utils.exceptions import AstropyWarning
 from astroquery.exceptions import RemoteServiceError
 from astroquery.ipac.irsa import Irsa
 from astroquery.ipac.ned import Ned
+
 from nuztf.ampel_api import ampel_api_catalog, ampel_api_name
+from nuztf.paths import CROSSMATCH_CACHE
 
 
 def query_ned_for_z(
@@ -108,22 +109,16 @@ def ampel_api_tns(
     return full_name, discovery_date, source_group
 
 
-NUZTF_LABEL = "nuztf_xmatch_label"
-
-
-def get_cross_match_info(raw: dict, cache_file: Path | str | None = None, logger=None):
+def get_cross_match_info(raw: dict, logger=None):
     """ """
-    # Cache crossmatch in alert!
-    if NUZTF_LABEL in raw:
-        return raw[NUZTF_LABEL]
 
-    if cache_file is not None:
-        if cache_file.is_file():
-            if cache_file.stat().st_size > 0:
-                with open(cache_file) as f:
-                    res = json.load(f)
-                    label = res["xmatch"]
-                    return label
+    cache_file = CROSSMATCH_CACHE.joinpath(f"{raw['objectId']}.json")
+
+    if cache_file.exists():
+        with open(cache_file) as f:
+            res = json.load(f)
+            label = res["data"]
+            return label
 
     alert = raw["candidate"]
 
@@ -145,7 +140,10 @@ def get_cross_match_info(raw: dict, cache_file: Path | str | None = None, logger
     if res is not None:
         if logger:
             logger.info(res)
-        label = f"[CRTS variable star: {res[0]['body']['name']} ({res[0]['dist_arcsec']:.2f} arsec)]"
+        label = (
+            f"[CRTS variable star: "
+            f"{res[0]['body']['name']} ({res[0]['dist_arcsec']:.2f} arsec)]"
+        )
 
     # Check if known QSO/AGN
 
@@ -160,9 +158,17 @@ def get_cross_match_info(raw: dict, cache_file: Path | str | None = None, logger
     if res is not None:
         if len(res) == 1:
             if "q" in res[0]["body"]["broad_type"]:
-                label = f"[MILLIQUAS: {res[0]['body']['name']} - Likely QSO (prob = {res[0]['body']['qso_prob']}%) ({res[0]['dist_arcsec']:.2f} arsec)]"
+                label = (
+                    f"[MILLIQUAS: {res[0]['body']['name']} - "
+                    f"Likely QSO (prob = {res[0]['body']['qso_prob']}%) "
+                    f"({res[0]['dist_arcsec']:.2f} arsec)]"
+                )
             else:
-                label = f"[MILLIQUAS: {res[0]['body']['name']} - '{res[0]['body']['broad_type']}'-type source ({res[0]['dist_arcsec']:.2f} arsec)]"
+                label = (
+                    f"[MILLIQUAS: {res[0]['body']['name']} - "
+                    f"'{res[0]['body']['broad_type']}'-type source "
+                    f"({res[0]['dist_arcsec']:.2f} arsec)]"
+                )
         else:
             label = "[MULTIPLE MILLIQUAS MATCHES]"
 
@@ -181,7 +187,10 @@ def get_cross_match_info(raw: dict, cache_file: Path | str | None = None, logger
             if res[0]["body"]["Plx"] is not None:
                 plx_sig = res[0]["body"]["Plx"] / res[0]["body"]["ErrPlx"]
                 if plx_sig > 3.0:
-                    label = f"[GAIADR2: {plx_sig:.1f}-sigma parallax ({res[0]['dist_arcsec']:.2f} arsec)]"
+                    label = (
+                        f"[GAIADR2: {plx_sig:.1f}-sigma parallax "
+                        f"({res[0]['dist_arcsec']:.2f} arsec)]"
+                    )
 
     # Check if classified as probable star in SDSS
 
@@ -197,7 +206,10 @@ def get_cross_match_info(raw: dict, cache_file: Path | str | None = None, logger
         if res is not None:
             if len(res) == 1:
                 if float(res[0]["body"]["type"]) == 6.0:
-                    label = f"[SDSS Morphology: 'Star'-type source ({res[0]['dist_arcsec']:.2f} arsec)]"
+                    label = (
+                        f"[SDSS Morphology: 'Star'-type source "
+                        f"({res[0]['dist_arcsec']:.2f} arsec)]"
+                    )
             else:
                 label = "[MULTIPLE SDSS MATCHES]"
 
@@ -207,10 +219,10 @@ def get_cross_match_info(raw: dict, cache_file: Path | str | None = None, logger
         res = query_wise_astroquery(
             ra_deg=alert["ra"],
             dec_deg=alert["dec"],
-            searchradius_arcsec=6.0,
+            searchradius_arcsec=3.0,
         )
         if res is not None:
-            if len(res) == 1:
+            if len(res) > 0:
                 w1mw2 = res["w1mpro"][0] - res["w2mpro"][0]
 
                 if w1mw2 > 0.8:
@@ -228,8 +240,9 @@ def get_cross_match_info(raw: dict, cache_file: Path | str | None = None, logger
                         f"WISE DETECTION: W1-W2={w1mw2:.2f} "
                         f"({res[0]['dist']:.2f} arsec)"
                     )
-            else:
-                label = "[MULTIPLE WISE MATCHES]"
+
+                if len(res) > 1:
+                    label += "[MULTIPLE WISE MATCHES]"
 
     # Just check NED
 
@@ -260,17 +273,20 @@ def get_cross_match_info(raw: dict, cache_file: Path | str | None = None, logger
     if full_name is not None:
         label += f" [TNS NAME={full_name}]"
 
-    raw[NUZTF_LABEL] = label
-
-    if cache_file is not None:
-        with open(cache_file, "w") as f:
-            json.dump({"xmatch": label}, f)
+    with open(cache_file, "w") as f:
+        json.dump({"data": label}, f)
 
     return label
 
 
 def check_cross_match_info_by_name(name: str, logger=None):
-    """ """
+    """
+    Utility function to check cross-match info for a given name
+
+    :param name: ZTF name
+    :param logger:
+    :return:
+    """
     return get_cross_match_info(
         raw=ampel_api_name(name, with_history=False, logger=logger)[0], logger=logger
     )

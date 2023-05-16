@@ -2,8 +2,6 @@
 # coding: utf-8
 
 import logging
-import os
-import pickle
 import time
 from pathlib import Path
 
@@ -13,35 +11,32 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas
+import pandas as pd
 import requests
 from ampel.ztf.alert.ZiAlertSupplier import ZiAlertSupplier
 from ampel.ztf.dev.DevAlertConsumer import DevAlertConsumer
-from ampel.ztf.dev.ZTFAlert import ZTFAlert
 from ampel.ztf.t0.DecentFilter import DecentFilter
 from astropy import units as u
 from astropy.coordinates import Distance, SkyCoord
-from astropy.cosmology import FlatLambdaCDM
 from astropy.time import Time
-from gwemopt.ztf_tiling import get_quadrant_ipix
 from matplotlib.backends.backend_pdf import PdfPages
+from tqdm import tqdm
+from ztfquery import fields as ztfquery_fields
+
 from nuztf.ampel_api import (
     ampel_api_acknowledge_chunk,
-    ampel_api_cone,
     ampel_api_lightcurve,
     ampel_api_name,
     ampel_api_skymap,
-    ampel_api_timerange,
-    ensure_cutouts,
 )
 from nuztf.cat_match import ampel_api_tns, get_cross_match_info, query_ned_for_z
 from nuztf.flatpix import get_flatpix, get_nested_pix
 from nuztf.fritz import save_source_to_group
 from nuztf.observations import get_obs_summary
 from nuztf.observations_depot import get_obs_summary as alt_get_obs_summary
+from nuztf.paths import BASE_CANDIDATE_DIR, RESULTS_DIR
 from nuztf.plot import lightcurve_from_alert
 from nuztf.utils import cosmo
-from tqdm import tqdm
-from ztfquery import fields as ztfquery_fields
 
 DEBUG = False
 RATELIMIT_CALLS = 10
@@ -124,14 +119,26 @@ class BaseScanner:
         self.rectangular_area = None
         self.double_extragalactic_area = None
 
+        self.observations = None
+
         if not hasattr(self, "dist"):
             self.dist = None
 
-    def get_name(self):
+    def get_full_name(self) -> str:
         raise NotImplementedError
 
-    def get_full_name(self):
+    def get_name(self) -> str:
         raise NotImplementedError
+
+    def get_output_dir(self) -> Path:
+        output_dir = RESULTS_DIR.joinpath(self.get_name())
+        output_dir.mkdir(exist_ok=True, parents=True)
+        return output_dir
+
+    def get_cache_dir(self) -> Path:
+        cache_dir = BASE_CANDIDATE_DIR.joinpath(self.get_name())
+        cache_dir.mkdir(exist_ok=True, parents=True)
+        return cache_dir
 
     def unpack_skymap(self):
         raise NotImplementedError
@@ -153,13 +160,24 @@ class BaseScanner:
         fid_band = {1: "g", 2: "r", 3: "i"}
         return fid_band[fid]
 
+    @staticmethod
+    def parse_ztf_filter(fid: int):
+        """
+        Convert ZTF filter id to string
+
+        :param fid: filter id
+        :return: g, r, or i
+        """
+        return ["g", "r", "i"][fid - 1]
+
     def get_overlap_line(self):
         """ """
         if (self.overlap_prob is not None) and (
             self.double_extragalactic_area is not None
         ):
             return (
-                f"We covered {self.overlap_prob:.1f}% ({self.double_extragalactic_area:.1f} sq deg) "
+                f"We covered {self.overlap_prob:.1f}% "
+                f"({self.double_extragalactic_area:.1f} sq deg) "
                 f"of the reported localization region. "
                 "This estimate accounts for chip gaps. "
             )
@@ -221,9 +239,6 @@ class BaseScanner:
         logging.getLogger().setLevel(lvl)
         return pipeline_bool
 
-    def plot_ztf_observations(self, **kwargs):
-        self.get_multi_night_summary().show_gri_fields(**kwargs)
-
     def get_multi_night_summary(self, max_days=None):
         mns = alt_get_obs_summary(self.t_min, max_days=max_days)
         if mns is None:
@@ -244,7 +259,9 @@ class BaseScanner:
         self.logger.info("Commencing skymap scan")
 
         self.logger.debug(
-            f"API skymap search: nside = {self.cone_nside} / # pixels = {len(self.cone_ids)} / timespan = {t_max.jd-t_min.jd:.1f} days."
+            f"API skymap search: nside = {self.cone_nside} / "
+            f"# pixels = {len(self.cone_ids)} / "
+            f"timespan = {t_max.jd-t_min.jd:.1f} days."
         )
 
         query_res = []
@@ -282,7 +299,8 @@ class BaseScanner:
                 time_per_chunk = (t1 - t0) / processed_chunks
                 remaining_time = time_per_chunk * remaining_chunks
                 self.logger.info(
-                    f"Remaining chunks: {remaining_chunks}. Estimated time to finish: {remaining_time/60:.0f} min"
+                    f"Remaining chunks: {remaining_chunks}. Estimated time to finish: "
+                    f"{remaining_time/60:.0f} min"
                 )
 
             if len(res) < chunk_size:
@@ -308,8 +326,6 @@ class BaseScanner:
         filter the candidates and create a summary
         """
         query_res = self.query_ampel(t_min=t_min, t_max=t_max)
-
-        ztf_ids_zero_stage = [res["objectId"] for res in query_res]
 
         ztf_ids_first_stage = []
         for res in tqdm(query_res):
@@ -337,14 +353,8 @@ class BaseScanner:
     def filter_f_no_prv(self, res):
         raise NotImplementedError
 
-    def fast_filter_f_no_prv(self, res):
-        return self.filter_f_no_prv(res)
-
     def filter_f_history(self, res):
         raise NotImplementedError
-
-    def fast_filter_f_history(self, res):
-        return self.filter_f_history(res)
 
     def find_cone_coords(self):
         raise NotImplementedError
@@ -375,20 +385,27 @@ class BaseScanner:
 
         return all_results
 
-    # @staticmethod
-    def calculate_abs_mag(self, mag: float, redshift: float) -> float:
+    @staticmethod
+    def calculate_abs_mag(mag: float, redshift: float) -> float:
         """ """
         luminosity_distance = cosmo.luminosity_distance(redshift).value * 10**6
         abs_mag = mag - 5 * (np.log10(luminosity_distance) - 1)
-
         return abs_mag
 
-    def get_candidates_lines(self):
+    def get_candidates_lines(self) -> str:
+        """
+        Return a string with the candidates in a format that can be
+        directly pasted into a Slack message or GCN
+
+        Returns: str
+        """
+
         if len(self.cache) > 0:
             s = (
                 "We are left with the following high-significance transient "
                 "candidates by our pipeline, all lying within the "
-                f"{100 * self.prob_threshold}% localization of the skymap.\n\n{self.parse_candidates()}"
+                f"{100 * self.prob_threshold}% localization of the skymap."
+                f"\n\n{self.parse_candidates()}"
             )
         else:
             s = "\n\nNo candidate counterparts were detected."
@@ -396,6 +413,13 @@ class BaseScanner:
         return s
 
     def parse_candidates(self):
+        """
+        Parse the candidates into a string that can be pasted into a Slack message
+        or GCN
+
+        :return: Str
+        """
+
         table = (
             "+--------------------------------------------------------------------------------+\n"
             "| ZTF Name     | IAU Name  | RA (deg)    | DEC (deg)   | Filter | Mag   | MagErr |\n"
@@ -443,11 +467,7 @@ class BaseScanner:
 
     def draft_gcn(self):
         if self.first_obs is None:
-            self.first_obs = Time(
-                input(
-                    "What was the first observation date? (YYYY-MM-DD HH:MM:SS [UTC])"
-                )
-            )
+            raise ValueError("No first observation set. Cannot draft GCN.")
 
         first_obs_dt = self.first_obs.datetime
         pretty_date = first_obs_dt.strftime("%Y-%m-%d")
@@ -483,45 +503,57 @@ class BaseScanner:
             "GROWTH acknowledges generous support of the NSF under PIRE Grant No 1545949.\n"
             "Alert distribution service provided by DIRAC@UW (Patterson et al. 2019).\n"
             "Alert database searches are done by AMPEL (Nordin et al. 2019).\n"
-            "Alert filtering is performed with the nuztf (Stein et al. 2021, https://github.com/desy-multimessenger/nuztf).\n"
+            "Alert filtering is performed with the nuztf (Stein et al. 2021, https://github.com/desy-multimessenger/nuztf ).\n"
         )
-        if self.dist:
-            text += "Alert filtering and follow-up coordination is being undertaken by the Fritz marshal system (FIXME CITATION NEEDED)."
 
         return text
 
     @staticmethod
-    def extract_ra_dec(nside, index):
-        """ """
+    def extract_ra_dec(nside: int, index: int):
+        """
+        Convert a healpix index to ra and dec
+
+        :param nside: Nside of healpix map
+        :param index: index of healpix pixel
+        :return: ra, dec in degrees
+        """
         theta, phi = hp.pix2ang(nside, index, nest=True)
         ra_deg = np.rad2deg(phi)
         dec_deg = np.rad2deg(0.5 * np.pi - theta)
 
-        return (ra_deg, dec_deg)
+        return ra_deg, dec_deg
 
     @staticmethod
-    def extract_npix(nside, ra, dec):
-        """ " """
-        theta = 0.5 * np.pi - np.deg2rad(dec)
-        phi = np.deg2rad(ra)
+    def extract_npix(nside: int, ra_deg: float, dec_deg: float) -> int:
+        """
+        Extract healpix index from ra and dec
+
+        :param nside: nside of healpix map
+        :param ra_deg: ra in degrees
+        :param dec_deg: dec in degrees
+        :return: index of healpix pixel
+        """
+        theta = 0.5 * np.pi - np.deg2rad(dec_deg)
+        phi = np.deg2rad(ra_deg)
 
         return int(hp.ang2pix(nside, theta, phi, nest=True))
 
-    def create_candidate_summary(self, outfile=None):
-        """Create pdf with lightcurve plots of all candidates"""
+    def create_candidate_summary(self):
+        """
+        Create pdf with lightcurve plots of all candidates
+
+        :return None:
+        """
         if len(self.cache.items()) == 0:
             self.logger.info("No candidates found, skipping pdf creation")
             return
 
-        if outfile is None:
-            pdf_path = self.summary_path + ".pdf"
-        else:
-            pdf_path = outfile
+        pdf_path = self.get_output_dir().joinpath("candidates.pdf")
 
         self.logger.info(
-            "Creating overview pdf (this might take a moment as it involves catalog matching)"
+            f"Creating overview pdf at: {pdf_path}\n"
+            f"(this might take a moment as it involves catalog matching)"
         )
-        self.logger.debug(f"Saving to: {pdf_path}")
 
         with PdfPages(pdf_path) as pdf:
             for name, alert in tqdm(sorted(self.cache.items())):
@@ -530,31 +562,24 @@ class BaseScanner:
                     include_cutouts=True,
                     logger=self.logger,
                     t_0_mjd=self.t_min.mjd,
-                    cache_dir=self.cache_dir,
                 )
 
                 pdf.savefig()
                 plt.close()
 
-    def create_overview_table(self, outfile=None):
-        """Create csv table of all candidates"""
+    def create_overview_table(self):
+        """
+        Create csv table of all candidates
+
+        :return None:
+        """
         if len(self.cache.items()) == 0:
             self.logger.info("No candidates found, skipping csv creation")
             return
 
-        if outfile is None:
-            csv_path = self.summary_path + ".csv"
-        else:
-            csv_path = outfile
+        csv_path = self.get_output_dir().joinpath("candidate_table.csv")
 
-        self.logger.info(f"Creating overview csv")
-        self.logger.debug(f"Saving to: {csv_path}")
-
-        ztf_ids = []
-        ras = []
-        decs = []
-        mags = []
-        crossmatches = []
+        self.logger.info(f"Creating overview csv at {csv_path}")
 
         data = {
             "ztf_id": [],
@@ -570,12 +595,7 @@ class BaseScanner:
             data["RA"].append(alert["candidate"]["ra"])
             data["Dec"].append(alert["candidate"]["dec"])
             data["mag"].append(alert["candidate"]["magpsf"])
-            cache_file = Path(self.cache_dir) / f"{ztf_id}_catmatch.json"
-            data["xmatch"].append(
-                get_cross_match_info(
-                    raw=alert, cache_file=cache_file, logger=self.logger
-                )
-            )
+            data["xmatch"].append(get_cross_match_info(raw=alert, logger=self.logger))
             if alert.get("kilonova_eval") is not None:
                 data["kilonova_score"].append(alert["kilonova_eval"]["kilonovaness"])
             else:
@@ -585,13 +605,12 @@ class BaseScanner:
 
         df.to_csv(csv_path)
 
-    @staticmethod
-    def parse_ztf_filter(fid: int):
-        """ """
-        return ["g", "r", "i"][fid - 1]
-
     def tns_summary(self):
-        """ """
+        """
+        Create summary for TNS
+
+        :return:
+        """
         summary = ""
 
         for name, res in sorted(self.cache.items()):
@@ -638,6 +657,12 @@ class BaseScanner:
         return summary
 
     def peak_mag_summary(self):
+        """
+        Print a summary of each candidate's peak magnitude
+
+        :return: str
+        """
+
         for name, res in sorted(self.cache.items()):
             detections = [
                 x
@@ -666,22 +691,39 @@ class BaseScanner:
             if tns_name:
                 tns_result = f"({tns_name})"
 
-            cache_file = Path(self.cache_dir) / f"{name}_catmatch.json"
-            xmatch_info = get_cross_match_info(
-                raw=res, cache_file=cache_file, logger=self.logger
-            )
+            xmatch_info = get_cross_match_info(raw=res, logger=self.logger)
 
             print(
-                f"Candidate {name} peaked at {brightest['magpsf']:.1f} {tns_result}on "
-                f"{brightest['jd']:.1f} with filter {self.parse_ztf_filter(brightest['fid'])}. "
+                f"Candidate {name} peaked at {brightest['magpsf']:.1f} {tns_result} "
+                f"on {brightest['jd']:.1f} with "
+                f"filter {self.parse_ztf_filter(brightest['fid'])}. "
                 f"Max range of {diff:.1f} mag with filter {df}. {xmatch_info}"
             )
 
-    def candidate_text(self, name, first_detection, lul_lim, lul_jd):
-        raise NotImplementedError
+    def candidate_text(
+        self, ztf_id: str, first_detection: float, lul_lim: float, lul_jd: float
+    ) -> str:
+        """
+        Format a text summary of a candidate
+
+        :param ztf_id: ZTF name of the candidate
+        :param first_detection: first detection of the candidate
+        :param lul_lim: last upper limit magnitude
+        :param lul_jd: last upper limit julian date
+        :return: text summary
+        """
+        fd = Time(first_detection, format="jd").datetime.strftime("%Y-%m-%d")
+
+        text = f"{ztf_id} was first detected on {fd}. "
+
+        return text
 
     def text_summary(self):
-        """ """
+        """
+        Create a text summary of all candidates
+
+        :return:
+        """
         text = ""
         for name, res in sorted(self.cache.items()):
             detections = [
@@ -728,22 +770,18 @@ class BaseScanner:
                 absmag = self.calculate_abs_mag(latest["magpsf"], ned_z)
                 if ned_z > 0:
                     z_dist = Distance(z=ned_z, cosmology=cosmo).value
-                    text += f"It has a spec-z of {ned_z:.3f} [{z_dist:.0f} Mpc] and an abs. mag of {absmag:.1f}. Distance to SDSS galaxy is {ned_dist:.2f} arcsec. "
-                    if self.dist:
-                        gw_dist_interval = [
-                            self.dist - self.dist_unc,
-                            self.dist + self.dist_unc,
-                        ]
+                    text += (
+                        f"It has a spec-z of {ned_z:.3f} [{z_dist:.0f} Mpc] "
+                        f"and an abs. mag of {absmag:.1f}. "
+                        f"Distance to SDSS galaxy is {ned_dist:.2f} arcsec. "
+                    )
 
             c = SkyCoord(res["candidate"]["ra"], res["candidate"]["dec"], unit="deg")
             g_lat = c.galactic.b.degree
             if abs(g_lat) < 15.0:
                 text += f"It is located at a galactic latitude of {g_lat:.2f} degrees. "
 
-            cache_file = Path(self.cache_dir) / f"{name}_catmatch.json"
-            xmatch_info = get_cross_match_info(
-                raw=res, cache_file=cache_file, logger=self.logger
-            )
+            xmatch_info = get_cross_match_info(raw=res, logger=self.logger)
             text += xmatch_info
             text += "\n"
 
@@ -755,6 +793,15 @@ class BaseScanner:
     def calculate_overlap_with_observations(
         self, fields=None, pid=None, first_det_window_days=3.0, min_sep=0.01
     ):
+        """
+        Calculate the overlap of the candidates with the observations
+
+        :param fields: list of fields to consider. By default, use actual log.
+        :param pid: pid to consider. By default, use all.
+        :param first_det_window_days: number of days to consider for first detection
+        :param min_sep: minimum separation in days between observations
+        """
+
         if fields is None:
             mns = self.get_multi_night_summary(first_det_window_days)
 
@@ -779,7 +826,6 @@ class BaseScanner:
             mns = MNS(data)
 
         # Skip all 64 simultaneous quadrant entries, we only need one per observation for qa log
-        # data = mns.data.copy().iloc[::64]
 
         data = mns.data.copy()
 
@@ -923,7 +969,7 @@ class BaseScanner:
         overlapping_fields = sorted(list(set(overlapping_fields)))
 
         _observations = data.query("obsjd in @times").reset_index(drop=True)[
-            ["datetime", "exptime", "fid", "field"]
+            ["obsjd", "datetime", "exptime", "fid", "field"]
         ]
         bands = [self.fid_to_band(fid) for fid in _observations["fid"].values]
         _observations["band"] = bands
@@ -1111,7 +1157,13 @@ class BaseScanner:
         )
 
     def plot_overlap_with_observations(self, first_det_window_days=None, min_sep=0.01):
-        """ """
+        """
+        Function to plot the overlap of the field with observations.
+
+        :param first_det_window_days: Window of time in days to consider for the first detection.
+        :param min_sep: Minimum separation between observations to consider them as separate.
+
+        """
 
         overlap_res = self.calculate_overlap_with_depot_observations(
             first_det_window_days=first_det_window_days,
@@ -1240,8 +1292,6 @@ class BaseScanner:
             )
         )
 
-        all_pix = single_in_plane_pixels + double_in_plane_pixels
-
         n_pixels = len(
             single_in_plane_pixels
             + double_in_plane_pixels
@@ -1262,66 +1312,94 @@ class BaseScanner:
         self.overlap_fields = overlapping_fields
 
         self.logger.info(
-            f"{n_pixels} pixels were covered, covering approximately {self.healpix_area:.2g} sq deg."
+            f"{n_pixels} pixels were covered, covering approximately "
+            f"{self.healpix_area:.2g} sq deg."
         )
         self.logger.info(
-            f"{n_double} pixels were covered at least twice (b>10), covering approximately {self.double_extragalactic_area:.2g} sq deg."
+            f"{n_double} pixels were covered at least twice (b>10), "
+            f"covering approximately {self.double_extragalactic_area:.2g} sq deg."
         )
         self.logger.info(
-            f"{n_plane} pixels were covered at low galactic latitude, covering approximately {plane_area:.2g} sq deg."
+            f"{n_plane} pixels were covered at low galactic latitude, "
+            f"covering approximately {plane_area:.2g} sq deg."
         )
         return fig, message
 
-    def crosscheck_prob(self):
-        try:
-            nside = self.ligo_nside
-        except AttributeError:
-            nside = self.nside
+    def get_exposure_summary(self) -> pd.DataFrame:
+        """
+        Function to get a summary of the exposures
 
-        class MNS:
-            def __init__(self, data):
-                self.data = pandas.DataFrame(
-                    data, columns=["field", "ra", "dec", "datetime"]
-                )
+        :return:
+        """
 
-        data = []
+        if self.observations is None:
+            raise ValueError("No pre-observations loaded. Run plot_coverage first")
 
-        for f in self.overlap_fields:
-            ra, dec = ztfquery_fields.field_to_coords(float(f))[0]
-            t = Time(self.t_min.jd, format="jd").utc
-            t.format = "isot"
-            t = t.value
-            data.append([f, ra, dec, t])
+        max_days = max(self.observations["obsjd"]) - self.t_min.jd
 
-            mns = MNS(data)
+        mns = alt_get_obs_summary(t_min=self.t_min, max_days=max_days)
 
-        data = mns.data.copy()
+        exposures = []
 
-        self.logger.info("Unpacking observations")
-        field_prob = 0.0
+        for obsjd in self.observations["obsjd"].unique():
+            res = mns.data[mns.data["obsjd"] == obsjd]
 
-        ps = []
+            f_proc = float(len(res)) / 64.0
+            f_status = np.sum(res["status"].astype(int) == 0) / 64.0
 
-        for index, row in tqdm(data.iterrows()):
-            pix = get_quadrant_ipix(nside, row["ra"], row["dec"])
+            new = {}
 
-            flat_pix = []
+            copy_keys = [
+                "exposure_id",
+                "obsjd",
+                "filter_id",
+                "field_id",
+                "exposure_time",
+                "date",
+            ]
 
-            for sub_list in pix:
-                for p in sub_list:
-                    flat_pix.append(p)
+            for key in copy_keys:
+                new[key] = res[key].iloc[0]
 
-            flat_pix = list(set(flat_pix))
-            ps += flat_pix
+            new["f_processed"] = f_proc
+            new["f_proc_without_flag"] = f_status
+            exposures.append(new)
 
-        ps = list(set(ps))
+        return pd.DataFrame(exposures)
 
-        for p in hp.ring2nest(nside, ps):
-            field_prob += self.data[self.key][int(p)]
+    def get_field_summary(self):
+        """
+        Function to get a summary of the exposures
 
-        self.logger.info(
-            f"Intergrating all fields overlapping 90% contour gives {100*field_prob:.2g}%"
-        )
+        :return:
+        """
+
+        df = self.get_exposure_summary()
+
+        fields = []
+
+        for field_entry in df["field_id"].unique():
+            res = df[df["field_id"] == field_entry]
+
+            mask = res["exposure_time"].astype(float) > 30.0
+
+            new = {
+                "field_id": field_entry,
+                "n_exposures": len(res),
+                "n_30": np.sum(mask),
+                "n_deep": np.sum(~mask),
+                "f_proc_30": np.mean(res[mask]["f_processed"]),
+                "f_proc_deep": np.mean(res[~mask]["f_processed"]),
+                "f_proc_without_flag_30": np.mean(res[mask]["f_proc_without_flag"]),
+                "f_proc_without_flag_deep": np.mean(res[~mask]["f_proc_without_flag"]),
+                "n_filters": len(res["filter_id"].unique()),
+                "n_nights": len(set([int(x + 0.5) for x in res["obsjd"]])),
+            }
+            fields.append(new)
+
+        summary = pd.DataFrame(fields)
+
+        return summary.sort_values(by="field_id", ignore_index=True)
 
     def export_cache_to_fritz(self, group_id=None):
         if group_id is None:
@@ -1338,13 +1416,3 @@ class BaseScanner:
                 saved_sources.append(source)
 
         self.logger.info(f"Saved {len(saved_sources)} to fritz group {group_id}")
-
-    def export_cache_to_pickle(self, output_path: str):
-        with open(output_path, "wb") as f:
-            self.logger.info(f"Saving to {output_path}")
-            pickle.dump(self.cache, f)
-
-    def load_cache_from_pickle(self, input_path: str):
-        with open(input_path, "rb") as f:
-            self.logger.info(f"Loading from {input_path}")
-            self.cache = pickle.load(f)

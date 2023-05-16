@@ -2,22 +2,16 @@
 # coding: utf-8
 
 import logging
-import os
-from pathlib import Path
 
 import healpy as hp
 import numpy as np
 import yaml
 from astropy.time import Time
+from tqdm import tqdm
+
 from nuztf.base_scanner import BaseScanner
 from nuztf.parse_nu_gcn import find_gcn_no, get_latest_gcn, parse_gcn_circular
-from tqdm import tqdm
-from ztfquery.io import LOCALSOURCE
-
-nu_candidate_output_dir = os.path.join(LOCALSOURCE, "neutrino_candidates")
-
-if not os.path.exists(nu_candidate_output_dir):
-    os.makedirs(nu_candidate_output_dir)
+from nuztf.paths import CONFIG_DIR
 
 
 class NeutrinoScanner(BaseScanner):
@@ -37,17 +31,11 @@ class NeutrinoScanner(BaseScanner):
         if config:
             self.config = config
         else:
-            config_path = os.path.join(
-                os.path.dirname(__file__), "config", "nu_run_config.yaml"
-            )
+            config_path = CONFIG_DIR.joinpath("nu_run_config.yaml")
             with open(config_path) as f:
                 self.config = yaml.safe_load(f)
 
         self.prob_threshold = 0.9
-
-        self.cache_dir = Path(LOCALSOURCE) / "cache" / nu_name
-
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
 
         if manual_args is None:
             if nu_name is not None:
@@ -94,8 +82,6 @@ class NeutrinoScanner(BaseScanner):
             f"Coordinates: Dec = {dec[0]} ({self.dec_min} - {self.dec_max})"
         )
 
-        self.summary_path = os.path.join(nu_candidate_output_dir, nu_name)
-
         BaseScanner.__init__(
             self,
             t_min=nu_time,
@@ -108,6 +94,7 @@ class NeutrinoScanner(BaseScanner):
             * (self.dec_max - self.dec_min)
             * abs(np.cos(np.radians(dec[0])))
         )
+
         self.logger.info(f"Projected Area: {self.rectangular_area:.3f} sq. deg.")
 
     def get_name(self):
@@ -116,17 +103,10 @@ class NeutrinoScanner(BaseScanner):
 
     def get_full_name(self):
         """ """
-        return f"neutrino event {self.get_name()} ({self.author} et. al, GCN {self.gcn_no})"
-
-    def candidate_text(
-        self, ztf_id: str, first_detection: float, lul_lim: float, lul_jd: float
-    ):
-        """ """
-        fd = Time(first_detection, format="jd").datetime.strftime("%Y-%m-%d")
-
-        text = f"{ztf_id} was first detected on {fd}. "
-
-        return text
+        return (
+            f"neutrino event {self.get_name()} "
+            f"({self.author} et. al, GCN {self.gcn_no})"
+        )
 
     @staticmethod
     def get_obs_line():

@@ -23,42 +23,6 @@ class ParsingError(Exception):
     pass
 
 
-def parse_gcn_for_no(base_nu_name: str, url: str = f"{BASE_GCN_URL}_archive.html"):
-    """ """
-    if logger:
-        logger.info(f"Checking for GCN on {url}")
-
-    nu_name = str(base_nu_name)
-
-    page = requests.get(url)
-
-    gcn_no = None
-    name = None
-
-    while not nu_name[0].isdigit():
-        nu_name = nu_name[1:]
-
-    latest_archive_no = None
-
-    for line in page.text.splitlines():
-        if np.logical_and(
-            "IceCube observation of a high-energy neutrino" in line, nu_name in line
-        ):
-            res = line.split(">")
-            if gcn_no is None:
-                gcn_no = "".join([x for x in res[2] if x.isdigit()])
-                name = res[3].split(" - ")[0]
-                print(f"Found match to {base_nu_name}: {name}")
-            else:
-                raise Exception(f"Multiple matches found to {base_nu_name}")
-
-        elif np.logical_and("gcn3_arch_old" in line, latest_archive_no is None):
-            url = line.split('"')[1]
-            latest_archive_no = int(url[13:].split(".")[0])
-
-    return gcn_no, name, latest_archive_no
-
-
 def find_gcn_no(base_nu_name: str):
     """
     Trick the webpage into giving us results
@@ -91,7 +55,9 @@ def find_gcn_no(base_nu_name: str):
         querystr = (
             "{ allCirculars ( evtid:"
             + event_id
-            + " ) { totalCount edges { node { id id_ received subject evtidCircular{ event } cid evtid oidCircular{ telescope detector oidEvent{ wavelength messenger } } } } } }"
+            + " ) { totalCount edges { node { id id_ received subject "
+            "evtidCircular{ event } cid evtid oidCircular{ telescope detector "
+            "oidEvent{ wavelength messenger } } } } } }"
         )
 
         r = requests.post(
@@ -109,7 +75,8 @@ def find_gcn_no(base_nu_name: str):
         for entry in result["data"]["allCirculars"]["edges"]:
             print(entry)
             """
-            do some filtering based on subjects (there are errorneous event associations on the server)
+            do some filtering based on subjects
+            (there are erroneous event associations on the server)
             """
             if (
                 "neutrino" in (subj := entry["node"]["subject"])
@@ -141,7 +108,13 @@ def get_latest_gcn():
     endpoint = (
         "https://heasarc.gsfc.nasa.gov/wsgi-scripts/tach/gcn_v2/tach.wsgi/graphql_fast"
     )
-    querystr = '{ allCirculars ( first:50after:"" ) { totalCount pageInfo{ hasNextPage hasPreviousPage startCursor endCursor } edges { node { id id_ received subject evtidCircular{ event } cid evtid oidCircular{ telescope detector oidEvent{ wavelength messenger } } } } } }'
+    querystr = (
+        '{ allCirculars ( first:50after:"" ) { totalCount pageInfo{ '
+        "hasNextPage hasPreviousPage startCursor endCursor } "
+        "edges { node { id id_ received subject evtidCircular{ event } cid "
+        "evtid oidCircular{ telescope detector "
+        "oidEvent{ wavelength messenger } } } } } }"
+    )
 
     r = requests.post(
         endpoint,
@@ -169,7 +142,12 @@ def get_latest_gcn():
 
 
 def parse_radec(string: str):
-    """ """
+    """
+    Find the RA and Dec in a string
+
+    :param string: ra/dec string
+    :return:
+    """
     regex_findall = re.findall(r"[-+]?\d*\.\d+|\d+", string)
 
     if len(regex_findall) == 2:
