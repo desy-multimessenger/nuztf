@@ -95,7 +95,8 @@ class SkymapScanner(BaseScanner):
         final_objects = self.remove_duplicates(final_objects)
 
         self.logger.info(
-            f"Retrieved {len(final_objects)} final objects for event {self.skymap.event_name} / map revision {self.skymap.rev} from DESY cloud."
+            f"Retrieved {len(final_objects)} final objects for event "
+            f"{self.get_name()} from DESY cloud."
         )
 
         self.final_candidates = final_objects
