@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import time
+from pathlib import Path
 
 import healpy as hp
 import lxml.etree
@@ -17,16 +18,20 @@ from astropy.io import fits
 from astropy.time import Time
 from astropy_healpix import HEALPix
 from ligo.gracedb.exceptions import HTTPError
+from ligo.gracedb.rest import GraceDb
 from ligo.skymap.moc import rasterize
 from lxml import html
 from numpy.lib.recfunctions import append_fields
-from ztfquery.io import LOCALSOURCE
+
+from nuztf.paths import RESULTS_DIR, SKYMAP_DIR
 
 
 class EventNotFound(Exception):
     """Base class for non-existing event"""
 
-    pass
+
+class RetractionError(Exception):
+    """Base class for retracted event"""
 
 
 class Skymap:
@@ -35,63 +40,33 @@ class Skymap:
         event: str = None,
         rev: int = None,
         prob_threshold: float = 0.9,
-        custom_prefix: str = "",
         output_nside: int | None = None,
     ):
-        self.base_skymap_dir = os.path.join(LOCALSOURCE, f"{custom_prefix}skymaps")
-        self.candidate_output_dir = os.path.join(
-            LOCALSOURCE, f"{custom_prefix}candidates"
-        )
-        self.candidate_cache = os.path.join(LOCALSOURCE, f"{custom_prefix}cache")
-
-        for entry in [
-            self.base_skymap_dir,
-            self.candidate_output_dir,
-            self.candidate_cache,
-        ]:
-            if not os.path.exists(entry):
-                os.makedirs(entry)
-
         self.logger = logging.getLogger(__name__)
 
         self.prob_threshold = prob_threshold
+        self.event = event
 
         if ".fit" in event:
-            basename = os.path.basename(event)
+            basename = Path(event).stem
 
-            self.skymap_path = os.path.join(self.base_skymap_dir, basename)
+            self.event_name = basename
+            self.skymap_path = SKYMAP_DIR.joinpath(basename)
+            self.rev = None
 
             if event[:8] == "https://":
-                self.logger.info(f"Downloading from: {event}")
-                self.skymap_path = os.path.join(
-                    self.base_skymap_dir, os.path.basename(event[7:])
-                )
-                wget.download(event, self.skymap_path)
+                if not self.skymap_path.exists():
+                    self.logger.info(f"Downloading from: {event}")
+                    wget.download(event, str(self.skymap_path))
+                else:
+                    self.logger.info(f"Found saved skymap at: {self.skymap_path}")
+        #
+        # elif "grb" in event.lower():
+        #     self.skymap_path, self.event_name = self.get_grb_skymap(event=event)
 
-                self.summary_path = os.path.join(
-                    self.candidate_output_dir,
-                    f"{os.path.basename(event)}_{self.prob_threshold}",
-                )
-
-            else:
-                self.summary_path = os.path.join(
-                    self.candidate_output_dir,
-                    f"{os.path.basename(event)}_{self.prob_threshold}",
-                )
-
-            self.event_name = os.path.basename(event[7:])
-
-        # elif np.sum([x in event for x in ["grb", "GRB"]]) > 0:
-        elif "grb" in event or "GRB" in event:
-            self.get_grb_skymap(event_name=event)
-
-        elif np.sum([x in event for x in ["s", "S", "gw", "GW"]]) > 0:
-            self.skymap_path, self.summary_path, self.event_name = self.get_gw_skymap(
-                event_name=event, rev=rev
-            )
         else:
-            raise Exception(
-                f"Event {event} not recognised as a fits file, a GRB or a GW event."
+            self.skymap_path, self.event_name, self.rev = self.get_gw_skymap(
+                event=event, rev=rev
             )
 
         (
@@ -110,99 +85,98 @@ class Skymap:
 
         self.pixel_threshold = self.find_pixel_threshold(self.data[self.key])
 
-        # self.cache_dir = os.path.join(skymap_candidate_cache, self.event_name)
+    #
+    # def get_grb_skymap(self, event: str):
+    #     """ """
+    #     if event is None:
+    #         raise ValueError(
+    #             "event_name must be provided for GRBs. They must have the form 'GRB210729A"
+    #         )
+    #
+    #     event_year_short = event[3:5]
+    #     event_year = "20" + event_year_short
+    #     event_month = event[5:7]
+    #     event_day = event[7:9]
+    #     event_letter = event[9]
+    #     event_number = ord(event_letter) - 65
+    #
+    #     # get possible skymap URLs
+    #
+    #     url = f"https://heasarc.gsfc.nasa.gov/FTP/fermi/data/gbm/triggers/{event_year}"
+    #
+    #     page_overview = requests.get(url)
+    #     webpage_overview = html.fromstring(page_overview.content)
+    #
+    #     links_overview = webpage_overview.xpath("//a/@href")
+    #
+    #     links_for_date = []
+    #
+    #     for link in links_overview:
+    #         if link[2:8] == f"{event_year_short}{event_month}{event_day}":
+    #             links_for_date.append(url + "/" + link + "current/")
+    #
+    #     if len(links_for_date) > 1:
+    #         self.logger.info(
+    #             f"Found multiple events. "
+    #             f"Will choose the one corresponding the GRB letter {event_letter}"
+    #         )
+    #
+    #     event_url = links_for_date[event_number]
+    #
+    #     page_event = requests.get(event_url)
+    #     webpage_event = html.fromstring(page_event.content)
+    #     links_event = webpage_event.xpath("//a/@href")
+    #
+    #     for link in links_event:
+    #         if link[0:11] == "glg_healpix":
+    #             final_link = event_url + link
+    #             break
+    #
+    #     self.skymap_path = os.path.join(self.base_skymap_dir, link)
+    #
+    #     if os.path.isfile(self.skymap_path):
+    #         self.logger.info(
+    #             f"Continuing with saved skymap. Located at {self.skymap_path}"
+    #         )
+    #     else:
+    #         self.logger.info(f"Downloading skymap and saving to {self.skymap_path}")
+    #         wget.download(final_link, self.skymap_path)
+    #
+    #     return sk, event
 
-        # if not os.path.exists(self.cache_dir):
-        #     os.makedirs(self.cache_dir)
+    def get_gw_skymap(self, event: str, rev: int | None = None):
+        """
+        Function to download a GW skymap from GraceDB
 
-    def get_candidate_cache_dir(self):
-        return self.candidate_cache
-
-    def get_grb_skymap(self, event_name: str):
-        """ """
-        if event_name is None:
-            raise ValueError(
-                "event_name must be provided for GRBs. They must have the form 'GRB210729A"
-            )
-
-        event_year_short = event_name[3:5]
-        event_year = "20" + event_year_short
-        event_month = event_name[5:7]
-        event_day = event_name[7:9]
-        event_letter = event_name[9]
-        event_number = ord(event_letter) - 65
-
-        # get possible skymap URLs
-
-        url = f"https://heasarc.gsfc.nasa.gov/FTP/fermi/data/gbm/triggers/{event_year}"
-
-        page_overview = requests.get(url)
-        webpage_overview = html.fromstring(page_overview.content)
-
-        links_overview = webpage_overview.xpath("//a/@href")
-
-        links_for_date = []
-
-        for link in links_overview:
-            if link[2:8] == f"{event_year_short}{event_month}{event_day}":
-                links_for_date.append(url + "/" + link + "current/")
-
-        if len(links_for_date) > 1:
-            self.logger.info(
-                f"Found multiple events. Will choose the one corresponding the GRB letter {event_letter}"
-            )
-
-        event_url = links_for_date[event_number]
-
-        page_event = requests.get(event_url)
-        webpage_event = html.fromstring(page_event.content)
-        links_event = webpage_event.xpath("//a/@href")
-
-        for link in links_event:
-            if link[0:11] == "glg_healpix":
-                final_link = event_url + link
-                break
-
-        self.skymap_path = os.path.join(self.base_skymap_dir, link)
-
-        if os.path.isfile(self.skymap_path):
-            self.logger.info(
-                f"Continuing with saved skymap. Located at {self.skymap_path}"
-            )
-        else:
-            self.logger.info(f"Downloading skymap and saving to {self.skymap_path}")
-            wget.download(final_link, self.skymap_path)
-
-        self.summary_path = f"{self.base_skymap_dir}/{event_name}_{self.prob_threshold}"
-
-        self.event_name = event_name
-
-    def get_gw_skymap(self, event_name: str, rev: int):
-        """ """
-        from ligo.gracedb.rest import GraceDb
+        :param event: Event name
+        :param rev: revision number
+        :return:
+        """
 
         ligo_client = GraceDb()
 
         self.logger.info("Obtaining skymap from GraceDB")
 
-        if event_name is None:
+        if event is None:
             superevent_iterator = ligo_client.superevents("category: Production")
             superevent_ids = [
                 superevent["superevent_id"] for superevent in superevent_iterator
             ]
-            event_name = superevent_ids[0]
+            event = superevent_ids[0]
 
         try:
-            res = ligo_client.voevents(event_name)
+            res = ligo_client.voevents(event)
             if res.status_code == 200:
                 voevents = res.json()["voevents"]
             else:
                 raise EventNotFound(
-                    f"The specified LIGO event, {event_name}, was not found on GraceDB. Please check that you entered the correct event name."
+                    f"The specified LIGO event, {event}, was not found on GraceDB. "
+                    f"Please check that you entered the correct event name."
                 )
         except HTTPError:
             raise EventNotFound(
-                f"The specified LIGO event, {event_name}, was not found on GraceDB. Please check that you entered the correct event name."
+                f"The specified LIGO event, {event}, was not found on GraceDB. "
+                f"Please check that you entered the correct event name."
             )
 
         if rev is None:
@@ -211,14 +185,13 @@ class Skymap:
         elif rev > len(voevents):
             raise Exception("Revision {0} not found".format(rev))
 
-        self.rev = rev
-
         latest_voevent = voevents[rev - 1]
         self.logger.info(f"Found voevent {latest_voevent['filename']}")
 
         if "Retraction" in latest_voevent["filename"]:
             raise RetractionError(
-                f"The specified LIGO event, {latest_voevent['filename']}, was retracted."
+                f"The specified LIGO event, "
+                f"{latest_voevent['filename']}, was retracted."
             )
 
         response = requests.get(latest_voevent["links"]["file"])
@@ -233,10 +206,8 @@ class Skymap:
 
         self.logger.info(f"Latest skymap URL: {latest_skymap}")
 
-        base_file_name = os.path.basename(latest_skymap)
-        savepath = os.path.join(
-            self.base_skymap_dir,
-            f"{event_name}_{latest_voevent['N']}_{base_file_name}",
+        savepath = SKYMAP_DIR.joinpath(
+            f"{event}_rev{latest_voevent['N']}_{os.path.basename(latest_skymap)}"
         )
 
         self.logger.info(f"Saving to: {savepath}")
@@ -245,9 +216,9 @@ class Skymap:
         with open(savepath, "wb") as f:
             f.write(response.content)
 
-        summary_path = f"{self.base_skymap_dir}/{event_name}_{latest_voevent['N']}_{self.prob_threshold}"
+        event_name = f"{event}/rev{latest_voevent['N']}"
 
-        return savepath, summary_path, event_name
+        return savepath, event_name, rev
 
     def read_map(self, output_nside: int | None = None):
         """
@@ -385,7 +356,12 @@ class Skymap:
         return data, t_obs, hpm, key, dist, dist_unc
 
     def find_pixel_threshold(self, data):
-        """ """
+        """
+        Find the pixel threshold that corresponds to the probability threshold
+
+        :param data: Healpix map data
+        :return: threshold value
+        """
 
         ranked_pixels = np.sort(data)[::-1]
         int_sum = 0.0
@@ -395,20 +371,34 @@ class Skymap:
             int_sum += prob
             if int_sum > self.prob_threshold:
                 self.logger.info(
-                    f"Threshold found! \n To reach {int_sum * 100.0:.2f}% of probability, pixels with probability greater than {prob} are included."
+                    f"Threshold found! \n To reach {int_sum * 100.0:.2f}% of "
+                    f"probability, pixels with probability greater "
+                    f"than {prob:.3g} are included."
                 )
                 pixel_threshold = prob
                 break
 
         return pixel_threshold
 
-    def interpolate_map(self, ra_deg, dec_deg):
-        """ """
+    def interpolate_map(self, ra_deg: float, dec_deg: float) -> float:
+        """
+        Find the probability at a given sky position by interpolating the skymap
+
+        :param ra_deg: Right ascension in degrees
+        :param dec_deg: declination in degrees
+        :return: Value of the skymap at the given position
+        """
         interpol_map = self.hpm.interpolate_bilinear_skycoord(
             SkyCoord(ra_deg * u.deg, dec_deg * u.deg), self.data[self.key]
         )
         return interpol_map
 
-    def in_contour(self, ra_deg, dec_deg):
-        """ """
+    def in_contour(self, ra_deg: float, dec_deg: float) -> bool:
+        """
+        Find if a given sky position is within the contour of the skymap
+
+        :param ra_deg: Right ascension in degrees
+        :param dec_deg: declination in degrees
+        :return: bool
+        """
         return self.interpolate_map(ra_deg, dec_deg) > self.pixel_threshold

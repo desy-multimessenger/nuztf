@@ -1,33 +1,44 @@
 import logging
 import os
 import pickle
+from pathlib import Path
 
 from gwemopt.ztf_tiling import get_quadrant_ipix
 from tqdm import tqdm
 from ztfquery.fields import FIELD_DATAFRAME
 
-
-def get_flatpix_path(nside: int):
-    outdir = os.path.join(os.path.dirname(__file__), "data")
-    if not os.path.exists(outdir):
-        os.makedirs(outdir)
-
-    outfile = os.path.join(outdir, f"ztf_fields_ipix_nside={nside}.pickle")
-    return outfile
+from nuztf.paths import FLATPIX_CACHE_DIR
 
 
-def get_nested_pix_path(nside: int):
-    outdir = os.path.join(os.path.dirname(__file__), "data")
-    if not os.path.exists(outdir):
-        os.makedirs(outdir)
+def get_flatpix_path(nside: int) -> Path:
+    """
+    Flatpix lookup table for nside
 
-    outfile = os.path.join(outdir, f"ztf_fields_nested_ipix_nside={nside}.pickle")
+    :param nside: nside of healpix
+    :return: path to flatpix lookup table
+    """
+    return FLATPIX_CACHE_DIR.joinpath(f"ztf_fields_ipix_nside={nside}.pickle")
+
+
+def get_nested_pix_path(nside: int) -> Path:
+    """
+    Nested pix lookup table for nside
+
+    :param nside: nside of healpix
+    :return: path to nested pix lookup table
+    """
+
+    outfile = FLATPIX_CACHE_DIR.joinpath(f"ztf_fields_nested_ipix_nside={nside}.pickle")
     return outfile
 
 
 def generate_flatpix_file(nside: int, logger=logging.getLogger(__name__)):
     """
     Generate and save the fields-healpix lookup table
+
+    :param nside: nside of healpix
+    :param logger: logger
+    :return: None
     """
 
     logger.info(f"Generating field-healpix lookup table for nside={nside}")
@@ -72,11 +83,18 @@ def generate_flatpix_file(nside: int, logger=logging.getLogger(__name__)):
 
 
 def get_flatpix(nside: int, logger=logging.getLogger(__name__)):
+    """
+    Get the fields-healpix lookup table
+
+    :param nside: nside of healpix
+    :param logger: logger
+    :return: flatpix lookup table
+    """
     infile = get_flatpix_path(nside=nside)
 
     # Generate a lookup table for field healpix
     # if none exists (because this is computationally costly)
-    if not os.path.isfile(infile):
+    if not infile.exists():
         generate_flatpix_file(nside=nside, logger=logger)
 
     logger.info(f"Loading from {infile}")
@@ -88,6 +106,13 @@ def get_flatpix(nside: int, logger=logging.getLogger(__name__)):
 
 
 def get_nested_pix(nside: int, logger=logging.getLogger(__name__)):
+    """
+    Nested Flatpix lookup table for nside
+
+    :param nside: nside of healpix
+    :param logger: logger
+    :return: flatpix lookup table
+    """
     infile = get_nested_pix_path(nside=nside)
 
     # Generate a lookup table for field healpix

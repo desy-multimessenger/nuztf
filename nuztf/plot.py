@@ -5,22 +5,22 @@ import gzip
 import io
 from base64 import b64decode
 from pathlib import Path
-from time import time
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import PIL
 from astropy import units as u
 from astropy import visualization
 from astropy.io import fits
 from astropy.time import Time
 from matplotlib.colors import Normalize
 from matplotlib.ticker import MultipleLocator
+from ztfquery.utils.stamps import get_ps_stamp
+
 from nuztf.ampel_api import create_empty_cutout, ensure_cutouts
 from nuztf.cat_match import get_cross_match_info
+from nuztf.paths import CUTOUT_CACHE_DIR
 from nuztf.utils import cosmo
-from ztfquery.utils.stamps import get_ps_stamp
 
 
 def alert_to_pandas(alert):
@@ -62,7 +62,6 @@ def lightcurve_from_alert(
     legend: bool = False,
     grid_interval: int = None,
     t_0_mjd: float = None,
-    cache_dir: str | None = None,
     logger=None,
 ):
     """plot AMPEL alerts as lightcurve"""
@@ -125,7 +124,8 @@ def lightcurve_from_alert(
         ):
             create_stamp_plot(alert=cutout_, ax=ax_, cutout_type=type_)
 
-        img_cache = Path(cache_dir) / f"{name}_PS1.png"
+        img_cache = CUTOUT_CACHE_DIR.joinpath(f"{name}_PS1.png")
+
         if not img_cache.is_file():
             img = get_ps_stamp(
                 candidate["ra"], candidate["dec"], size=240, color=["y", "g", "i"]
@@ -276,11 +276,8 @@ def lightcurve_from_alert(
     )
 
     if include_crossmatch:
-        cache_file = Path(cache_dir) / f"{name}_catmatch.json"
-
         xmatch_info = get_cross_match_info(
             raw=alert[0],
-            cache_file=cache_file,
         )
         if include_cutouts:
             ypos = 0.975

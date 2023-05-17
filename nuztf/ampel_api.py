@@ -14,9 +14,12 @@ from ampel.util.json import load
 from ampel.ztf.util.ZTFIdMapper import ZTFIdMapper
 from astropy.io import fits  # type: ignore
 from astropy.time import Time  # type: ignore
+from requests.auth import HTTPBasicAuth
+from requests.exceptions import HTTPError
+
 from nuztf import utils
 from nuztf.credentials import load_credentials
-from requests.auth import HTTPBasicAuth
+from nuztf.paths import PREPROCESSED_CACHE_DIR
 
 API_BASEURL = "https://ampel.zeuthen.desy.de"
 API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive/v3"
@@ -680,28 +683,22 @@ def ampel_api_catalog(
     return res
 
 
-def get_preprocessed_results(file_basename: str, logger=None) -> None | list:
+def get_preprocessed_results(file_basename: str) -> list:
     """
-    Access the DESY Cloud to look if there are precomputed results from an AMPEL run there
+    Access the DESY Cloud to look if there are precomputed results from an AMPEL run
+    there
     """
-    if logger is None:
-        logger = logging.getLogger(__name__)
 
     desy_cloud_token = load_credentials("desy_cloud_token", token_based=True)
 
-    filename = file_basename + ".json.gz"
+    filename = PREPROCESSED_CACHE_DIR.joinpath(f"{file_basename}.json.gz")
 
     res = requests.get(
-        f"https://syncandshare.desy.de/public.php/webdav/{filename}",
+        f"https://syncandshare.desy.de/public.php/webdav/{filename.name}",
         headers={"X-Requested-With": "XMLHttpRequest"},
         auth=(desy_cloud_token, "bla"),
     )
-
-    if res.status_code != 200:
-        logger.warning(
-            "\n\n-------------------- !! -------------------\nSomething went wrong with your query.\nCheck your credentials and make sure Ampel\nhas run correctly at Desy.\n-------------------- !! -------------------\n\n"
-        )
-        return None
+    res.raise_for_status()
 
     with open(f"{filename}", "wb") as f:
         f.write(res.content)

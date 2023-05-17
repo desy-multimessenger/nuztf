@@ -7,10 +7,19 @@ repos:
         exclude: &exclude_pattern '^LIGO_skymaps/'
     -   id: trailing-whitespace
         exclude: *exclude_pattern
--   repo: https://github.com/psf/black
-    rev: 22.6.0
+-   repo: local
     hooks:
     -   id: black
-        exclude: *exclude_pattern
+        name: black
+        entry: black
+        language: system
+        types: [ python ]
+-   repo: local
+    hooks:
+      - id: isort
+        name: isort (python)
+        entry: isort
+        language: system
+        types: [ python ]
 default_language_version:
     python: python3.10

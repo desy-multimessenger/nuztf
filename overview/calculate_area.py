@@ -5,8 +5,8 @@ import logging
 
 import numpy as np
 import pandas as pd
-
 from ampel.log.AmpelLogger import AmpelLogger
+
 from nuztf.neutrino_scanner import NeutrinoScanner
 from nuztf.parse_nu_gcn import find_gcn_no, get_latest_gcn, parse_gcn_circular
 

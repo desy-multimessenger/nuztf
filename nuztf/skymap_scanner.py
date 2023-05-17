@@ -11,9 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import yaml
 from astropy.time import Time
-from astropy_healpix import HEALPix
 from tqdm import tqdm
-from ztfquery.io import LOCALSOURCE
 
 from nuztf.ampel_api import (
     ampel_api_acknowledge_chunk,
@@ -22,13 +20,8 @@ from nuztf.ampel_api import (
     get_preprocessed_results,
 )
 from nuztf.base_scanner import BaseScanner
+from nuztf.paths import BASE_CANDIDATE_DIR, CONFIG_DIR
 from nuztf.skymap import Skymap
-
-
-class RetractionError(Exception):
-    """Base class for retracted event"""
-
-    pass
 
 
 class SkymapScanner(BaseScanner):
@@ -42,7 +35,6 @@ class SkymapScanner(BaseScanner):
         cone_nside: int = 64,
         output_nside: int | None = None,
         n_days: float = 3.0,  # By default, accept things detected within 72 hours of event time
-        custom_prefix: str = "",
         config: dict = None,
     ):
         self.logger = logging.getLogger(__name__)
@@ -52,9 +44,7 @@ class SkymapScanner(BaseScanner):
         if config:
             self.config = config
         else:
-            config_path = os.path.join(
-                os.path.dirname(__file__), "config", "gw_run_config.yaml"
-            )
+            config_path = CONFIG_DIR.joinpath("gw_run_config.yaml")
             with open(config_path) as f:
                 self.config = yaml.safe_load(f)
 
@@ -62,16 +52,10 @@ class SkymapScanner(BaseScanner):
             event=event,
             rev=rev,
             prob_threshold=prob_threshold,
-            custom_prefix=custom_prefix,
             output_nside=output_nside,
         )
 
         self.t_min = Time(self.skymap.t_obs, format="isot", scale="utc")
-        self.cache_dir = os.path.join(
-            self.skymap.candidate_cache, self.skymap.event_name
-        )
-        if not os.path.exists(self.cache_dir):
-            os.makedirs(self.cache_dir)
 
         BaseScanner.__init__(
             self,
@@ -81,7 +65,6 @@ class SkymapScanner(BaseScanner):
         )
 
         self.default_t_max = Time(self.t_min.jd + self.n_days, format="jd")
-        self.summary_path = self.skymap.summary_path
         self.logger.info(f"Time-range is {self.t_min} -- {self.default_t_max.isot}")
 
     def get_full_name(self):
@@ -90,12 +73,15 @@ class SkymapScanner(BaseScanner):
         else:
             return "?????"
 
+    def get_name(self) -> str:
+        return f"{self.skymap.event_name}/{self.prob_threshold}"
+
     def download_results(self):
         """
         Retrieve computed results from the DESY cloud
         """
         self.logger.info("Retrieving results from the DESY cloud")
-        file_basename = f"{self.skymap.event_name}_{self.skymap.rev}"
+        file_basename = f"{self.skymap.event}_{self.skymap.rev}"
 
         res = get_preprocessed_results(file_basename=file_basename)
 
@@ -109,7 +95,8 @@ class SkymapScanner(BaseScanner):
         final_objects = self.remove_duplicates(final_objects)
 
         self.logger.info(
-            f"Retrieved {len(final_objects)} final objects for event {self.skymap.event_name} / map revision {self.skymap.rev} from DESY cloud."
+            f"Retrieved {len(final_objects)} final objects for event "
+            f"{self.get_name()} from DESY cloud."
         )
 
         self.final_candidates = final_objects
@@ -119,7 +106,9 @@ class SkymapScanner(BaseScanner):
         self.logger.info("Commencing skymap scan")
 
         self.logger.debug(
-            f"API skymap search: nside = {self.cone_nside} / # pixels = {len(self.cone_ids)} / timespan = {self.default_t_max.jd-self.t_min.jd:.1f} days."
+            f"API skymap search: nside = {self.cone_nside} "
+            f"/ # pixels = {len(self.cone_ids)} / "
+            f"timespan = {self.default_t_max.jd-self.t_min.jd:.1f} days."
         )
 
         time_healpix_start = time.time()
@@ -175,27 +164,23 @@ class SkymapScanner(BaseScanner):
         time_healpix_end = time.time()
         time_healpix = time_healpix_end - time_healpix_start
 
-        cache_file = os.path.join(
-            self.cache_dir, f"{self.skymap.event_name}_all_alerts.json"
-        )
+        cache_file = self.get_cache_dir().joinpath("all_alerts.json")
 
-        outfile = open(cache_file, "w")
-        json.dump(self.queue, outfile)
-        outfile.close()
+        with open(cache_file, "w") as outfile:
+            json.dump(self.queue, outfile)
 
         self.n_alerts = len(self.queue)
 
         self.logger.info(
-            f"Added {self.n_alerts} alerts found between {self.t_min} and {self.default_t_max.isot}"
+            f"Added {self.n_alerts} alerts found between {self.t_min}"
+            f" and {self.default_t_max.isot}"
         )
         self.logger.info(f"This took {time_healpix:.1f} s in total")
 
     def filter_alerts(self, load_cachefile=False):
         """ """
         self.logger.info(f"Commencing first stage filtering.")
-        cache_file = os.path.join(
-            self.cache_dir, f"{self.skymap.event_name}_all_alerts.json"
-        )
+        cache_file = self.get_cache_dir().joinpath("all_alerts.json")
 
         if load_cachefile:
             self.queue = json.load(open(cache_file, "r"))
@@ -231,14 +216,15 @@ class SkymapScanner(BaseScanner):
         filter_time = filter_time_end - filter_time_start
 
         self.logger.info(
-            f"First stage of filtering (based on predetections plus AMPEL cuts) took {filter_time:.1f} s in total. {len(first_stage_objects)} transients make the cut."
+            f"First stage of filtering (based on predetections plus AMPEL cuts) "
+            f"took {filter_time:.1f} s in total. "
+            f"{len(first_stage_objects)} transients make the cut."
         )
 
-        cache_file_first_stage = cache_file[:-15] + "_first_stage.json"
+        cache_file_first_stage = self.get_cache_dir().joinpath("first_stage.json")
 
-        outfile = open(cache_file_first_stage, "w")
-        json.dump(first_stage_objects, outfile)
-        outfile.close()
+        with open(cache_file_first_stage, "w") as outfile:
+            json.dump(first_stage_objects, outfile)
 
         # Second and final stage
         self.logger.info(
@@ -268,14 +254,14 @@ class SkymapScanner(BaseScanner):
 
         final_objects = self.remove_duplicates(final_objects)
 
-        cache_file_final_stage = cache_file[:-15] + "_final_stage.json"
+        cache_file_final_stage = self.get_cache_dir().joinpath("final_stage.json")
 
-        outfile = open(cache_file_final_stage, "w")
-        json.dump(final_objects, outfile)
-        outfile.close()
+        with open(cache_file_final_stage, "w") as outfile:
+            json.dump(final_objects, outfile)
 
         self.logger.info(
-            f"Final stage of filtering took {filter_time:.1f} s in total. {len(final_objects)} transients make the cut."
+            f"Final stage of filtering took {filter_time:.1f} s in total. "
+            f"{len(final_objects)} transients make the cut."
         )
 
         self.final_candidates = final_objects
@@ -490,9 +476,7 @@ class SkymapScanner(BaseScanner):
 
         plt.title("SKYMAP")
 
-        outpath = os.path.join(
-            self.skymap.base_skymap_dir, f"{self.skymap.event_name}.png"
-        )
+        outpath = self.get_output_dir().joinpath("skymap.png")
         plt.tight_layout()
 
         plt.savefig(outpath, dpi=300)
@@ -518,23 +502,10 @@ class SkymapScanner(BaseScanner):
 
         plt.tight_layout()
 
-        outpath = os.path.join(
-            self.skymap.candidate_output_dir, f"{self.skymap.event_name}_coverage.png"
-        )
+        outpath = self.get_output_dir().joinpath("coverage.png")
+
         plt.savefig(outpath, dpi=300)
 
         self.logger.info(message)
 
         return fig, message
-
-
-if __name__ == "__main__":
-    import logging
-
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
-
-    scanner = SkymapScanner()
-    scanner.plot_skymap()
-    scanner.get_alerts()
-    scanner.filter_alerts()
