@@ -81,7 +81,7 @@ class SkymapScanner(BaseScanner):
         Retrieve computed results from the DESY cloud
         """
         self.logger.info("Retrieving results from the DESY cloud")
-        file_basename = os.path.basename(self.skymap.skymap_path)
+        file_basename = f"{self.skymap.event}_{self.skymap.rev}"
 
         res = get_preprocessed_results(file_basename=file_basename)
 

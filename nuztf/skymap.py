@@ -45,12 +45,14 @@ class Skymap:
         self.logger = logging.getLogger(__name__)
 
         self.prob_threshold = prob_threshold
+        self.event = event
 
         if ".fit" in event:
             basename = Path(event).stem
 
             self.event_name = basename
             self.skymap_path = SKYMAP_DIR.joinpath(basename)
+            self.rev = None
 
             if event[:8] == "https://":
                 if not self.skymap_path.exists():
@@ -63,7 +65,9 @@ class Skymap:
         #     self.skymap_path, self.event_name = self.get_grb_skymap(event=event)
 
         else:
-            self.skymap_path, self.event_name = self.get_gw_skymap(event=event, rev=rev)
+            self.skymap_path, self.event_name, self.rev = self.get_gw_skymap(
+                event=event, rev=rev
+            )
 
         (
             self.data,
@@ -140,7 +144,7 @@ class Skymap:
     #
     #     return sk, event
 
-    def get_gw_skymap(self, event: str, rev: int):
+    def get_gw_skymap(self, event: str, rev: int | None = None):
         """
         Function to download a GW skymap from GraceDB
 
@@ -214,7 +218,7 @@ class Skymap:
 
         event_name = f"{event}/rev{latest_voevent['N']}"
 
-        return savepath, event_name
+        return savepath, event_name, rev
 
     def read_map(self, output_nside: int | None = None):
         """
