@@ -55,7 +55,7 @@ class Skymap:
             if event[:8] == "https://":
                 if not self.skymap_path.exists():
                     self.logger.info(f"Downloading from: {event}")
-                    wget.download(event, self.skymap_path)
+                    wget.download(event, str(self.skymap_path))
                 else:
                     self.logger.info(f"Found saved skymap at: {self.skymap_path}")
         #
