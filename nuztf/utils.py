@@ -11,8 +11,9 @@ from json import JSONDecodeError
 import numpy as np
 import requests
 from astropy.cosmology import FlatLambdaCDM
-from nuztf.credentials import load_credentials
 from requests.auth import HTTPBasicAuth
+
+from nuztf.credentials import load_credentials
 
 # same cosmology everywhere
 cosmo = FlatLambdaCDM(H0=70, Om0=0.3)

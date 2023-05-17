@@ -8,11 +8,12 @@ import pandas as pd
 import requests
 from astropy import units as u
 from astropy.time import Time
-from nuztf import credentials
-from nuztf.observations import MNS, coverage_dir, partial_flag
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import HTTPError
 from tqdm import tqdm
+
+from nuztf import credentials
+from nuztf.observations import MNS, coverage_dir, partial_flag
 
 logger = logging.getLogger(__name__)
 
