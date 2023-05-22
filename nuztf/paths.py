@@ -1,22 +1,30 @@
+import os
 from pathlib import Path
 
 CONFIG_DIR = Path(__file__).parent.joinpath("config")
 
-NUZTF_OUTPUT_DIR = Path.home().joinpath("Data/nuztf/")
+NUZTF_OUTPUT_DIR_STR = os.environ.get("NUZTF_DIR")
 
-SKYMAP_DIR = NUZTF_OUTPUT_DIR.joinpath(f"skymaps")
+if NUZTF_OUTPUT_DIR_STR is None:
+    NUZTF_OUTPUT_DIR = Path.home() / "Data" / "nuztf"
+else:
+    NUZTF_OUTPUT_DIR = Path(NUZTF_OUTPUT_DIR_STR)
+
+SKYMAP_DIR = NUZTF_OUTPUT_DIR / "skymaps"
 SKYMAP_DIR.mkdir(exist_ok=True, parents=True)
-RESULTS_DIR = NUZTF_OUTPUT_DIR.joinpath("results")
 
-CACHE_DIR = NUZTF_OUTPUT_DIR.joinpath(f"cache")
+RESULTS_DIR = NUZTF_OUTPUT_DIR / "results"
+CACHE_DIR = NUZTF_OUTPUT_DIR / "cache"
+BASE_CANDIDATE_DIR = CACHE_DIR / "candidates"
 
-BASE_CANDIDATE_DIR = CACHE_DIR.joinpath("candidates")
-
-CROSSMATCH_CACHE = CACHE_DIR.joinpath("crossmatch")
+CROSSMATCH_CACHE = CACHE_DIR / "crossmatch"
 CROSSMATCH_CACHE.mkdir(exist_ok=True, parents=True)
-CUTOUT_CACHE_DIR = CACHE_DIR.joinpath("cutouts")
+
+CUTOUT_CACHE_DIR = CACHE_DIR / "cutouts"
 CUTOUT_CACHE_DIR.mkdir(exist_ok=True, parents=True)
-FLATPIX_CACHE_DIR = CACHE_DIR.joinpath("flatpix")
+
+FLATPIX_CACHE_DIR = CACHE_DIR / "flatpix"
 FLATPIX_CACHE_DIR.mkdir(exist_ok=True, parents=True)
-PREPROCESSED_CACHE_DIR = CACHE_DIR.joinpath("preprocessed")
+
+PREPROCESSED_CACHE_DIR = CACHE_DIR / "preprocessed"
 PREPROCESSED_CACHE_DIR.mkdir(exist_ok=True, parents=True)
