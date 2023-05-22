@@ -14,11 +14,12 @@ from ampel.util.json import load
 from ampel.ztf.util.ZTFIdMapper import ZTFIdMapper
 from astropy.io import fits  # type: ignore
 from astropy.time import Time  # type: ignore
+from requests.auth import HTTPBasicAuth
+from requests.exceptions import HTTPError
+
 from nuztf import utils
 from nuztf.credentials import load_credentials
 from nuztf.paths import PREPROCESSED_CACHE_DIR
-from requests.auth import HTTPBasicAuth
-from requests.exceptions import HTTPError
 
 API_BASEURL = "https://ampel.zeuthen.desy.de"
 API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive/v3"
@@ -74,7 +75,7 @@ def ampel_api_cone(
     chunk_size: int = 500,
     logger=None,
 ) -> list:
-    """Function to query ampel via a cone search"""
+    """Query ampel via a cone search"""
 
     if logger is None:
         logger = logging.getLogger(__name__)
