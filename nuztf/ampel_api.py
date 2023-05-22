@@ -75,7 +75,7 @@ def ampel_api_cone(
     chunk_size: int = 500,
     logger=None,
 ) -> list:
-    """Function to query ampel via a cone search"""
+    """Query ampel via a cone search"""
 
     if logger is None:
         logger = logging.getLogger(__name__)
