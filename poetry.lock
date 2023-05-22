@@ -244,19 +244,19 @@ docs = ["Sphinx (>=6.1.3,<6.2.0)", "sphinx-autodoc-typehints (>=1.11.1,<2.0.0)",
 
 [[package]]
 name = "ampel-ztf"
-version = "0.8.5"
+version = "0.8.7"
 description = "Zwicky Transient Facility support for the Ampel system"
 category = "main"
 optional = false
 python-versions = ">=3.10,<3.12"
 files = [
-    {file = "ampel_ztf-0.8.5-py3-none-any.whl", hash = "sha256:632c0de723a022e741faf368111d046f7aa368f7d34fd9127deb1a661464f6f9"},
-    {file = "ampel_ztf-0.8.5.tar.gz", hash = "sha256:8178162ba493c9239b00357f057db87f53697c6acd3c983a59db1ceea8381d46"},
+    {file = "ampel_ztf-0.8.7-py3-none-any.whl", hash = "sha256:ef8633350abdc7d1c0fcdf7e5f781c885148496dffadfa05c6a2b8fc0d45d0e2"},
+    {file = "ampel_ztf-0.8.7.tar.gz", hash = "sha256:eb0790ad81f713e74f790e91bcc719fd7700eb01205663a29ac335e8cdd3188c"},
 ]
 
 [package.dependencies]
 aiohttp = ">=3.7.3,<4.0.0"
-ampel-alerts = ">=0.8.3,<0.9.0"
+ampel-alerts = ">=0.8.4,<0.9.0"
 ampel-core = ">=0.8.6,<0.9.0"
 ampel-interface = ">=0.8.7,<0.9.0"
 ampel-photometry = ">=0.8.3,<0.9.0"
@@ -272,12 +272,12 @@ scipy = ">=1.9.3,<2.0.0"
 
 [package.extras]
 archive = ["ampel-ztf-archive (>=0.8.0-alpha.0,<0.9.0)"]
-bayes = ["ampel-plot (>=0.8.3,<0.9.0)", "pandas (>=1.5.2,<2.0.0)", "planobs (>=0.6.1,<0.7.0)"]
+bayes = ["ampel-plot (>=0.8.3-3,<0.9.0)", "pandas (>=1.5.2,<2.0.0)", "planobs (>=0.6.1,<0.7.0)"]
 fp = ["pandas (>=1.5.2,<2.0.0)", "planobs (>=0.6.1,<0.7.0)"]
 healpix = ["healpy (>=1.15,<2.0)"]
 kafka = ["confluent-kafka (>=2.0.0,<3.0.0)"]
 light-curve = ["light-curve (>=0.7,<0.8)"]
-plot = ["ampel-plot (>=0.8.3,<0.9.0)"]
+plot = ["ampel-plot (>=0.8.3-3,<0.9.0)"]
 
 [[package]]
 name = "ampel-ztf-archive"
