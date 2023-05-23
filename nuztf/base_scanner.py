@@ -1273,11 +1273,11 @@ class BaseScanner:
         plt.legend(handles=[red_patch, gray_patch, violet_patch])
 
         message = (
-            "In total, {0:.2f} % of the contour was observed at least once.\n"
-            "This estimate includes {1:.2f} % of the contour "
+            "In total, {0:.1f} % of the contour was observed at least once.\n"
+            "This estimate includes {1:.1f} % of the contour "
             "at a galactic latitude <10 deg.\n"
-            "In total, {2:.2f} % of the contour was observed at least twice. \n"
-            "In total, {3:.2f} % of the contour was observed at least twice, "
+            "In total, {2:.1f} % of the contour was observed at least twice. \n"
+            "In total, {3:.1f} % of the contour was observed at least twice, "
             "and excluding low galactic latitudes.\n"
             "These estimates account for chip gaps.".format(
                 100
