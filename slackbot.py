@@ -107,11 +107,11 @@ class Slackbot:
 
         if len(self.scanner.cache) > 0:
             self.scanner.create_candidate_summary()
-            pdf_overview_path = self.scanner.summary_path + ".pdf"
+            pdf_overview_path = self.scanner.get_output_dir() / "candidates.pdf"
             self.post_file(pdf_overview_path, f"{self.name}_candidates.pdf")
 
             self.scanner.create_overview_table()
-            csv_path = self.scanner.summary_path + ".csv"
+            csv_path = self.scanner.get_output_dir() / "candidate_table.csv"
             self.post_file(csv_path, f"{self.name}_candidates.csv")
 
         if do_gcn and len(self.scanner.cache) > 0:
