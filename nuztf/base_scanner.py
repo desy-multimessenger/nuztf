@@ -601,7 +601,7 @@ class BaseScanner:
             else:
                 data["kilonova_score"].append(None)
 
-        df = pandas.DataFrame.from_dict(data)
+        df = pd.DataFrame.from_dict(data)
 
         df.to_csv(csv_path)
 
