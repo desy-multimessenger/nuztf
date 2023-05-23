@@ -10,7 +10,6 @@ import healpy as hp
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas
 import pandas as pd
 import requests
 from ampel.ztf.alert.ZiAlertSupplier import ZiAlertSupplier
@@ -548,12 +547,12 @@ class BaseScanner:
             self.logger.info("No candidates found, skipping pdf creation")
             return
 
-        pdf_path = self.get_output_dir().joinpath("candidates.pdf")
+        pdf_path = self.get_output_dir() / "candidates.pdf"
 
         self.logger.info(
-            f"Creating overview pdf at: {pdf_path}\n"
-            f"(this might take a moment as it involves catalog matching)"
+            f"Creating overview pdf\n(this might take a moment as it involves catalog matching)"
         )
+        self.logger.debug(f"Overview pdf path: {pdf_path}")
 
         with PdfPages(pdf_path) as pdf:
             for name, alert in tqdm(sorted(self.cache.items())):
@@ -577,9 +576,10 @@ class BaseScanner:
             self.logger.info("No candidates found, skipping csv creation")
             return
 
-        csv_path = self.get_output_dir().joinpath("candidate_table.csv")
+        csv_path = self.get_output_dir() / "candidate_table.csv"
 
-        self.logger.info(f"Creating overview csv at {csv_path}")
+        self.logger.info("Creating overview csv")
+        self.logger.debug(f"Overview csv path: {csv_path}")
 
         data = {
             "ztf_id": [],
