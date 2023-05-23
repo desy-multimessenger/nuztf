@@ -219,6 +219,7 @@ class BaseScanner:
         logging.getLogger().setLevel(logging.DEBUG)
         self.logger.info("Set logger level to DEBUG")
         all_query_res = ampel_api_name(ztf_name, logger=self.logger)
+        assert len(all_query_res) > 0, f"No results from ampel api for {ztf_name}"
         pipeline_bool = False
         for query_res in all_query_res:
             self.logger.info("Checking filter f (no prv)")
@@ -1386,12 +1387,12 @@ class BaseScanner:
             new = {
                 "field_id": field_entry,
                 "n_exposures": len(res),
-                "n_30": np.sum(mask),
-                "n_deep": np.sum(~mask),
-                "f_proc_30": np.mean(res[mask]["f_processed"]),
-                "f_proc_deep": np.mean(res[~mask]["f_processed"]),
-                "f_proc_without_flag_30": np.mean(res[mask]["f_proc_without_flag"]),
-                "f_proc_without_flag_deep": np.mean(res[~mask]["f_proc_without_flag"]),
+                "n_deep": np.sum(mask),
+                "n_30": np.sum(~mask),
+                "f_proc_deep": np.mean(res[mask]["f_processed"]),
+                "f_proc_30": np.mean(res[~mask]["f_processed"]),
+                "f_proc_without_flag_deep": np.mean(res[mask]["f_proc_without_flag"]),
+                "f_proc_without_flag_30": np.mean(res[~mask]["f_proc_without_flag"]),
                 "n_filters": len(res["filter_id"].unique()),
                 "n_nights": len(set([int(x + 0.5) for x in res["obsjd"]])),
             }
