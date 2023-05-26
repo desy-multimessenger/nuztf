@@ -1033,7 +1033,6 @@ class BaseScanner:
         pix_map = dict()
         pix_obs_times = dict()
 
-        # field_pix = get_flatpix(nside=self.nside, logger=self.logger)
         nested_pix = get_nested_pix(nside=self.nside, logger=self.logger)
 
         for i, obs_time in enumerate(tqdm(list(set(data["obsjd"])))):
@@ -1041,24 +1040,31 @@ class BaseScanner:
 
             field = obs["field_id"].iloc[0]
 
-            flat_pix = nested_pix[field]
+            try:
+                flat_pix = nested_pix[field]
 
-            mask = obs["status"] == 0
-            indices = obs["qid"].values[mask]
+                mask = obs["status"] == 0
+                indices = obs["qid"].values[mask]
 
-            for qid in indices:
-                pixels = flat_pix[qid]
+                for qid in indices:
+                    pixels = flat_pix[qid]
 
-                for p in pixels:
-                    if p not in pix_obs_times.keys():
-                        pix_obs_times[p] = [obs_time]
-                    else:
-                        pix_obs_times[p] += [obs_time]
+                    for p in pixels:
+                        if p not in pix_obs_times.keys():
+                            pix_obs_times[p] = [obs_time]
+                        else:
+                            pix_obs_times[p] += [obs_time]
 
-                    if p not in pix_map.keys():
-                        pix_map[p] = [field]
-                    else:
-                        pix_map[p] += [field]
+                        if p not in pix_map.keys():
+                            pix_map[p] = [field]
+                        else:
+                            pix_map[p] += [field]
+
+            except KeyError:
+                self.logger.warning(
+                    f"Field {field} not found in nested pix dict. "
+                    f"This might be an engineering observation."
+                )
 
         npix = hp.nside2npix(self.nside)
         theta, phi = hp.pix2ang(self.nside, np.arange(npix), nest=False)
@@ -1133,8 +1139,9 @@ class BaseScanner:
 
         except ValueError:
             err = (
-                f"No observations of this field were found at any time between {self.t_min} and"
-                f"{times[-1]}. Coverage overlap is 0%, but recent observations might be missing!"
+                f"No observations of this event were found at any time between "
+                f"{self.t_min} and {self.t_min + first_det_window_days * u.day}. "
+                f"Coverage overlap is 0%!"
             )
             self.logger.error(err)
             raise ValueError(err)
