@@ -219,6 +219,7 @@ class BaseScanner:
         logging.getLogger().setLevel(logging.DEBUG)
         self.logger.info("Set logger level to DEBUG")
         all_query_res = ampel_api_name(ztf_name, logger=self.logger)
+        assert len(all_query_res) > 0, f"No results from ampel api for {ztf_name}"
         pipeline_bool = False
         for query_res in all_query_res:
             self.logger.info("Checking filter f (no prv)")
@@ -1032,7 +1033,6 @@ class BaseScanner:
         pix_map = dict()
         pix_obs_times = dict()
 
-        # field_pix = get_flatpix(nside=self.nside, logger=self.logger)
         nested_pix = get_nested_pix(nside=self.nside, logger=self.logger)
 
         for i, obs_time in enumerate(tqdm(list(set(data["obsjd"])))):
@@ -1040,24 +1040,31 @@ class BaseScanner:
 
             field = obs["field_id"].iloc[0]
 
-            flat_pix = nested_pix[field]
+            try:
+                flat_pix = nested_pix[field]
 
-            mask = obs["status"] == 0
-            indices = obs["qid"].values[mask]
+                mask = obs["status"] == 0
+                indices = obs["qid"].values[mask]
 
-            for qid in indices:
-                pixels = flat_pix[qid]
+                for qid in indices:
+                    pixels = flat_pix[qid]
 
-                for p in pixels:
-                    if p not in pix_obs_times.keys():
-                        pix_obs_times[p] = [obs_time]
-                    else:
-                        pix_obs_times[p] += [obs_time]
+                    for p in pixels:
+                        if p not in pix_obs_times.keys():
+                            pix_obs_times[p] = [obs_time]
+                        else:
+                            pix_obs_times[p] += [obs_time]
 
-                    if p not in pix_map.keys():
-                        pix_map[p] = [field]
-                    else:
-                        pix_map[p] += [field]
+                        if p not in pix_map.keys():
+                            pix_map[p] = [field]
+                        else:
+                            pix_map[p] += [field]
+
+            except KeyError:
+                self.logger.warning(
+                    f"Field {field} not found in nested pix dict. "
+                    f"This might be an engineering observation."
+                )
 
         npix = hp.nside2npix(self.nside)
         theta, phi = hp.pix2ang(self.nside, np.arange(npix), nest=False)
@@ -1132,8 +1139,9 @@ class BaseScanner:
 
         except ValueError:
             err = (
-                f"No observations of this field were found at any time between {self.t_min} and"
-                f"{times[-1]}. Coverage overlap is 0%, but recent observations might be missing!"
+                f"No observations of this event were found at any time between "
+                f"{self.t_min} and {self.t_min + first_det_window_days * u.day}. "
+                f"Coverage overlap is 0%!"
             )
             self.logger.error(err)
             raise ValueError(err)
@@ -1272,11 +1280,11 @@ class BaseScanner:
         plt.legend(handles=[red_patch, gray_patch, violet_patch])
 
         message = (
-            "In total, {0:.2f} % of the contour was observed at least once.\n"
-            "This estimate includes {1:.2f} % of the contour "
+            "In total, {0:.1f} % of the contour was observed at least once.\n"
+            "This estimate includes {1:.1f} % of the contour "
             "at a galactic latitude <10 deg.\n"
-            "In total, {2:.2f} % of the contour was observed at least twice. \n"
-            "In total, {3:.2f} % of the contour was observed at least twice, "
+            "In total, {2:.1f} % of the contour was observed at least twice. \n"
+            "In total, {3:.1f} % of the contour was observed at least twice, "
             "and excluding low galactic latitudes.\n"
             "These estimates account for chip gaps.".format(
                 100
@@ -1386,12 +1394,12 @@ class BaseScanner:
             new = {
                 "field_id": field_entry,
                 "n_exposures": len(res),
-                "n_30": np.sum(mask),
-                "n_deep": np.sum(~mask),
-                "f_proc_30": np.mean(res[mask]["f_processed"]),
-                "f_proc_deep": np.mean(res[~mask]["f_processed"]),
-                "f_proc_without_flag_30": np.mean(res[mask]["f_proc_without_flag"]),
-                "f_proc_without_flag_deep": np.mean(res[~mask]["f_proc_without_flag"]),
+                "n_deep": np.sum(mask),
+                "n_30": np.sum(~mask),
+                "f_proc_deep": np.mean(res[mask]["f_processed"]),
+                "f_proc_30": np.mean(res[~mask]["f_processed"]),
+                "f_proc_without_flag_deep": np.mean(res[mask]["f_proc_without_flag"]),
+                "f_proc_without_flag_30": np.mean(res[~mask]["f_proc_without_flag"]),
                 "n_filters": len(res["filter_id"].unique()),
                 "n_nights": len(set([int(x + 0.5) for x in res["obsjd"]])),
             }
