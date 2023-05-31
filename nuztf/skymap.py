@@ -19,6 +19,7 @@ from astropy.time import Time
 from astropy_healpix import HEALPix
 from ligo.gracedb.exceptions import HTTPError
 from ligo.gracedb.rest import GraceDb
+from ligo.skymap.io import read_sky_map
 from ligo.skymap.moc import rasterize
 from lxml import html
 from numpy.lib.recfunctions import append_fields
@@ -262,18 +263,15 @@ class Skymap:
                     ordering = x.header["ORDERING"]
 
         if "PROB" in data.dtype.names:
-            key = "PROB"
-        elif "PROBABILITY" in data.dtype.names:
-            key = "PROB"
-            prob = np.array(data["PROBABILITY"]).flatten()
+            pass
+        elif (replacekey := "PROBABILITY") in data.dtype.names:
+            prob = np.array(data[replacekey]).flatten()
             data = append_fields(data, "PROB", prob)
-        elif "PROBDENSITY" in data.dtype.names:
-            key = "PROB"
-            prob = np.array(data["PROBDENSITY"])
+        elif (replacekey := "PROBDENSITY") in data.dtype.names:
+            prob = np.array(data[replacekey])
             data = append_fields(data, "PROB", prob)
-        elif "T" in data.dtype.names:  # weird IceCube format
-            key = "PROB"
-            prob = np.array(data["T"]).flatten()
+        elif (replacekey := "T") in data.dtype.names:  # weird IceCube format
+            prob = np.array(data[replacekey]).flatten()
             data = append_fields(data, "PROB", prob)
         else:
             raise Exception(
@@ -283,17 +281,20 @@ class Skymap:
 
         if ordering == "NUNIQ":
             self.logger.info("Rasterising skymap to convert to nested format")
-            data = data[list(["UNIQ", key])]
-            probs = rasterize(data, order=7)
-            data = np.array(probs, dtype=np.dtype([("PROB", float)]))
+            # We need to use the ligo.skymap.io map parser to make rasterize work
+            skymap_uniq = read_sky_map(self.skymap_path, moc=True)
+            if (replacekey := "PROBDENSITY") in skymap_uniq.colnames:
+                skymap_uniq[replacekey].name = "PROB"
+
+            data = rasterize(skymap_uniq, order=7)
 
         if not isinstance(data["PROB"][0], float):
             self.logger.info("Flattening skymap")
-            probs = np.array(data["PROB"]).flatten()
-            data = np.array(probs, dtype=np.dtype([("PROB", float)]))
+            prob = np.array(data["PROB"]).flatten()
+            data = np.array(prob, dtype=np.dtype([("PROB", float)]))
 
         if "NSIDE" not in h.keys():
-            h["NSIDE"] = hp.npix2nside(len(data[key]))
+            h["NSIDE"] = hp.npix2nside(len(data["PROB"]))
 
         data["PROB"] /= np.sum(data["PROB"])
 
@@ -304,10 +305,11 @@ class Skymap:
 
         if ordering is not None:
             h["ORDERING"] = "NESTED"
+
         else:
             raise Exception(
                 f"Error parsing fits file, no ordering found. "
-                f"Please enter the ordewring (NESTED/RING/NUNIQ)"
+                f"Please enter the ordering (NESTED/RING/NUNIQ)"
             )
 
         # Optionally interpolate to a different nside
@@ -353,7 +355,7 @@ class Skymap:
 
         hpm = HEALPix(nside=output_nside, order="NESTED", frame="icrs")
 
-        return data, t_obs, hpm, key, dist, dist_unc
+        return data, t_obs, hpm, "PROB", dist, dist_unc
 
     def find_pixel_threshold(self, data):
         """
