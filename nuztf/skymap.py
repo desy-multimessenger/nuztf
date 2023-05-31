@@ -262,18 +262,17 @@ class Skymap:
                 if "ORDERING" in x.header:
                     ordering = x.header["ORDERING"]
 
-        key = "PROB"
         if "PROB" in data.dtype.names:
             pass
         elif (replacekey := "PROBABILITY") in data.dtype.names:
             prob = np.array(data[replacekey]).flatten()
-            data = append_fields(data, key, prob)
+            data = append_fields(data, "PROB", prob)
         elif (replacekey := "PROBDENSITY") in data.dtype.names:
             prob = np.array(data[replacekey])
-            data = append_fields(data, key, prob)
+            data = append_fields(data, "PROB", prob)
         elif (replacekey := "T") in data.dtype.names:  # weird IceCube format
             prob = np.array(data[replacekey]).flatten()
-            data = append_fields(data, key, prob)
+            data = append_fields(data, "PROB", prob)
         else:
             raise Exception(
                 f"No recognised probability key in map. This is probably a weird one, right? "
@@ -282,9 +281,10 @@ class Skymap:
 
         if ordering == "NUNIQ":
             self.logger.info("Rasterising skymap to convert to nested format")
+            # We need to use the ligo.skymap.io map parser to make rasterize work
             skymap_uniq = read_sky_map(self.skymap_path, moc=True)
             if (replacekey := "PROBDENSITY") in skymap_uniq.colnames:
-                skymap_uniq[replacekey].name = key
+                skymap_uniq[replacekey].name = "PROB"
 
             data = rasterize(skymap_uniq, order=7)
 
@@ -294,7 +294,7 @@ class Skymap:
             data = np.array(prob, dtype=np.dtype([("PROB", float)]))
 
         if "NSIDE" not in h.keys():
-            h["NSIDE"] = hp.npix2nside(len(data[key]))
+            h["NSIDE"] = hp.npix2nside(len(data["PROB"]))
 
         data["PROB"] /= np.sum(data["PROB"])
 
@@ -305,6 +305,7 @@ class Skymap:
 
         if ordering is not None:
             h["ORDERING"] = "NESTED"
+
         else:
             raise Exception(
                 f"Error parsing fits file, no ordering found. "
@@ -354,7 +355,7 @@ class Skymap:
 
         hpm = HEALPix(nside=output_nside, order="NESTED", frame="icrs")
 
-        return data, t_obs, hpm, key, dist, dist_unc
+        return data, t_obs, hpm, "PROB", dist, dist_unc
 
     def find_pixel_threshold(self, data):
         """
