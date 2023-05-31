@@ -683,11 +683,13 @@ def ampel_api_catalog(
     return res
 
 
-def get_preprocessed_results(file_basename: str) -> list:
+def get_preprocessed_results(file_basename: str, logger=None) -> None | list:
     """
     Access the DESY Cloud to look if there are precomputed results from an AMPEL run
     there
     """
+    if logger is None:
+        logger = logging.getLogger(__name__)
 
     desy_cloud_token = load_credentials("desy_cloud_token", token_based=True)
 
@@ -698,7 +700,12 @@ def get_preprocessed_results(file_basename: str) -> list:
         headers={"X-Requested-With": "XMLHttpRequest"},
         auth=(desy_cloud_token, "bla"),
     )
-    res.raise_for_status()
+
+    if res.status_code != 200:
+        logger.warning(
+            "\n\n-------------------- !! -------------------\nSomething went wrong with your query.\nCheck your credentials and make sure Ampel\nhas run correctly at Desy.\n-------------------- !! -------------------\n\n"
+        )
+        return None
 
     with open(f"{filename}", "wb") as f:
         f.write(res.content)
