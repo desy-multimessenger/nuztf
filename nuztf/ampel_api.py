@@ -468,7 +468,7 @@ def ampel_api_skymap(
     logger=None,
 ) -> tuple:
     """
-    Function to query ampel based on a list of healpix pixels (nside is the pixelization degree)
+    Function to query ampel based on lists of healpix pixels of different resolution (nside is the respective resolution)
     """
 
     if logger is None:
@@ -503,7 +503,7 @@ def ampel_api_skymap(
             hist = "true"
         else:
             hist = "false"
-            
+
         if with_cutouts:
             cutouts = "true"
         else:
