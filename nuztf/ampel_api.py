@@ -25,6 +25,8 @@ API_BASEURL = "https://ampel.zeuthen.desy.de"
 API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive/v3"
 API_CATALOGMATCH_URL = API_BASEURL + "/api/catalogmatch"
 
+MAX_N_PIX = 1000
+
 _, ampel_api_archive_token = load_credentials("ampel_api_archive_token")
 
 
@@ -497,6 +499,18 @@ def ampel_api_skymap(
 
     # Now we reduce the query size
     regions = utils.deres(nside=nside, ipix=pixels)
+
+    n_pix = 0
+    for reg in regions:
+        n_pix += len(reg["pixels"])
+
+    logger.debug(f"This comprises {n_pix} individual pixels")
+
+    if n_pix > MAX_N_PIX:
+        logger.warning(
+            f"Total number of pixels exceeds threshold ({MAX_N_PIX} pixels). Issuing a query for the full sky instead."
+        )
+        regions = [{"nside": 1, "pixels": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]}]
 
     query = {
         "regions": regions,

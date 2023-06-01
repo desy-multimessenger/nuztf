@@ -17,6 +17,7 @@ from nuztf.ampel_api import (
     ampel_api_acknowledge_chunk,
     ampel_api_lightcurve,
     ampel_api_skymap,
+    ampel_api_timerange,
     get_preprocessed_results,
 )
 from nuztf.base_scanner import BaseScanner

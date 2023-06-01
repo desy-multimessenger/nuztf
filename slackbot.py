@@ -59,7 +59,7 @@ class Slackbot:
             if self.event_type == "nu":
                 self.time_window = 10
             elif self.event_type == "gw":
-                self.time_window = 2
+                self.time_window = 3
         else:
             self.time_window = time_window
 
