@@ -510,7 +510,7 @@ def ampel_api_skymap(
         logger.warning(
             f"Total number of pixels exceeds threshold ({MAX_N_PIX} pixels). Issuing a query for the full sky instead."
         )
-        regions = [{"nside": 1, "pixels": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]}]
+        regions = [{"nside": 1, "pixels": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]}]
 
     query = {
         "regions": regions,
