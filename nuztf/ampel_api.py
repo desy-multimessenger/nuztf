@@ -503,7 +503,7 @@ def ampel_api_skymap(
             hist = "true"
         else:
             hist = "false"
-
+            
         if with_cutouts:
             cutouts = "true"
         else:
