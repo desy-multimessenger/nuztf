@@ -474,15 +474,7 @@ def ampel_api_skymap(
     if logger is None:
         logger = logging.getLogger(__name__)
 
-    if with_history:
-        hist = "true"
-    else:
-        hist = "false"
-
-    if with_cutouts:
-        cutouts = "true"
-    else:
-        cutouts = "false"
+    queryurl_skymap = API_ZTF_ARCHIVE_URL + f"/alerts/healpix/skymap"
 
     # First, we create a json body to post
     headers = {
@@ -490,57 +482,77 @@ def ampel_api_skymap(
         "Content-Type": "application/json",
         "Authorization": f"Bearer {ampel_api_archive_token}",
     }
-    if "v2" in API_ZTF_ARCHIVE_URL:
-        lt = "lt"
-        gt = "gt"
+
+    # if we have a resume_token to proceed to the next chunk, that's all we need
+    if resume_token is not None:
+        # fake query (the only thing that counts is the resume token)
+        regions = [{"nside": 1, "pixels": [0]}]
+        query = {
+            "regions": regions,
+            "jd": {
+                "$lt": t_max_jd,
+                "$gt": t_min_jd,
+            },
+            "resume_token": resume_token,
+        }
+        response = requests.post(url=queryurl_skymap, json=query, headers=headers)
+
+    # if we don't have a resume_token, we first need to create the full query
     else:
-        lt = "$lt"
-        gt = "$gt"
+        if with_history:
+            hist = "true"
+        else:
+            hist = "false"
 
-    # Now we reduce the query size
-    regions = utils.deres(nside=nside, ipix=pixels)
+        if with_cutouts:
+            cutouts = "true"
+        else:
+            cutouts = "false"
 
-    n_pix = 0
-    for reg in regions:
-        n_pix += len(reg["pixels"])
+        # Now we reduce the query size
+        regions = utils.deres(nside=nside, ipix=pixels)
 
-    logger.debug(f"This comprises {n_pix} individual pixels")
+        n_pix = 0
+        for reg in regions:
+            n_pix += len(reg["pixels"])
 
-    if n_pix > MAX_N_PIX:
-        logger.warning(
-            f"Total number of pixels exceeds threshold ({MAX_N_PIX} pixels). Issuing a query for the full sky instead."
-        )
-        regions = [{"nside": 1, "pixels": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]}]
+        logger.debug(f"This comprises {n_pix} individual pixels")
 
-    query = {
-        "regions": regions,
-        "jd": {
-            lt: t_max_jd,
-            gt: t_min_jd,
-        },
-        "latest": "false",
-        "candidate": {
-            "rb": {"$gt": 0.3},
-            "magpsf": {"$gt": 15},
-            "ndethist": {"$gt": 0, "$lte": max_n_detections},
-        },
-        "with_history": hist,
-        "with_cutouts": cutouts,
-        "chunk_size": chunk_size,
-    }
+        if n_pix > MAX_N_PIX:
+            logger.warning(
+                f"Total number of pixels exceeds threshold ({MAX_N_PIX} pixels). Issuing a query for the full sky instead."
+            )
+            regions = [
+                {"nside": 1, "pixels": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]}
+            ]
 
-    if resume_token:
-        query["resume_token"] = resume_token
+        query = {
+            "regions": regions,
+            "jd": {
+                "$lt": t_max_jd,
+                "$gt": t_min_jd,
+            },
+            "latest": "false",
+            "candidate": {
+                "rb": {"$gt": 0.3},
+                "magpsf": {"$gt": 15},
+                "ndethist": {"$gt": 0, "$lte": max_n_detections},
+            },
+            "with_history": hist,
+            "with_cutouts": cutouts,
+            "chunk_size": chunk_size,
+        }
 
-    if program_id is not None:
-        query["programid"] = program_id
+        if resume_token:
+            query["resume_token"] = resume_token
 
-    queryurl_skymap = API_ZTF_ARCHIVE_URL + f"/alerts/healpix/skymap"
+        if program_id is not None:
+            query["programid"] = program_id
 
-    logger.debug(f"Query url:\n{queryurl_skymap}")
-    logger.debug(f"Query:\n{query}")
+        logger.debug(f"Query url:\n{queryurl_skymap}")
+        logger.debug(f"Query:\n{query}")
 
-    response = requests.post(url=queryurl_skymap, json=query, headers=headers)
+        response = requests.post(url=queryurl_skymap, json=query, headers=headers)
 
     logger.debug(response)
     logger.debug(response.status_code)
