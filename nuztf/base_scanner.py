@@ -735,40 +735,28 @@ class BaseScanner:
             detection_jds = [x["jd"] for x in detections]
             first_detection = detections[detection_jds.index(min(detection_jds))]
 
-            # print(res["prv_candidates"])
-            print(f"FIRST DETECTION: {first_detection['jd']}")
-            print("\n\n\n")
-            print("-----")
-            print("\n\n\n")
-
             latest = [
                 x
                 for x in res["prv_candidates"] + [res["candidate"]]
                 if "isdiffpos" in x.keys()
             ][-1]
 
-            for prv in res["prv_candidates"]:
-                print(prv["jd"])
-                if prv["jd"] < first_detection["jd"]:
-                    print("YES")
-                else:
-                    print("NO")
+            upper_limits = [
+                x for x in res["prv_candidates"] if x["jd"] < first_detection["jd"]
+            ]
+            if len(upper_limits) > 0:
+                last_upper_limit_mag = upper_limits[-1]["diffmaglim"]
+                last_upper_limit_jd = upper_limits[-1]["jd"]
+            else:
+                last_upper_limit_mag = None
+                last_upper_limit_jd = None
 
-            try:
-                last_upper_limit = [
-                    x for x in res["prv_candidates"] if x["jd"] < first_detection["jd"]
-                ][-1]
-
-                text += self.candidate_text(
-                    name,
-                    first_detection["jd"],
-                    last_upper_limit["diffmaglim"],
-                    last_upper_limit["jd"],
-                )
-
-            # No pre-detection upper limit
-            except IndexError:
-                text += self.candidate_text(name, first_detection["jd"], None, None)
+            text += self.candidate_text(
+                ztf_id=name,
+                first_detection=first_detection["jd"],
+                lul_lim=last_upper_limit_mag,
+                lul_jd=last_upper_limit_jd,
+            )
 
             ned_z, ned_dist = query_ned_for_z(
                 ra_deg=latest["ra"],

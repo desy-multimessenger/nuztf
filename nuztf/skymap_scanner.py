@@ -288,14 +288,14 @@ class SkymapScanner(BaseScanner):
         )
 
     def candidate_text(
-        self, name: str, first_detection: float, lul_lim: float, lul_jd: float
+        self, ztf_id: str, first_detection: float, lul_lim: float, lul_jd: float
     ):
         """ """
         try:
             text = (
                 "{0}, first detected {1:.1f} hours after merger, "
                 "was not detected {2:.1f} days prior to a depth of {3:.2f}. ".format(
-                    name,
+                    ztf_id,
                     24.0 * (first_detection - self.t_min.jd),
                     first_detection - lul_jd,
                     lul_lim,
@@ -303,7 +303,7 @@ class SkymapScanner(BaseScanner):
             )
         except TypeError:
             text = (
-                f"{name} had upper limit problems. PLEASE FILL IN NUMBERS BY HAND!!! "
+                f"{ztf_id} had upper limit problems. PLEASE FILL IN NUMBERS BY HAND!!! "
             )
 
         return text
