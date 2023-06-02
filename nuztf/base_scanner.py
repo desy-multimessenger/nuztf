@@ -734,18 +734,29 @@ class BaseScanner:
             ]
             detection_jds = [x["jd"] for x in detections]
             first_detection = detections[detection_jds.index(min(detection_jds))]
+
+            # print(res["prv_candidates"])
+            print(f"FIRST DETECTION: {first_detection['jd']}")
+            print("\n\n\n")
+            print("-----")
+            print("\n\n\n")
+
             latest = [
                 x
                 for x in res["prv_candidates"] + [res["candidate"]]
                 if "isdiffpos" in x.keys()
             ][-1]
+
+            for prv in res["prv_candidates"]:
+                print(prv["jd"])
+                if prv["jd"] < first_detection["jd"]:
+                    print("YES")
+                else:
+                    print("NO")
+
             try:
                 last_upper_limit = [
-                    x
-                    for x in res["prv_candidates"]
-                    if np.logical_and(
-                        "isdiffpos" in x.keys(), x["jd"] < first_detection["jd"]
-                    )
+                    x for x in res["prv_candidates"] if x["jd"] < first_detection["jd"]
                 ][-1]
 
                 text += self.candidate_text(
@@ -833,7 +844,7 @@ class BaseScanner:
         ras = np.ones_like(data["field"]) * np.nan
         decs = np.ones_like(data["field"]) * np.nan
 
-        # Actually load up ra/dec
+        # Actually load up RA/Dec
 
         veto_fields = []
 
@@ -891,6 +902,18 @@ class BaseScanner:
 
         self.logger.info(f"Most recent observation found is {obs_times[-1]}")
         self.logger.info("Unpacking observations")
+
+        # re-read the map and subsample it to nside=64 if nside is too large, as overlap calculation for big maps with large nside take forever
+        if self.nside > 256:
+            (
+                self.map_coords,
+                self.pixel_nos,
+                self.nside,
+                self.map_probs,
+                self.data,
+                self.pixel_area,
+                self.key,
+            ) = self.unpack_skymap(output_nside=256)
 
         pix_map = dict()
         pix_obs_times = dict()
@@ -1030,6 +1053,17 @@ class BaseScanner:
 
         self.logger.info("Unpacking observations")
 
+        if self.nside > 256:
+            (
+                self.map_coords,
+                self.pixel_nos,
+                self.nside,
+                self.map_probs,
+                self.data,
+                self.pixel_area,
+                self.key,
+            ) = self.unpack_skymap(output_nside=256)
+
         pix_map = dict()
         pix_obs_times = dict()
 
@@ -1089,6 +1123,7 @@ class BaseScanner:
         for i, p in enumerate(tqdm(hp.nest2ring(self.nside, self.pixel_nos))):
             if p in pix_obs_times.keys():
                 if p in idx:
+                    quit()
                     plane_pixels.append(p)
                     plane_probs.append(self.map_probs[i])
 

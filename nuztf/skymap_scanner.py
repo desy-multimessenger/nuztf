@@ -41,6 +41,10 @@ class SkymapScanner(BaseScanner):
         self.logger = logging.getLogger(__name__)
         self.prob_threshold = prob_threshold
         self.n_days = n_days
+        self.event = event
+        self.rev = rev
+        self.prob_threshold = prob_threshold
+        self.output_nside = output_nside
 
         if config:
             self.config = config
@@ -50,10 +54,10 @@ class SkymapScanner(BaseScanner):
                 self.config = yaml.safe_load(f)
 
         self.skymap = Skymap(
-            event=event,
-            rev=rev,
-            prob_threshold=prob_threshold,
-            output_nside=output_nside,
+            event=self.event,
+            rev=self.rev,
+            prob_threshold=self.prob_threshold,
+            output_nside=self.output_nside,
         )
 
         self.t_min = Time(self.skymap.t_obs, format="isot", scale="utc")
@@ -397,8 +401,15 @@ class SkymapScanner(BaseScanner):
 
         return True
 
-    def unpack_skymap(self):
+    def unpack_skymap(self, output_nside: None | int = None):
         """ """
+        if output_nside is not None:
+            self.skymap = Skymap(
+                event=self.event,
+                rev=self.rev,
+                prob_threshold=self.prob_threshold,
+                output_nside=output_nside,
+            )
 
         nside = hp.npix2nside(len(self.skymap.data[self.skymap.key]))
 
