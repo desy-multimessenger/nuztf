@@ -474,8 +474,6 @@ def ampel_api_skymap(
     if logger is None:
         logger = logging.getLogger(__name__)
 
-    queryurl_skymap = API_ZTF_ARCHIVE_URL + f"/alerts/healpix/skymap"
-
     # First, we create a json body to post
     headers = {
         "accept": "application/json",
@@ -485,20 +483,17 @@ def ampel_api_skymap(
 
     # if we have a resume_token to proceed to the next chunk, that's all we need
     if resume_token is not None:
-        # fake query (the only thing that counts is the resume token)
-        regions = [{"nside": 1, "pixels": [0]}]
-        query = {
-            "regions": regions,
-            "jd": {
-                "$lt": t_max_jd,
-                "$gt": t_min_jd,
-            },
-            "resume_token": resume_token,
-        }
-        response = requests.post(url=queryurl_skymap, json=query, headers=headers)
+        queryurl_stream = API_ZTF_ARCHIVE_URL + f"/stream/{resume_token}/chunk"
+
+        response = requests.get(
+            queryurl_stream,
+            headers=headers,
+        )
 
     # if we don't have a resume_token, we first need to create the full query
     else:
+        queryurl_skymap = API_ZTF_ARCHIVE_URL + "/alerts/healpix/skymap"
+
         if with_history:
             hist = "true"
         else:
