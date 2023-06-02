@@ -1111,7 +1111,6 @@ class BaseScanner:
         for i, p in enumerate(tqdm(hp.nest2ring(self.nside, self.pixel_nos))):
             if p in pix_obs_times.keys():
                 if p in idx:
-                    quit()
                     plane_pixels.append(p)
                     plane_probs.append(self.map_probs[i])
 
