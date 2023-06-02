@@ -28,6 +28,7 @@ def scan(
     event_type: str,
     do_gcn: bool,
     time_window: int | None,
+    prob_threshold: float | None,
 ):
     """ """
     slack_bot = Slackbot(
@@ -176,6 +177,7 @@ def message(payload):
                     event_type=event_type,
                     do_gcn=do_gcn,
                     time_window=time_window,
+                    prob_threshold=prob_threshold,
                 )
             else:
                 return
