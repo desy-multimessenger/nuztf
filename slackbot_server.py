@@ -38,6 +38,7 @@ def scan(
         event_type=event_type,
         do_gcn=do_gcn,
         time_window=time_window,
+        prob_threshold=prob_threshold,
     )
 
 
@@ -114,6 +115,7 @@ def message(payload):
                 return
 
             time_window = None
+            prob_threshold = None
             dl_results = True
 
             for i, parameter in enumerate(split_text):
@@ -133,6 +135,15 @@ def message(payload):
                             thread_ts=ts,
                         )
                         return
+                elif parameter in fuzzy_parameters(["prob", "probability", "p"]):
+                    try:
+                        prob_threshold = float(split_text[i + 1])
+                    except ValueError:
+                        wc.chat_postMessage(
+                            channel=channel_id,
+                            text="Error: --prob has to be a float.",
+                            thread_ts=ts,
+                        )
 
             do_scan = True
             display_help = False
