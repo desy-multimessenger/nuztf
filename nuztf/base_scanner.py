@@ -734,30 +734,29 @@ class BaseScanner:
             ]
             detection_jds = [x["jd"] for x in detections]
             first_detection = detections[detection_jds.index(min(detection_jds))]
+
             latest = [
                 x
                 for x in res["prv_candidates"] + [res["candidate"]]
                 if "isdiffpos" in x.keys()
             ][-1]
-            try:
-                last_upper_limit = [
-                    x
-                    for x in res["prv_candidates"]
-                    if np.logical_and(
-                        "isdiffpos" in x.keys(), x["jd"] < first_detection["jd"]
-                    )
-                ][-1]
 
-                text += self.candidate_text(
-                    name,
-                    first_detection["jd"],
-                    last_upper_limit["diffmaglim"],
-                    last_upper_limit["jd"],
-                )
+            upper_limits = [
+                x for x in res["prv_candidates"] if x["jd"] < first_detection["jd"]
+            ]
+            if len(upper_limits) > 0:
+                last_upper_limit_mag = upper_limits[-1]["diffmaglim"]
+                last_upper_limit_jd = upper_limits[-1]["jd"]
+            else:
+                last_upper_limit_mag = None
+                last_upper_limit_jd = None
 
-            # No pre-detection upper limit
-            except IndexError:
-                text += self.candidate_text(name, first_detection["jd"], None, None)
+            text += self.candidate_text(
+                ztf_id=name,
+                first_detection=first_detection["jd"],
+                lul_lim=last_upper_limit_mag,
+                lul_jd=last_upper_limit_jd,
+            )
 
             ned_z, ned_dist = query_ned_for_z(
                 ra_deg=latest["ra"],
@@ -833,7 +832,7 @@ class BaseScanner:
         ras = np.ones_like(data["field"]) * np.nan
         decs = np.ones_like(data["field"]) * np.nan
 
-        # Actually load up ra/dec
+        # Actually load up RA/Dec
 
         veto_fields = []
 
@@ -891,6 +890,18 @@ class BaseScanner:
 
         self.logger.info(f"Most recent observation found is {obs_times[-1]}")
         self.logger.info("Unpacking observations")
+
+        # re-read the map and subsample it to nside=64 if nside is too large, as overlap calculation for big maps with large nside take forever
+        if self.nside > 256:
+            (
+                self.map_coords,
+                self.pixel_nos,
+                self.nside,
+                self.map_probs,
+                self.data,
+                self.pixel_area,
+                self.key,
+            ) = self.unpack_skymap(output_nside=256)
 
         pix_map = dict()
         pix_obs_times = dict()
@@ -1029,6 +1040,17 @@ class BaseScanner:
         )
 
         self.logger.info("Unpacking observations")
+
+        if self.nside > 256:
+            (
+                self.map_coords,
+                self.pixel_nos,
+                self.nside,
+                self.map_probs,
+                self.data,
+                self.pixel_area,
+                self.key,
+            ) = self.unpack_skymap(output_nside=256)
 
         pix_map = dict()
         pix_obs_times = dict()

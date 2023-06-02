@@ -45,6 +45,7 @@ class Slackbot:
         dl_results: bool = False,
         do_gcn: bool = False,
         time_window: int | None = None,
+        prob_threshold: float | None = None,
     ):
         self.channel = channel
         self.ts = ts
@@ -63,13 +64,20 @@ class Slackbot:
         else:
             self.time_window = time_window
 
+        if prob_threshold is None:
+            self.prob_threshold = 0.95
+
         self.scanner: NeutrinoScanner | SkymapScanner
 
         if self.event_type == "nu":
             self.scanner = NeutrinoScanner(self.name)
         elif self.event_type == "gw":
             try:
-                self.scanner = SkymapScanner(self.name)
+                self.scanner = SkymapScanner(
+                    self.name,
+                    n_days=self.time_window,
+                    prob_threshold=self.prob_threshold,
+                )
             except EventNotFound:
                 self.post(
                     f"The specified LIGO event, {self.name}, was not found on GraceDB. Please check that you entered the correct event name."

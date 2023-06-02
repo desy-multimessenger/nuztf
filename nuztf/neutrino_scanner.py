@@ -211,9 +211,10 @@ class NeutrinoScanner(BaseScanner):
 
         return np.logical_and(in_ra, in_dec)
 
-    def unpack_skymap(self, skymap=None):
+    def unpack_skymap(self, skymap=None, output_nside: None | int = None):
         """ """
-        nside = 1024
+        output_nside = 1024
+
         map_coords = []
         pixel_nos = []
 
@@ -226,7 +227,7 @@ class NeutrinoScanner(BaseScanner):
 
         nearish_pixels = list(
             hp.query_disc(
-                nside=nside,
+                nside=output_nside,
                 vec=hp.ang2vec(np.pi / 2.0 - center_dec, center_ra),
                 radius=rad,
                 nest=True,
@@ -234,7 +235,7 @@ class NeutrinoScanner(BaseScanner):
         )
 
         for i in tqdm(nearish_pixels):
-            ra, dec = self.extract_ra_dec(nside, i)
+            ra, dec = self.extract_ra_dec(output_nside, i)
             if self.in_contour(ra, dec):
                 map_coords.append((ra, dec))
                 pixel_nos.append(i)
@@ -244,9 +245,11 @@ class NeutrinoScanner(BaseScanner):
 
         key = "PROB"
 
-        data = np.zeros(hp.nside2npix(nside), dtype=np.dtype([(key, float)]))
+        data = np.zeros(hp.nside2npix(output_nside), dtype=np.dtype([(key, float)]))
         data[np.array(pixel_nos)] = map_probs
 
-        pixel_area = hp.nside2pixarea(nside, degrees=True) * float(len(map_coords))
+        pixel_area = hp.nside2pixarea(output_nside, degrees=True) * float(
+            len(map_coords)
+        )
 
-        return map_coords, pixel_nos, nside, map_probs, data, pixel_area, key
+        return map_coords, pixel_nos, output_nside, map_probs, data, pixel_area, key
