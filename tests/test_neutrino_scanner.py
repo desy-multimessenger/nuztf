@@ -118,7 +118,7 @@ class TestNeutrinoScanner(unittest.TestCase):
         # Test manually adding candidates
 
         nu.add_to_cache_by_names(
-            "ZTF18abteipt",
+            ztf_ids=["ZTF18abteipt"],
         )
 
         # Check

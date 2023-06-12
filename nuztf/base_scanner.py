@@ -209,9 +209,9 @@ class BaseScanner:
             ):
                 self.cache[res_alert["objectId"]] = res_alert
 
-    def add_to_cache_by_names(self, *args):
-        for ztf_name in args:
-            query_res = ampel_api_name(ztf_name, logger=self.logger)
+    def add_to_cache_by_names(self, ztf_ids: list):
+        for ztf_id in ztf_ids:
+            query_res = ampel_api_name(ztf_id, logger=self.logger)
             self.add_res_to_cache(query_res)
 
     def check_ampel_filter(self, ztf_name):
@@ -551,7 +551,7 @@ class BaseScanner:
         pdf_path = self.get_output_dir() / "candidates.pdf"
 
         self.logger.info(
-            f"Creating overview pdf\n(this might take a moment as it involves catalog matching)"
+            f"Creating overviewpdf\n(this might take a moment as it involves catalog matching)"
         )
         self.logger.debug(f"Overview pdf path: {pdf_path}")
 
