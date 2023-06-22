@@ -66,6 +66,8 @@ class Slackbot:
 
         if prob_threshold is None:
             self.prob_threshold = 0.95
+        else:
+            self.prob_threshold = prob_threshold
 
         self.scanner: NeutrinoScanner | SkymapScanner
 
