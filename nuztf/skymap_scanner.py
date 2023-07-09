@@ -250,9 +250,9 @@ class SkymapScanner(BaseScanner):
                 if self.filter_f_history(res=res):
                     final_objects.append(_ztf_id)
                     self.cache[_ztf_id] = res
-                    self.logger.debug(f"{_ztf_id}: Passed all filters.")
+                    self.logger.debug(f"✅ {_ztf_id}: Passed all filters.")
                 else:
-                    self.logger.debug(f"{_ztf_id}: Failed History.")
+                    self.logger.debug(f"❌ {_ztf_id}: Failed History.")
 
         end_secondfilter = time.time()
         filter_time = end_secondfilter - start_secondfilter
