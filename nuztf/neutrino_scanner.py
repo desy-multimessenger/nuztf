@@ -125,36 +125,36 @@ class NeutrinoScanner(BaseScanner):
 
         # Positive detection
         if res["candidate"]["isdiffpos"] not in ["t", "1"]:
-            self.logger.debug(f"{ztf_id}: Negative subtraction")
+            self.logger.debug(f"❌ {ztf_id}: Negative subtraction")
             return False
 
         try:
             if res["candidate"]["drb"] < 0.3:
-                self.logger.debug(f"{ztf_id}: DRB too low")
+                self.logger.debug(f"❌ {ztf_id}: DRB too low")
                 return False
         except (KeyError, TypeError) as e:
             pass
 
         # Check contour
         if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
-            self.logger.debug(f"{ztf_id}: Not in contour")
+            self.logger.debug(f"❌ {ztf_id}: Not in contour")
             return False
 
         endhist = res["candidate"]["jdendhist"]
         starthist = res["candidate"]["jdstarthist"]
 
         if endhist == starthist:
-            self.logger.debug(f"{ztf_id}: One detection only")
+            self.logger.debug(f"❌ {ztf_id}: One detection only")
             return False
 
         # Require 2 detections separated by 15 mins
         if (endhist - starthist) < 0.01:
             self.logger.debug(
-                f"{ztf_id}: Does have 2 detections, but these are not separated by >15 mins (delta t = {(endhist-starthist)*1440:.0f} min)"
+                f"❌ {ztf_id}: Does have 2 detections, but these are not separated by >15 mins (delta t = {(endhist-starthist)*1440:.0f} min)"
             )
             return False
 
-        self.logger.debug(f"{ztf_id}: Passes first filtering stage.")
+        self.logger.debug(f"✅ {ztf_id}: Passes first filtering stage (no prv).")
         return True
 
     def filter_f_history(self, res: dict):
@@ -167,12 +167,14 @@ class NeutrinoScanner(BaseScanner):
         )
 
         if n_detections < 1:
-            self.logger.info(f"{ztf_id}: Has insufficient detections")
+            self.logger.info(f"❌ {ztf_id}: Has insufficient detections")
             return False
 
         if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
-            self.logger.info(f"{ztf_id}: Not in contour")
+            self.logger.info(f"❌ {ztf_id}: Not in contour")
             return False
+
+        self.logger.debug(f"✅ {ztf_id}: Passed the history filtering stage")
 
         return True
 

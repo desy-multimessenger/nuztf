@@ -185,7 +185,7 @@ class BaseScanner:
             return ""
 
     def filter_ampel(self, res):
-        self.logger.debug("Running AMPEL filter")
+        self.logger.debug(f"{res['objectId']}: Running AMPEL filter")
 
         shaped_alert = ZiAlertSupplier.shape_alert_dict(res, ["FilterTest"])
         filterres = self.ampel_filter_class.process(alert=shaped_alert)
