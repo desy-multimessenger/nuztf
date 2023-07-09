@@ -320,7 +320,7 @@ class SkymapScanner(BaseScanner):
             startdate_jd = res["candidate"]["jdstarthist"]
             startdate_date = Time(startdate_jd, format="jd").isot
             self.logger.debug(
-                f"{res['objectId']}: Transient is too old "
+                f"❌ {res['objectId']}: Transient is too old "
                 f"(jdstarthist predates event; first detection at {startdate_date})."
             )
             return False
@@ -330,7 +330,7 @@ class SkymapScanner(BaseScanner):
             startdate_jd = res["candidate"]["jdstarthist"]
             startdate_date = Time(startdate_jd, format="jd").isot
             self.logger.debug(
-                f"{res['objectId']}: Transient is too new "
+                f"❌ {res['objectId']}: Transient is too new "
                 f"(jdstarthist too late after event; "
                 f"first detection at {startdate_date}, "
                 f"filter searches only up to {Time(t_max_jd, format='jd').isot})."
@@ -339,22 +339,22 @@ class SkymapScanner(BaseScanner):
 
         # Exclude negative detection
         if res["candidate"]["isdiffpos"] not in ["t", "1"]:
-            self.logger.debug(f"{res['objectId']}: Negative subtraction")
+            self.logger.debug(f"❌ {res['objectId']}: Negative subtraction")
             return False
 
         try:
             if res["candidate"]["drb"] < 0.3:
-                self.logger.debug(f"{res['objectId']}: DRB too low")
+                self.logger.debug(f"❌ {res['objectId']}: DRB too low")
                 return False
         except (KeyError, TypeError):
             pass
 
         # Check contour
         if not self.skymap.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
-            self.logger.debug(f"{res['objectId']}: Outside of event contour.")
+            self.logger.debug(f"❌ {res['objectId']}: Outside of event contour.")
             return False
 
-        self.logger.debug(f"{res['objectId']}: Passed first filter stage (no prv)")
+        self.logger.debug(f"✅ {res['objectId']}: Passes first filtering stage (no prv)")
 
         return True
 
@@ -368,20 +368,20 @@ class SkymapScanner(BaseScanner):
         ztf_id = res["objectId"]
         if res["candidate"]["jdstarthist"] < self.t_min.jd:
             self.logger.debug(
-                f"{ztf_id}: Transient is too old. (jdstarthist history predates event)"
+                f"❌ {ztf_id}: Transient is too old. (jdstarthist history predates event)"
             )
             return False
 
         # Veto new transients
         if res["candidate"]["jdstarthist"] > t_max_jd:
             self.logger.debug(
-                f"{ztf_id}: Transient is too new. (jdstarthist too late after event)"
+                f"❌ {ztf_id}: Transient is too new. (jdstarthist too late after event)"
             )
             return False
 
         # Require 2 detections separated by 15 mins
         if (res["candidate"]["jdendhist"] - res["candidate"]["jdstarthist"]) < 0.01:
-            self.logger.debug(f"{ztf_id}: Not passed mover cut")
+            self.logger.debug(f"❌ {ztf_id}: Not passed mover cut")
             return False
 
         # Require 2 positive detections
@@ -394,10 +394,10 @@ class SkymapScanner(BaseScanner):
         pos_detections = [x for x in old_detections if "isdiffpos" in x.keys()]
 
         if len(pos_detections) < 1:
-            self.logger.debug(f"{ztf_id}: Does not have two detections")
+            self.logger.debug(f"❌ {ztf_id}: Does not have two detections")
             return False
 
-        self.logger.debug(f"{ztf_id}: Passed the history filtering stage")
+        self.logger.debug(f"✅ {ztf_id}: Passed the history filtering stage")
 
         return True
 
