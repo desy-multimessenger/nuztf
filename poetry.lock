@@ -2557,16 +2557,16 @@ six = "*"
 
 [[package]]
 name = "ligo-skymap"
-version = "1.0.7"
+version = "1.1.2"
 description = "Tools for reading, writing, manipulating, and making LIGO and Virgo sky maps"
 optional = false
-python-versions = "*"
+python-versions = ">=3.9"
 files = [
-    {file = "ligo.skymap-1.0.7-cp38-abi3-macosx_10_15_x86_64.whl", hash = "sha256:5b83669221893d6a3f6cf1c21c524a67979f0db115447871a574297bf6670db6"},
-    {file = "ligo.skymap-1.0.7-cp38-abi3-macosx_12_0_arm64.whl", hash = "sha256:b577bc8e5b79363202220c823614ed21922f2eff862617a1b836aef22e2bd0f3"},
-    {file = "ligo.skymap-1.0.7-cp38-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:d91c2ded773844eff9d4373c973164f9e33ee8332c704e4c97146baa7e7d2551"},
-    {file = "ligo.skymap-1.0.7-cp38-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:c2aba2c4b7735116a0f4e246ead9ef6d4bb6a6617a09e67c99466be0e7f100b3"},
-    {file = "ligo.skymap-1.0.7.tar.gz", hash = "sha256:32f4462fed94801c659cdceb738ed17f5a07be98102f37a90913aaaabe01e7dc"},
+    {file = "ligo.skymap-1.1.2-cp39-abi3-macosx_11_0_x86_64.whl", hash = "sha256:a26067cbaf852ca16515819740364d6a873bedd23d1d949ba3607526486df15d"},
+    {file = "ligo.skymap-1.1.2-cp39-abi3-macosx_12_0_arm64.whl", hash = "sha256:0d9e2af9935c8c432f8277355d522f0fb215d29068cdf5dc58c12d0de4471bd5"},
+    {file = "ligo.skymap-1.1.2-cp39-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:f782ccfffe3b2df5d50b4601bab05e1fad7cebbb25077d68f193afe9cfadebc3"},
+    {file = "ligo.skymap-1.1.2-cp39-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:f97a3249ecd374db7db70f290a686d6486f6d456262a4b0e9dbb706df0d2627a"},
+    {file = "ligo.skymap-1.1.2.tar.gz", hash = "sha256:e50e94a4dfa90759c18e71cf55c698eaae542ba7dbb50650febe471bb6ffc2a1"},
 ]
 
 [package.dependencies]
