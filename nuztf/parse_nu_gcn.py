@@ -178,7 +178,7 @@ def parse_gcn_circular(gcn_number: int):
     returndict = {}
     mainbody_starts_here = 999
 
-    endpoint = f"https://gcn.nasa.gov/circulars/{gcn_number}/json"
+    endpoint = f"https://gcn.nasa.gov/circulars/{gcn_number}.json"
     res = requests.get(endpoint)
     res_json = res.json()
 
