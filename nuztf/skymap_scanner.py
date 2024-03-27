@@ -42,7 +42,6 @@ class SkymapScanner(BaseScanner):
         self.prob_threshold = prob_threshold
         self.n_days = n_days
         self.event = event
-        self.rev = rev
         self.prob_threshold = prob_threshold
         self.output_nside = output_nside
 
@@ -55,10 +54,11 @@ class SkymapScanner(BaseScanner):
 
         self.skymap = Skymap(
             event=self.event,
-            rev=self.rev,
+            rev=rev,
             prob_threshold=self.prob_threshold,
             output_nside=self.output_nside,
         )
+        self.rev = self.skymap.rev
 
         self.t_min = Time(self.skymap.t_obs, format="isot", scale="utc")
 

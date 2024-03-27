@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
+import json
 import logging
 import time
 from pathlib import Path
@@ -32,7 +33,6 @@ from nuztf.cat_match import ampel_api_tns, get_cross_match_info, query_ned_for_z
 from nuztf.flatpix import get_flatpix, get_nested_pix
 from nuztf.fritz import save_source_to_group
 from nuztf.observations import get_obs_summary
-from nuztf.observations_depot import get_obs_summary as alt_get_obs_summary
 from nuztf.paths import BASE_CANDIDATE_DIR, RESULTS_DIR
 from nuztf.plot import lightcurve_from_alert
 from nuztf.utils import cosmo
@@ -120,6 +120,8 @@ class BaseScanner:
 
         self.observations = None
 
+        self.pixel_area = hp.pixelfunc.nside2pixarea(self.nside, degrees=True)
+
         if not hasattr(self, "dist"):
             self.dist = None
 
@@ -135,7 +137,7 @@ class BaseScanner:
         return output_dir
 
     def get_cache_dir(self) -> Path:
-        cache_dir = BASE_CANDIDATE_DIR.joinpath(self.get_name())
+        cache_dir = BASE_CANDIDATE_DIR.joinpath(self.get_name().replace(" ", "_"))
         cache_dir.mkdir(exist_ok=True, parents=True)
         return cache_dir
 
@@ -240,9 +242,9 @@ class BaseScanner:
         return pipeline_bool
 
     def get_multi_night_summary(self, max_days=None):
-        mns = alt_get_obs_summary(self.t_min, max_days=max_days)
-        if mns is None:
-            mns = get_obs_summary(self.t_min, max_days=max_days)
+        mns = get_obs_summary(self.t_min, max_days=max_days)
+        # if mns is None:
+        #     mns = get_obs_summary(self.t_min, max_days=max_days)
         return mns
 
     def query_ampel(
@@ -326,6 +328,11 @@ class BaseScanner:
         filter the candidates and create a summary
         """
         query_res = self.query_ampel(t_min=t_min, t_max=t_max)
+
+        cache_file_initial_stage = self.get_cache_dir().joinpath("initial_stage.json")
+
+        with open(cache_file_initial_stage, "w") as outfile:
+            json.dump(query_res, outfile)
 
         ztf_ids_first_stage = []
         for res in tqdm(query_res):
@@ -538,7 +545,7 @@ class BaseScanner:
 
         return int(hp.ang2pix(nside, theta, phi, nest=True))
 
-    def create_candidate_summary(self):
+    def create_candidate_summary(self, include_ps1: bool = True) -> str:
         """
         Create pdf with lightcurve plots of all candidates
 
@@ -560,6 +567,7 @@ class BaseScanner:
                 fig, _ = lightcurve_from_alert(
                     [alert],
                     include_cutouts=True,
+                    include_ps1=include_ps1,
                     logger=self.logger,
                     t_0_mjd=self.t_min.mjd,
                 )
@@ -791,245 +799,12 @@ class BaseScanner:
         return text
 
     def calculate_overlap_with_observations(
-        self, fields=None, pid=None, first_det_window_days=3.0, min_sep=0.01
-    ):
-        """
-        Calculate the overlap of the candidates with the observations
-
-        :param fields: list of fields to consider. By default, use actual log.
-        :param pid: pid to consider. By default, use all.
-        :param first_det_window_days: number of days to consider for first detection
-        :param min_sep: minimum separation in days between observations
-        """
-
-        if fields is None:
-            mns = self.get_multi_night_summary(first_det_window_days)
-
-        else:
-
-            class MNS:
-                def __init__(self, data):
-                    self.data = pandas.DataFrame(
-                        data, columns=["field", "ra", "dec", "datetime"]
-                    )
-
-            data = []
-
-            for f in fields:
-                ra, dec = ztfquery_fields.get_field_centroid(f)[0]
-                for i in range(2):
-                    t = Time(self.t_min.jd + 0.1 * i, format="jd").utc
-                    t.format = "isot"
-                    t = t.value
-                    data.append([f, ra, dec, t])
-
-            mns = MNS(data)
-
-        # Skip all 64 simultaneous quadrant entries, we only need one per observation for qa log
-
-        data = mns.data.copy()
-
-        ras = np.ones_like(data["field"]) * np.nan
-        decs = np.ones_like(data["field"]) * np.nan
-
-        # Actually load up RA/Dec
-
-        veto_fields = []
-
-        for field in list(set(data["field"])):
-            mask = data["field"] == field
-
-            res = ztfquery_fields.get_field_centroid(field)
-
-            if len(res) > 0:
-                ras[mask] = res[0][0]
-                decs[mask] = res[0][1]
-
-            else:
-                veto_fields.append(field)
-
-        if len(veto_fields) > 0:
-            self.logger.info(
-                f"No RA/Dec found by ztfquery for fields {veto_fields}. "
-                f"These observation have to be ignored."
-            )
-
-        data["ra"] = ras
-        data["dec"] = decs
-
-        mask = np.array([~np.isnan(x) for x in data["ra"]])
-
-        data = data[mask]
-
-        if pid is not None:
-            pid_mask = data["pid"] == str(pid)
-            data = data[pid_mask]
-
-        obs_times = np.array(
-            [
-                Time(
-                    data["datetime"].iat[i].replace(" ", "T"),
-                    format="isot",
-                    scale="utc",
-                )
-                for i in range(len(data))
-            ]
-        )
-
-        if first_det_window_days is not None:
-            first_det_mask = [
-                x < Time(self.t_min.jd + first_det_window_days, format="jd").utc
-                for x in obs_times
-            ]
-            data = data[first_det_mask]
-            obs_times = obs_times[first_det_mask]
-
-        if len(obs_times) == 0:
-            self.logger.warning("No observations found for this event.")
-            return None
-
-        self.logger.info(f"Most recent observation found is {obs_times[-1]}")
-        self.logger.info("Unpacking observations")
-
-        # re-read the map and subsample it to nside=64 if nside is too large, as overlap calculation for big maps with large nside take forever
-        if self.nside > 256:
-            (
-                self.map_coords,
-                self.pixel_nos,
-                self.nside,
-                self.map_probs,
-                self.data,
-                self.pixel_area,
-                self.key,
-            ) = self.unpack_skymap(output_nside=256)
-
-        pix_map = dict()
-        pix_obs_times = dict()
-
-        field_pix = get_flatpix(nside=self.nside, logger=self.logger)
-
-        for i, obs_time in enumerate(tqdm(obs_times)):
-            field = data["field"].iat[i]
-
-            flat_pix = field_pix[field]
-
-            t = obs_time.jd
-
-            for p in flat_pix:
-                if p not in pix_obs_times.keys():
-                    pix_obs_times[p] = [t]
-                else:
-                    pix_obs_times[p] += [t]
-
-                if p not in pix_map.keys():
-                    pix_map[p] = [field]
-                else:
-                    pix_map[p] += [field]
-
-        npix = hp.nside2npix(self.nside)
-        theta, phi = hp.pix2ang(self.nside, np.arange(npix), nest=False)
-        radecs = SkyCoord(ra=phi * u.rad, dec=(0.5 * np.pi - theta) * u.rad)
-        idx = np.where(np.abs(radecs.galactic.b.deg) <= 10.0)[0]
-
-        double_in_plane_pixels = []
-        double_in_plane_probs = []
-        single_in_plane_pixels = []
-        single_in_plane_prob = []
-        veto_pixels = []
-        plane_pixels = []
-        plane_probs = []
-        times = []
-        double_no_plane_prob = []
-        double_no_plane_pixels = []
-        single_no_plane_prob = []
-        single_no_plane_pixels = []
-
-        overlapping_fields = []
-
-        for i, p in enumerate(tqdm(hp.nest2ring(self.nside, self.pixel_nos))):
-            if p in pix_obs_times.keys():
-                if p in idx:
-                    plane_pixels.append(p)
-                    plane_probs.append(self.map_probs[i])
-
-                obs = pix_obs_times[p]
-
-                # check which healpix are observed twice
-                if max(obs) - min(obs) > min_sep:
-                    # is it in galactic plane or not?
-                    if p not in idx:
-                        double_no_plane_prob.append(self.map_probs[i])
-                        double_no_plane_pixels.append(p)
-                    else:
-                        double_in_plane_probs.append(self.map_probs[i])
-                        double_in_plane_pixels.append(p)
-
-                else:
-                    if p not in idx:
-                        single_no_plane_pixels.append(p)
-                        single_no_plane_prob.append(self.map_probs[i])
-                    else:
-                        single_in_plane_prob.append(self.map_probs[i])
-                        single_in_plane_pixels.append(p)
-
-                overlapping_fields += pix_map[p]
-
-                times += list(obs)
-            else:
-                veto_pixels.append(p)
-
-        overlapping_fields = sorted(list(set(overlapping_fields)))
-
-        _observations = data.query("obsjd in @times").reset_index(drop=True)[
-            ["obsjd", "datetime", "exptime", "fid", "field"]
-        ]
-        bands = [self.fid_to_band(fid) for fid in _observations["fid"].values]
-        _observations["band"] = bands
-        _observations.drop(columns=["fid"], inplace=True)
-        self.observations = _observations
-
-        self.logger.info("All observations:")
-        self.logger.info(f"\n{self.observations}")
-
-        try:
-            self.first_obs = Time(min(times), format="jd")
-            self.first_obs.utc.format = "isot"
-            self.last_obs = Time(max(times), format="jd")
-            self.last_obs.utc.format = "isot"
-
-        except ValueError:
-            err = (
-                f"No observations of this field were found at any time between {self.t_min} and"
-                f"{obs_times[-1]}. Coverage overlap is 0%, but recent observations might be missing!"
-            )
-            self.logger.error(err)
-            raise ValueError(err)
-
-        self.logger.info(f"Observations started at {self.first_obs.jd}")
-
-        return (
-            double_in_plane_pixels,
-            double_in_plane_probs,
-            single_in_plane_pixels,
-            single_in_plane_prob,
-            veto_pixels,
-            plane_pixels,
-            plane_probs,
-            times,
-            double_no_plane_prob,
-            double_no_plane_pixels,
-            single_no_plane_prob,
-            single_no_plane_pixels,
-            overlapping_fields,
-        )
-
-    def calculate_overlap_with_depot_observations(
         self, first_det_window_days=3.0, min_sep=0.01
     ):
-        mns = alt_get_obs_summary(t_min=self.t_min, max_days=first_det_window_days)
+        mns = get_obs_summary(t_min=self.t_min, max_days=first_det_window_days)
 
         if mns is None:
-            return None
+            return None, None, None
 
         data = mns.data.copy()
 
@@ -1091,54 +866,43 @@ class BaseScanner:
         npix = hp.nside2npix(self.nside)
         theta, phi = hp.pix2ang(self.nside, np.arange(npix), nest=False)
         radecs = SkyCoord(ra=phi * u.rad, dec=(0.5 * np.pi - theta) * u.rad)
-        idx = np.where(np.abs(radecs.galactic.b.deg) <= 10.0)[0]
 
-        double_in_plane_pixels = []
-        double_in_plane_probs = []
-        single_in_plane_pixels = []
-        single_in_plane_prob = []
-        veto_pixels = []
-        plane_pixels = []
-        plane_probs = []
-        times = []
-        double_no_plane_prob = []
-        double_no_plane_pixels = []
-        single_no_plane_prob = []
-        single_no_plane_pixels = []
+        ras, decs = hp.pixelfunc.pix2ang(
+            self.nside, hp.nest2ring(self.nside, self.pixel_nos), lonlat=True
+        )
+
+        coverage_data = []
 
         overlapping_fields = []
+        times = []
 
         for i, p in enumerate(tqdm(hp.nest2ring(self.nside, self.pixel_nos))):
-            if p in pix_obs_times.keys():
-                if p in idx:
-                    plane_pixels.append(p)
-                    plane_probs.append(self.map_probs[i])
+            entry = {
+                "pixel_no": p,
+                "prob": self.map_probs[i],
+                "gal_b": radecs[i].galactic.b.deg,
+                "in_plane": abs(radecs[i].galactic.b.deg) < 10.0,
+                "ra_deg": ras[i],
+                "dec_deg": decs[i],
+            }
 
+            if p in pix_obs_times.keys():
                 obs = pix_obs_times[p]
 
-                # check which healpix are observed twice
-                if max(obs) - min(obs) > min_sep:
-                    # is it in galactic plane or not?
-                    if p not in idx:
-                        double_no_plane_prob.append(self.map_probs[i])
-                        double_no_plane_pixels.append(p)
-                    else:
-                        double_in_plane_probs.append(self.map_probs[i])
-                        double_in_plane_pixels.append(p)
+                entry["n_det_class"] = 2 if max(obs) - min(obs) > min_sep else 1
 
-                else:
-                    if p not in idx:
-                        single_no_plane_pixels.append(p)
-                        single_no_plane_prob.append(self.map_probs[i])
-                    else:
-                        single_in_plane_prob.append(self.map_probs[i])
-                        single_in_plane_pixels.append(p)
+                entry["latency_days"] = min(obs) - self.t_min.jd
 
                 overlapping_fields += pix_map[p]
 
                 times += list(obs)
             else:
-                veto_pixels.append(p)
+                entry["n_det_class"] = 0
+                entry["latency_days"] = np.nan
+
+            coverage_data.append(entry)
+
+        coverage_df = pd.DataFrame(coverage_data)
 
         overlapping_fields = sorted(list(set(overlapping_fields)))
 
@@ -1171,18 +935,8 @@ class BaseScanner:
         self.logger.info(f"Observations started at {self.first_obs.isot}")
 
         return (
-            double_in_plane_pixels,
-            double_in_plane_probs,
-            single_in_plane_pixels,
-            single_in_plane_prob,
-            veto_pixels,
-            plane_pixels,
-            plane_probs,
+            coverage_df,
             times,
-            double_no_plane_prob,
-            double_no_plane_pixels,
-            single_no_plane_prob,
-            single_no_plane_pixels,
             overlapping_fields,
         )
 
@@ -1195,100 +949,75 @@ class BaseScanner:
 
         """
 
-        overlap_res = self.calculate_overlap_with_depot_observations(
+        (
+            coverage_df,
+            times,
+            overlapping_fields,
+        ) = self.calculate_overlap_with_observations(
             first_det_window_days=first_det_window_days,
             min_sep=min_sep,
         )
-        if overlap_res is None:
-            self.logger.info("IPAC depot failed, using ztfquery to obtain observations")
-            overlap_res = self.calculate_overlap_with_observations(
-                first_det_window_days=first_det_window_days,
-                min_sep=min_sep,
-            )
 
-        if overlap_res is None:
+        if coverage_df is None:
             self.logger.warning("Not plotting overlap with observations.")
             return
-        else:
-            (
-                double_in_plane_pixels,
-                double_in_plane_probs,
-                single_in_plane_pixels,
-                single_in_plane_prob,
-                veto_pixels,
-                plane_pixels,
-                plane_probs,
-                times,
-                double_no_plane_prob,
-                double_no_plane_pixels,
-                single_no_plane_prob,
-                single_no_plane_pixels,
-                overlapping_fields,
-            ) = overlap_res
 
         fig = plt.figure()
         plt.subplot(projection="aitoff")
 
         self.overlap_fields = list(set(overlapping_fields))
 
-        self.overlap_prob = np.sum(double_in_plane_probs + double_no_plane_prob) * 100.0
+        overlap_mask = (coverage_df["n_det_class"] == 2) & ~coverage_df["in_plane"]
+        self.overlap_prob = coverage_df[overlap_mask]["prob"].sum() * 100.0
 
         size = hp.max_pixrad(self.nside) ** 2 * 50.0
 
-        veto_pos = np.array(
-            [hp.pixelfunc.pix2ang(self.nside, i, lonlat=True) for i in veto_pixels]
-        ).T
+        veto_pixels = coverage_df.where(coverage_df["n_det_class"] == 0)
 
-        if len(veto_pos) > 0:
+        if len(veto_pixels) > 0:
             plt.scatter(
-                np.radians(self.wrap_around_180(veto_pos[0])),
-                np.radians(veto_pos[1]),
+                np.radians(veto_pixels["ra_deg"]),
+                np.radians(veto_pixels["dec_deg"]),
                 color="red",
                 s=size,
             )
 
-        plane_pos = np.array(
-            [hp.pixelfunc.pix2ang(self.nside, i, lonlat=True) for i in plane_pixels]
-        ).T
+        plane_pixels = coverage_df.where(
+            coverage_df["in_plane"] & (coverage_df["n_det_class"] > 0)
+        )
 
-        if len(plane_pos) > 0:
+        if len(plane_pixels) > 0:
             plt.scatter(
-                np.radians(self.wrap_around_180(plane_pos[0])),
-                np.radians(plane_pos[1]),
+                np.radians(self.wrap_around_180(plane_pixels["ra_deg"])),
+                np.radians(plane_pixels["dec_deg"]),
                 color="green",
                 s=size,
             )
 
-        single_pos = np.array(
-            [
-                hp.pixelfunc.pix2ang(self.nside, i, lonlat=True)
-                for i in single_no_plane_pixels
-            ]
-        ).T
+        single_pixels = coverage_df.where(
+            ~coverage_df["in_plane"] & (coverage_df["n_det_class"] == 1)
+        )
 
-        if len(single_pos) > 0:
+        if len(single_pixels) > 0:
             plt.scatter(
-                np.radians(self.wrap_around_180(single_pos[0])),
-                np.radians(single_pos[1]),
-                c=single_no_plane_prob,
+                np.radians(self.wrap_around_180(single_pixels["ra_deg"])),
+                np.radians(single_pixels["dec_deg"]),
+                c=single_pixels["prob"],
                 vmin=0.0,
                 vmax=max(self.data[self.key]),
                 s=size,
                 cmap="gray",
             )
 
-        plot_pos = np.array(
-            [
-                hp.pixelfunc.pix2ang(self.nside, i, lonlat=True)
-                for i in double_no_plane_pixels
-            ]
-        ).T
+        double_pixels = coverage_df.where(
+            ~coverage_df["in_plane"] & (coverage_df["n_det_class"] == 2)
+        )
 
-        if len(plot_pos) > 0:
+        if len(double_pixels) > 0:
             plt.scatter(
-                np.radians(self.wrap_around_180(plot_pos[0])),
-                np.radians(plot_pos[1]),
-                c=double_no_plane_prob,
+                np.radians(self.wrap_around_180(double_pixels["ra_deg"])),
+                np.radians(double_pixels["dec_deg"]),
+                c=double_pixels["prob"],
                 vmin=0.0,
                 vmax=max(self.data[self.key]),
                 s=size,
@@ -1309,35 +1038,20 @@ class BaseScanner:
             "In total, {3:.1f} % of the contour was observed at least twice, "
             "and excluding low galactic latitudes.\n"
             "These estimates account for chip gaps.".format(
-                100
-                * (
-                    np.sum(double_in_plane_probs)
-                    + np.sum(single_in_plane_prob)
-                    + np.sum(single_no_plane_prob)
-                    + np.sum(double_no_plane_prob)
-                ),
-                100 * np.sum(plane_probs),
-                100.0 * (np.sum(double_in_plane_probs) + np.sum(double_no_plane_prob)),
-                100.0 * np.sum(double_no_plane_prob),
+                100.0 * coverage_df.query("n_det_class > 0")["prob"].sum(),
+                100 * coverage_df.query("in_plane & n_det_class > 0")["prob"].sum(),
+                100.0 * coverage_df.query("n_det_class == 2")["prob"].sum(),
+                100.0 * coverage_df.query("n_det_class == 2 & ~in_plane")["prob"].sum(),
             )
         )
 
-        n_pixels = len(
-            single_in_plane_pixels
-            + double_in_plane_pixels
-            + double_no_plane_pixels
-            + single_no_plane_pixels
-        )
-        n_double = len(double_no_plane_pixels + double_in_plane_pixels)
-        n_plane = len(plane_pixels)
+        n_pixels = len(coverage_df.query("n_det_class > 0"))
+        n_double = len(coverage_df.query("n_det_class == 2"))
+        n_plane = len(coverage_df.query("in_plane & n_det_class > 0"))
 
-        self.healpix_area = (
-            hp.pixelfunc.nside2pixarea(self.nside, degrees=True) * n_pixels
-        )
-        self.double_extragalactic_area = (
-            hp.pixelfunc.nside2pixarea(self.nside, degrees=True) * n_double
-        )
-        plane_area = hp.pixelfunc.nside2pixarea(self.nside, degrees=True) * n_plane
+        self.healpix_area = self.pixel_area * n_pixels
+        self.double_extragalactic_area = self.pixel_area * n_double
+        plane_area = self.pixel_area * n_plane
 
         self.overlap_fields = overlapping_fields
 
@@ -1367,7 +1081,7 @@ class BaseScanner:
 
         max_days = max(self.observations["obsjd"]) - self.t_min.jd
 
-        mns = alt_get_obs_summary(t_min=self.t_min, max_days=max_days)
+        mns = get_obs_summary(t_min=self.t_min, max_days=max_days)
 
         exposures = []
 
