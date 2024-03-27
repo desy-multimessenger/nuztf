@@ -8,13 +8,6 @@ on:
   push:
   pull_request:
 
-  # run the pipeline on the 0th minute of the 0th hour of day 1 and 15 every month
-  schedule:
-    - cron: '0 0 1,15 * *'
-
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   build:
@@ -29,7 +22,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       # Set up the python versions
       - name: Set up Python ${{ matrix.python-version }}
