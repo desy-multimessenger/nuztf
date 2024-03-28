@@ -112,36 +112,33 @@ frozenlist = ">=1.1.0"
 
 [[package]]
 name = "ampel-alerts"
-version = "0.10.0a1"
+version = "0.10.0"
 description = "Alert support for the Ampel system"
 optional = false
-python-versions = ">=3.10,<4.0"
+python-versions = "<4.0,>=3.10"
 files = [
-    {file = "ampel_alerts-0.10.0a1-py3-none-any.whl", hash = "sha256:0131e6d0792db3b067c230f3c2ac15c969bc9f49b70cdc0b49f2f4ae62d3b9eb"},
-    {file = "ampel_alerts-0.10.0a1.tar.gz", hash = "sha256:8a4c91c556dcb9e3115395eba16a17bfa74c2707c87496e47ad9add0f2c2019a"},
+    {file = "ampel_alerts-0.10.0-py3-none-any.whl", hash = "sha256:7bfc2479c2ba870d998a1345395b309dcee8f064ab9edf613d18cd8ec901622e"},
+    {file = "ampel_alerts-0.10.0.tar.gz", hash = "sha256:83b9bc66f36a8ccd8ba55bdc963a1949b75d3cfc2b521d5ae88fd8d5993d5510"},
 ]
 
 [package.dependencies]
 ampel-core = ">=0.10.0a0,<0.11"
 
-[package.extras]
-docs = ["Sphinx (>=7.2.0,<7.3.0)", "sphinx-autodoc-typehints (>=1.11.1,<2.0.0)", "tomlkit (>=0.12.0,<0.13.0)"]
-
 [[package]]
 name = "ampel-core"
-version = "0.10.0a4"
+version = "0.10.0"
 description = "Alice in Modular Provenance-Enabled Land"
 optional = false
-python-versions = ">=3.10,<4.0"
+python-versions = "<4.0,>=3.10"
 files = [
-    {file = "ampel_core-0.10.0a4-py3-none-any.whl", hash = "sha256:37662ed034d6b4ced0f6eaba1426b8cc85b930b3751a992838b46fdc740ae96c"},
-    {file = "ampel_core-0.10.0a4.tar.gz", hash = "sha256:a53dcf65e3f07044204a65bc0af0c71d2b0677d6b6b2eaa0a5c4112a77a776ad"},
+    {file = "ampel_core-0.10.0-py3-none-any.whl", hash = "sha256:2eac76aa5b29488cfb47bc8154666362dc9e7b7258c52447a05d285b65837aa9"},
+    {file = "ampel_core-0.10.0.tar.gz", hash = "sha256:306616c9b77866edae0d7e50245a50d7e5d83038e974933f2b89597b9c75ebd1"},
 ]
 
 [package.dependencies]
 ampel-interface = ">=0.10.0a3,<0.11"
 appdirs = ">=1.4.4,<2.0.0"
-prometheus-client = ">=0.16,<0.20"
+prometheus-client = ">=0.16"
 psutil = ">=5.8.0,<6.0.0"
 pymongo = ">=4.0,<5.0"
 requests = ">=2.0,<3.0"
@@ -151,19 +148,18 @@ xxhash = ">=3.0.0,<4.0.0"
 yq = ">=3.0.0,<4.0.0"
 
 [package.extras]
-docs = ["Sphinx (>=7.0.1,<7.3.0)", "sphinx-autodoc-typehints (>=1.11.1,<2.0.0)", "sphinx-press-theme (>=0.5.1,<0.9.0)", "tomlkit (>=0.11.0,<0.13.0)"]
-server = ["fastapi (>=0.95,<0.106)", "uvicorn[standard] (>=0.21.1,<0.26.0)"]
+server = ["fastapi (>=0.95)", "uvicorn[standard] (>=0.21.1)"]
 slack = ["slack-sdk (>=3.18.1,<4.0.0)"]
 
 [[package]]
 name = "ampel-interface"
-version = "0.10.0a4"
+version = "0.10.0"
 description = "Base classes for the Ampel analysis platform"
 optional = false
-python-versions = ">=3.10,<4.0"
+python-versions = "<4.0,>=3.10"
 files = [
-    {file = "ampel_interface-0.10.0a4-py3-none-any.whl", hash = "sha256:d6a55f248cdd5da7a333cfde63fe620ce78489b4651e5464346d98343643bc5e"},
-    {file = "ampel_interface-0.10.0a4.tar.gz", hash = "sha256:6506180bb4011dc1f291c05bbafa30bfc68c8ef864a96735018f22adf98ac9ad"},
+    {file = "ampel_interface-0.10.0-py3-none-any.whl", hash = "sha256:5036e9e027f58f39692045bdbef6022534ceae449023f3dbe8e62dbd9da7f9d3"},
+    {file = "ampel_interface-0.10.0.tar.gz", hash = "sha256:288e75742ee382e1406dcc99cf7aafac4bc5e9fb3ecd98fb5674b21880d2a22d"},
 ]
 
 [package.dependencies]
@@ -174,31 +170,28 @@ xxhash = ">=3.0.0,<4.0.0"
 
 [[package]]
 name = "ampel-photometry"
-version = "0.10.0a0"
+version = "0.10.0"
 description = "Photometry add-on for the Ampel system"
 optional = false
-python-versions = ">=3.10,<4.0"
+python-versions = "<4.0,>=3.10"
 files = [
-    {file = "ampel_photometry-0.10.0a0-py3-none-any.whl", hash = "sha256:1140c6044343ebfdd57b30ce1b6f1a946ccb9fb34adff91ea5959b4d810356e8"},
-    {file = "ampel_photometry-0.10.0a0.tar.gz", hash = "sha256:6a9109e2151bbd7ec0723bfaa8c14422aaf656a140897cf6a9a97307aece3023"},
+    {file = "ampel_photometry-0.10.0-py3-none-any.whl", hash = "sha256:c3669601ddfca62dcc1b9294eee806f42692a68b377501bbba7c8267e623845d"},
+    {file = "ampel_photometry-0.10.0.tar.gz", hash = "sha256:14af2bcfb0152b07275f5a9e1be85f6d7db91fd9aaa626812773e2480ce7f719"},
 ]
 
 [package.dependencies]
 ampel-core = ">=0.10.0a0,<0.11"
-astropy = ">=5,<7.0.0"
-
-[package.extras]
-docs = ["Sphinx (>=7.2.0,<7.3.0)", "sphinx-autodoc-typehints (>=1.11.1,<2.0.0)", "tomlkit (>=0.12.0,<0.13.0)"]
+astropy = ">=5"
 
 [[package]]
 name = "ampel-ztf"
-version = "0.10.0a0"
+version = "0.10.0"
 description = "Zwicky Transient Facility support for the Ampel system"
 optional = false
-python-versions = ">=3.10,<4.0"
+python-versions = "<4.0,>=3.10"
 files = [
-    {file = "ampel_ztf-0.10.0a0-py3-none-any.whl", hash = "sha256:46d5254d9db34cb436a131c1228478773065ce95eba77cfdbad6e11faec5e053"},
-    {file = "ampel_ztf-0.10.0a0.tar.gz", hash = "sha256:1bed4cb8f2e6e25d424534d58421ea3d16c49c6ec329b6e5b2654245d2dd35f2"},
+    {file = "ampel_ztf-0.10.0-py3-none-any.whl", hash = "sha256:34c8518bee01bdabab6b5212d5a34731a330b6bc89e0b7ab52e1850abb0eb195"},
+    {file = "ampel_ztf-0.10.0.tar.gz", hash = "sha256:21c691d21069bb886c4362ccd1f9fb23817a64fedbeec610dceb0d4134e647a8"},
 ]
 
 [package.dependencies]
@@ -207,7 +200,7 @@ ampel-alerts = ">=0.10.0a0,<0.11"
 ampel-core = ">=0.10.0a2,<0.11"
 ampel-photometry = ">=0.10.0a0,<0.11"
 ampel-ztf-archive = {version = ">=0.8.0-alpha.0,<0.9.0", optional = true, markers = "extra == \"archive\""}
-astropy = ">=5.0,<6.0"
+astropy = ">=5.0"
 backoff = ">=2.0.0,<3.0.0"
 fastavro = ">=1.9.2,<2.0.0"
 matplotlib = ">=3.3.4,<4.0.0"
@@ -218,11 +211,11 @@ scipy = ">=1.9.3,<2.0.0"
 
 [package.extras]
 archive = ["ampel-ztf-archive (>=0.8.0-alpha.0,<0.9.0)"]
-bayes = ["ampel-plot (>=0.9.0a2,<0.10.0)", "pandas (>=1.5.2,<2.0.0)", "planobs (>=0.7.0,<0.8.0)"]
-fp = ["pandas (>=1.5.2,<2.0.0)", "planobs (>=0.7.0,<0.8.0)"]
+bayes = ["ampel-plot (>=0.9.0a2,<0.10.0)", "pandas (>=1.5)", "planobs (>=0.7.0,<0.8.0)"]
+fp = ["pandas (>=1.5)", "planobs (>=0.7.0,<0.8.0)"]
 healpix = ["healpy (>=1.15,<2.0)"]
 kafka = ["confluent-kafka (>=2.0.0,<3.0.0)"]
-light-curve = ["light-curve (>=0.7,<0.9)"]
+light-curve = ["light-curve (>=0.9,<0.10)"]
 plot = ["ampel-plot (>=0.9.0a2,<0.10.0)"]
 
 [[package]]
@@ -2682,28 +2675,28 @@ files = [
 
 [[package]]
 name = "jupyterlab-server"
-version = "2.24.0"
+version = "2.25.4"
 description = "A set of server components for JupyterLab and JupyterLab like applications."
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "jupyterlab_server-2.24.0-py3-none-any.whl", hash = "sha256:5f077e142bb8dc9b843d960f940c513581bceca3793a0d80f9c67d9522c4e876"},
-    {file = "jupyterlab_server-2.24.0.tar.gz", hash = "sha256:4e6f99e0a5579bbbc32e449c4dbb039561d4f1a7827d5733273ed56738f21f07"},
+    {file = "jupyterlab_server-2.25.4-py3-none-any.whl", hash = "sha256:eb645ecc8f9b24bac5decc7803b6d5363250e16ec5af814e516bc2c54dd88081"},
+    {file = "jupyterlab_server-2.25.4.tar.gz", hash = "sha256:2098198e1e82e0db982440f9b5136175d73bea2cd42a6480aa6fd502cb23c4f9"},
 ]
 
 [package.dependencies]
 babel = ">=2.10"
 jinja2 = ">=3.0.3"
 json5 = ">=0.9.0"
-jsonschema = ">=4.17.3"
+jsonschema = ">=4.18.0"
 jupyter-server = ">=1.21,<3"
 packaging = ">=21.3"
-requests = ">=2.28"
+requests = ">=2.31"
 
 [package.extras]
 docs = ["autodoc-traits", "jinja2 (<3.2.0)", "mistune (<4)", "myst-parser", "pydata-sphinx-theme", "sphinx", "sphinx-copybutton", "sphinxcontrib-openapi (>0.8)"]
-openapi = ["openapi-core (>=0.16.1,<0.17.0)", "ruamel-yaml"]
-test = ["hatch", "ipykernel", "jupyterlab-server[openapi]", "openapi-spec-validator (>=0.5.1,<0.7.0)", "pytest (>=7.0)", "pytest-console-scripts", "pytest-cov", "pytest-jupyter[server] (>=0.6.2)", "pytest-timeout", "requests-mock", "sphinxcontrib-spelling", "strict-rfc3339", "werkzeug"]
+openapi = ["openapi-core (>=0.18.0,<0.19.0)", "ruamel-yaml"]
+test = ["hatch", "ipykernel", "openapi-core (>=0.18.0,<0.19.0)", "openapi-spec-validator (>=0.6.0,<0.8.0)", "pytest (>=7.0,<8)", "pytest-console-scripts", "pytest-cov", "pytest-jupyter[server] (>=0.6.2)", "pytest-timeout", "requests-mock", "ruamel-yaml", "sphinxcontrib-spelling", "strict-rfc3339", "werkzeug"]
 
 [[package]]
 name = "jupyterlab-widgets"
@@ -3969,13 +3962,13 @@ virtualenv = ">=20.10.0"
 
 [[package]]
 name = "prometheus-client"
-version = "0.19.0"
+version = "0.20.0"
 description = "Python client for the Prometheus monitoring system."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "prometheus_client-0.19.0-py3-none-any.whl", hash = "sha256:c88b1e6ecf6b41cd8fb5731c7ae919bf66df6ec6fafa555cd6c0e16ca169ae92"},
-    {file = "prometheus_client-0.19.0.tar.gz", hash = "sha256:4585b0d1223148c27a225b10dbec5ae9bc4c81a99a3fa80774fa6209935324e1"},
+    {file = "prometheus_client-0.20.0-py3-none-any.whl", hash = "sha256:cde524a85bce83ca359cc837f28b8c0db5cac7aa653a588fd7e84ba061c329e7"},
+    {file = "prometheus_client-0.20.0.tar.gz", hash = "sha256:287629d00b147a32dcb2be0b9df905da599b2d82f80377083ec8463309a4bb89"},
 ]
 
 [package.extras]
@@ -5684,19 +5677,20 @@ dev = ["flake8", "flake8-annotations", "flake8-bandit", "flake8-bugbear", "flake
 
 [[package]]
 name = "urllib3"
-version = "1.26.18"
+version = "2.2.1"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*"
+python-versions = ">=3.8"
 files = [
-    {file = "urllib3-1.26.18-py2.py3-none-any.whl", hash = "sha256:34b97092d7e0a3a8cf7cd10e386f401b3737364026c45e622aa02903dffe0f07"},
-    {file = "urllib3-1.26.18.tar.gz", hash = "sha256:f8ecc1bba5667413457c529ab955bf8c67b45db799d159066261719e328580a0"},
+    {file = "urllib3-2.2.1-py3-none-any.whl", hash = "sha256:450b20ec296a467077128bff42b73080516e71b56ff59a60a02bef2232c4fa9d"},
+    {file = "urllib3-2.2.1.tar.gz", hash = "sha256:d0570876c61ab9e520d776c38acbbb5b05a776d3f9ff98a5c8fd5162a444cf19"},
 ]
 
 [package.extras]
-brotli = ["brotli (==1.0.9)", "brotli (>=1.0.9)", "brotlicffi (>=0.8.0)", "brotlipy (>=0.6.0)"]
-secure = ["certifi", "cryptography (>=1.3.4)", "idna (>=2.0.0)", "ipaddress", "pyOpenSSL (>=0.14)", "urllib3-secure-extra"]
-socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
+brotli = ["brotli (>=1.0.9)", "brotlicffi (>=0.8.0)"]
+h2 = ["h2 (>=4,<5)"]
+socks = ["pysocks (>=1.5.6,!=1.5.7,<2.0)"]
+zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
 name = "virtualenv"
@@ -6131,4 +6125,4 @@ slackbot = ["flask", "gunicorn", "slackclient", "slackeventsapi"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.12"
-content-hash = "59f24e6c98ef03b0ecec69da12481ddfa3ac5266b71c960bc0191e3d604ca5e2"
+content-hash = "f9f8ed9c61884da3e8e17425b5d1665039a3d632960b2d1982e4dcd304c523fd"
