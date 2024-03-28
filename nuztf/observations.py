@@ -236,6 +236,7 @@ def write_coverage_skyvision(jds: list[float]):
                 Time(f'{row["UT Date"]}T{row["UT Time"]}').jd
                 for _, row in res.iterrows()
             ]
+            res = res[pd.notnull(res["FieldID"])]
             res["obsjd"] = jds
             res["status"] = (res["Observation Status"] == "FAILED").astype(int)
             res["filter_id"] = res["Filter"].apply(
