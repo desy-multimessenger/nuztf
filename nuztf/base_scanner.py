@@ -318,6 +318,41 @@ class BaseScanner:
 
         return query_res
 
+    def get_initial_cache_path(self) -> Path:
+        """
+        Get the path to the initial cache file
+
+        :return: Cache file path
+        """
+        return self.get_cache_dir().joinpath("initial_stage.json")
+
+    def get_final_cache_path(self) -> Path:
+        """
+        Get the path to the final cache file
+
+        :return: Cache file path
+        """
+        return self.get_cache_dir().joinpath("final_stage.json")
+
+    def load_from_cache(self):
+        """
+        Load the cache from the final cache file
+
+        :return: None
+        """
+        if not self.get_final_cache_path().exists():
+            err = (
+                f"Final cache file {self.get_final_cache_path()} does not exist. "
+                f"Run scan_area first."
+            )
+            self.logger.error(err)
+            raise FileNotFoundError(err)
+
+        with open(self.get_final_cache_path(), "r") as infile:
+            results = json.load(infile)
+
+        self.add_results(results)
+
     def scan_area(
         self,
         t_min=None,
@@ -329,9 +364,7 @@ class BaseScanner:
         """
         query_res = self.query_ampel(t_min=t_min, t_max=t_max)
 
-        cache_file_initial_stage = self.get_cache_dir().joinpath("initial_stage.json")
-
-        with open(cache_file_initial_stage, "w") as outfile:
+        with open(self.get_initial_cache_path(), "w") as outfile:
             json.dump(query_res, outfile)
 
         ztf_ids_first_stage = []
@@ -350,12 +383,23 @@ class BaseScanner:
 
         results = self.ampel_object_search(ztf_ids=ztf_ids_first_stage)
 
+        with open(self.get_final_cache_path(), "w") as outfile:
+            json.dump(results, outfile)
+
+        self.add_results(results)
+        self.create_candidate_summary()
+
+    def add_results(self, results):
+        """
+        Add the results to the cache and create a summary
+
+        :param results: Results from the AMPEL API
+        :return: None
+        """
         for res in results:
             self.add_res_to_cache(res)
 
         self.logger.info(f"Found {len(self.cache)} candidates")
-
-        self.create_candidate_summary()
 
     def filter_f_no_prv(self, res):
         raise NotImplementedError
