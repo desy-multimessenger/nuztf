@@ -180,6 +180,7 @@ def parse_gcn_circular(gcn_number: int):
 
     endpoint = f"https://gcn.nasa.gov/circulars/{gcn_number}.json"
     res = requests.get(endpoint)
+
     res_json = res.json()
 
     subject = res_json.get("subject")

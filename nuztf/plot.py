@@ -56,6 +56,7 @@ def lightcurve_from_alert(
     title: str = None,
     include_ulims: bool = True,
     include_cutouts: bool = True,
+    include_ps1: bool = True,
     include_crossmatch: bool = True,
     mag_range: list = None,
     z: float = None,
@@ -124,23 +125,24 @@ def lightcurve_from_alert(
         ):
             create_stamp_plot(alert=cutout_, ax=ax_, cutout_type=type_)
 
-        img_cache = CUTOUT_CACHE_DIR.joinpath(f"{name}_PS1.png")
+        if include_ps1:
+            img_cache = CUTOUT_CACHE_DIR.joinpath(f"{name}_PS1.png")
 
-        if not img_cache.is_file():
-            img = get_ps_stamp(
-                candidate["ra"], candidate["dec"], size=240, color=["y", "g", "i"]
-            )
-            img.save(img_cache)
+            if not img_cache.is_file():
+                img = get_ps_stamp(
+                    candidate["ra"], candidate["dec"], size=240, color=["y", "g", "i"]
+                )
+                img.save(img_cache)
 
-        else:
-            from PIL import Image
+            else:
+                from PIL import Image
 
-            img = Image.open(img_cache)
+                img = Image.open(img_cache)
 
-        cutoutps1.imshow(np.asarray(img))
-        cutoutps1.set_title("PS1", fontdict={"fontsize": "small"})
-        cutoutps1.set_xticks([])
-        cutoutps1.set_yticks([])
+            cutoutps1.imshow(np.asarray(img))
+            cutoutps1.set_title("PS1", fontdict={"fontsize": "small"})
+            cutoutps1.set_xticks([])
+            cutoutps1.set_yticks([])
 
     # If redshift is given, calculate absolute magnitude via luminosity distance
     # and plot as right axis

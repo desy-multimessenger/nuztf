@@ -1,10 +1,9 @@
-import glob
+import json
 import logging
 import os
 import time
-import warnings
 from glob import glob
-from typing import Optional
+from pathlib import Path
 
 import backoff
 import numpy as np
@@ -14,41 +13,26 @@ import requests
 from astropy import units as u
 from astropy.time import Time
 from pyvo.auth import authsession, securitymethods
+from requests.auth import HTTPBasicAuth
+from requests.exceptions import HTTPError
+from tqdm import tqdm
 from ztfquery import skyvision
-from ztfquery.fields import get_fields_containing_target
 from ztfquery.io import LOCALSOURCE
 
 from nuztf import credentials
-from nuztf.fritz import fritz_api
 
-logger = logging.getLogger(__name__)
-
-username, password = credentials.load_credentials("irsa")
-
-# Gather login information
-data = {"username": username, "password": password}
-
-headers = {"Content-Type": "application/x-www-form-urlencoded", "Accept": "text/plain"}
-
-login_url = "https://irsa.ipac.caltech.edu"
-
-coverage_dir = os.path.join(LOCALSOURCE, "all_obs")
-
-try:
-    os.makedirs(coverage_dir)
-except OSError:
-    pass
+coverage_dir = Path(LOCALSOURCE).joinpath("all_obs")
+coverage_dir.mkdir(exist_ok=True)
 
 partial_flag = "_PARTIAL"
 
+logger = logging.getLogger(__name__)
 
-def coverage_path(jd: float) -> str:
-    if (Time.now().jd - jd) < 1:
-        partial_ext = partial_flag
-    else:
-        partial_ext = ""
-
-    return os.path.join(coverage_dir, f"{jd}{partial_ext}.csv")
+# IPAC TAP login
+username, password = credentials.load_credentials("ipacdepot")
+data = {"username": username, "password": password}
+headers = {"Content-Type": "application/x-www-form-urlencoded", "Accept": "text/plain"}
+IPAC_TAP_URL = "https://irsa.ipac.caltech.edu"
 
 
 class MNS:
@@ -56,145 +40,353 @@ class MNS:
         self.data = df
 
 
+class NoDepotEntry(Exception):
+    """
+    No entry in the depot for a given date
+    """
+
+
+def get_date(jd: float) -> str:
+    """
+    Get the date in YYYYMMDD format from a JD
+
+    :param jd: JD
+    :return: String date
+    """
+    return str(Time(jd, format="jd").isot).split("T")[0].replace("-", "")
+
+
+def download_depot_log(date):
+    """
+    Download the depot log for a given date
+
+    :param date: date in YYYYMMDD format
+    :return: json log
+    """
+    url = f"https://ztfweb.ipac.caltech.edu/ztf/depot/{date}/ztf_recentproc_{date}.json"
+    response = requests.get(url, auth=HTTPBasicAuth(username, password))
+    if response.status_code == 404:
+        raise NoDepotEntry(f"No depot entry for {date} at url {url}")
+    response.raise_for_status()
+    return response.json()
+
+
+# The following functions are used to find the paths to the cached coverage files
+
+
+def coverage_depot_path(jd: float) -> Path:
+    """
+    Return the path to the cached coverage file for a given JD
+
+    :param jd: JD
+    :return: path to cached coverage file
+    """
+
+    date = get_date(jd)
+
+    if (Time.now().jd - jd) < 1:
+        partial_ext = partial_flag
+    else:
+        partial_ext = ""
+
+    return coverage_dir.joinpath(f"{date}{partial_ext}.json")
+
+
+def coverage_skyvision_path(jd: float) -> Path:
+    """
+    Find the path to the Skyvision coverage file for a given JD
+
+    :param jd: JD
+    :return: Output path
+    """
+    if (Time.now().jd - jd) < 1:
+        partial_ext = partial_flag
+    else:
+        partial_ext = ""
+
+    output_path = coverage_dir.joinpath(f"{get_date(jd)}{partial_ext}_skyvision.json")
+
+    return output_path
+
+
+def coverage_tap_path(jd: float) -> Path:
+    """
+    Find the path to the TAP coverage file for a given JD
+
+    :param jd: JD
+    :return: Output path
+    """
+    if (Time.now().jd - jd) < 1:
+        partial_ext = partial_flag
+    else:
+        partial_ext = ""
+
+    output_path = coverage_dir.joinpath(f"{get_date(jd)}{partial_ext}_tap.json")
+
+    return output_path
+
+
+# The following functions are used to write the coverage to the cache
+
+
+def write_coverage_depot(jds: list[float]):
+    """
+    Write the depot coverage for a list of JDs to the cache
+
+    Requires a valid IPAC depot login
+
+    :param jds: JDs
+    :return: None
+    """
+    for jd in tqdm(jds):
+        date = get_date(jd)
+        try:
+            log = download_depot_log(date)
+        except NoDepotEntry as exc:
+            log = {}
+            logger.warning(f"No depot entry for {date}: {exc}")
+
+        path = coverage_depot_path(jd)
+        with open(path, "w") as f:
+            json.dump(log, f)
+
+
 @backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_time=60)
-def write_coverage(jds: [int]):
+def write_coverage_tap(jds: [float]):
+    """
+    Write the coverage for a list of JDs to the cache using TAP
+
+    (JDs must be half-integer)
+
+    :param jds: Half-integer JDs
+    :return: None
+    """
     with requests.Session() as session:
         # Create a session and do the login.
         # The cookie will end up in the cookie jar of the session.
-        response = session.post(login_url, data=data, headers=headers)
+        response = session.post(IPAC_TAP_URL, data=data, headers=headers)
         response.raise_for_status()
         auth = authsession.AuthSession()
         auth.credentials.set(securitymethods.ANONYMOUS, session)
         client = pyvo.dal.TAPService("https://irsa.ipac.caltech.edu/TAP", auth)
 
         for jd in jds:
+            assert jd - int(jd) == 0.5, "JD must be a half-integer"
+
             obstable = client.search(
                 f"""
-            SELECT field,rcid,fid,expid,obsjd,exptime,maglimit,ipac_gid,seeing
+            SELECT expid,obsjd,fid,field,exptime,rcid,maglimit,infobits,ipac_gid
             FROM ztf.ztf_current_meta_sci WHERE (obsjd BETWEEN {jd} AND {jd + 1})
             """
             ).to_table()
-            names = ("ipac_gid",)
-            renames = ("programid",)
+            names = (
+                "expid",
+                "exptime",
+                "field",
+                "fid",
+                "rcid",
+                "maglimit",
+                "infobits",
+                "ipac_gid",
+            )
+            renames = (
+                "exposure_id",
+                "exposure_time",
+                "field_id",
+                "filter_id",
+                "qid",
+                "maglim",
+                "status",
+                "programid",
+            )
             obstable.rename_columns(names, renames)
 
-            obs_grouped_by_exp = obstable.to_pandas().groupby("expid")
+            obs = obstable.to_pandas()
+            obs["nalertpackets"] = np.nan
 
-            output_path = coverage_path(jd)
+            output_path = coverage_tap_path(jd)
 
-            with open(output_path, "w") as fid:
-                fid.write(
-                    "obsid,field,obsjd,datetime,seeing,limmag,exposure_time,fid,processed_fraction\n"
-                )
-
-                for group_name, df_group in obs_grouped_by_exp:
-                    processed_fraction = len(df_group["field"]) / 64.0
-
-                    t = Time(df_group["obsjd"].iloc[0], format="jd")
-                    t.format = "isot"
-
-                    line = f'{int(df_group["expid"].iloc[0])},{int(df_group["field"].iloc[0])},{t.jd},{t},{df_group["seeing"].median():.10f},{df_group["maglimit"].median():.10f},{df_group["exptime"].iloc[0]},{int(df_group["fid"].iloc[0])},{processed_fraction} \n'
-                    fid.write(line)
-
+            obs.to_json(output_path)
             time.sleep(1)
 
+            logger.warning(
+                f"Coverage for JD {jd} written to {output_path} using TAP, "
+                f"but this will only include programid=1"
+            )
 
-def get_coverage(jds: [int]) -> Optional[pd.DataFrame]:
+
+def write_coverage_skyvision(jds: list[float]):
+    """
+    Write the Skyvision coverage for a list of JDs to the cache
+
+    :param jds: JDs
+    :return: None
+    """
+    for jd in tqdm(jds):
+        date = get_date(jd)
+
+        assert jd - int(jd) == 0.5, "JD must be a half-integer"
+
+        res = skyvision.get_log(f"{date[:4]}-{date[4:6]}-{date[6:8]}", verbose=False)
+
+        path = coverage_skyvision_path(jd)
+
+        if res is not None:
+            # The skyvision log has a bug where some entries have a FieldID of "NONE"
+            mask = (
+                pd.notnull(res["FieldID"]) & res["FieldID"].astype(str).str.isnumeric()
+            )
+            res = res[mask]
+            jds = [
+                Time(f'{row["UT Date"]}T{row["UT Time"]}').jd
+                for _, row in res.iterrows()
+            ]
+            res["obsjd"] = jds
+            res["status"] = (res["Observation Status"] == "FAILED").astype(int)
+            res["filter_id"] = res["Filter"].apply(
+                lambda x: 1 if x == "FILTER_ZTF_G" else 2 if x == "FILTER_ZTF_R" else 3
+            )
+            res["maglim"] = 20.5
+            res["field_id"] = res["FieldID"].astype(int)
+            res["exposure_time"] = res["Exptime"]
+            res = res[
+                ["obsjd", "filter_id", "field_id", "exposure_time", "maglim", "status"]
+            ]
+
+            new_res = []
+            for _, row in res.iterrows():
+                new = row.to_dict()
+                new_res += [dict(qid=int(i), **new) for i in range(64)]
+            pd.DataFrame(new_res).to_json(path)
+
+        else:
+            with open(path, "w") as f:
+                json.dump({}, f)
+
+
+# The following functions are used to get the coverage from the cache
+
+
+def get_coverage(jds: [int]) -> pd.DataFrame | None:
+    """
+    Get a dataframe of the coverage for a list of JDs
+
+    Will use the cache if available, otherwise will query the depot, and lastly TAP
+
+    :param jds: JDs
+    :return: Coverage dataframe
+    """
     # Clear any logs flagged as partial/incomplete
 
-    cache_files = glob(f"{coverage_dir}/*.csv")
-    partial_logs = [x for x in cache_files if partial_flag in x]
+    cache_files = coverage_dir.glob("*.json")
+    partial_logs = [x for x in cache_files if partial_flag in str(x)]
 
     if len(partial_logs) > 0:
         logger.debug(f"Removing the following partial logs: {partial_logs}")
         for partial_log in partial_logs:
-            os.remove(partial_log)
+            partial_log.unlink()
 
     # Only write missing logs
 
     missing_logs = []
 
     for jd in jds:
-        if not os.path.exists(coverage_path(jd)):
+        depot_path = coverage_depot_path(jd)
+        if not depot_path.exists():
             missing_logs.append(jd)
         else:
-            df = pd.read_csv(coverage_path(jd))
+            df = pd.read_json(coverage_depot_path(jd))
             if len(df) == 0:
                 missing_logs.append(jd)
 
     if len(missing_logs) > 0:
-        logger.debug(
-            f"Some logs were missing from the cache. Querying for the following JDs: {missing_logs}"
+        logger.info(
+            f"Some logs were missing from the cache. "
+            f"Querying for the following JDs in depot: {missing_logs}"
         )
-        write_coverage(missing_logs)
+        write_coverage_depot(missing_logs)
+
+    # Try skyvision for missing logs
+    still_missing_logs = []
+    for jd in missing_logs:
+        skyvision_path = coverage_skyvision_path(jd)
+        if not skyvision_path.exists():
+            still_missing_logs.append(jd)
+        else:
+            df = pd.read_json(coverage_skyvision_path(jd))
+            if len(df) == 0:
+                still_missing_logs.append(jd)
+
+    if len(still_missing_logs) > 0:
+        logger.info(
+            f"Some logs were still missing from the cache. "
+            f"Querying for the following JDs from skyvision: {still_missing_logs}"
+        )
+        write_coverage_skyvision(still_missing_logs)
+
+    # Try TAP for missing logs
+
+    completely_missing_logs = []
+
+    for jd in still_missing_logs:
+        depot_path = coverage_depot_path(jd)
+        if not depot_path.exists():
+            completely_missing_logs.append(jd)
+        else:
+            df = pd.read_json(coverage_depot_path(jd))
+            if len(df) == 0:
+                completely_missing_logs.append(jd)
+
+    if len(completely_missing_logs) > 0:
+        logger.info(
+            f"Some logs were still missing from the cache. "
+            f"Querying for the following JDs from TAP: {completely_missing_logs}"
+        )
+        write_coverage_tap(completely_missing_logs)
 
     # Load logs from cache
 
     results = []
 
-    for jd in jds:
-        res = pd.read_csv(coverage_path(jd))
-        results.append(res)
+    for jd in tqdm(jds):
+        res = pd.read_json(coverage_depot_path(jd))
+        if len(res) > 0:
+            results.append(res)
+        else:
+            res = pd.read_json(coverage_skyvision_path(jd))
+            if len(res) > 0:
+                results.append(res)
+            else:
+                res = pd.read_json(coverage_tap_path(jd))
+                results.append(res)
 
     if results:
-        result_df = pd.concat(results)
+        result_df = pd.concat(results, ignore_index=True)
         return result_df
     else:
         return None
 
 
-def get_obs_summary(t_min, t_max=None, max_days: int = None):
+def get_obs_summary_depot(t_min: Time, t_max: Time) -> MNS | None:
     """
-    Get observation summary from Skyvision (or IRSA if Skyvision fails)
+    Get observation summary from depot
     """
-    now = Time.now()
 
-    if t_max and max_days:
-        raise ValueError("Choose either t_max or max_days, not both")
+    jds = np.arange(int(t_min.jd) - 0.5, int(t_max.jd) + 1.5)
 
-    if t_max is None:
-        if max_days is None:
-            t_max = now
-        else:
-            t_max = t_min + (max_days * u.day)
+    res = get_coverage(jds)
 
-    if t_max > now:
-        t_max = now
+    if len(res) == 0:
+        return None
 
-    logger.info("Getting observation logs from skyvision.")
-    mns = get_obs_summary_skyvision(t_min=t_min, t_max=t_max)
+    res["date"] = Time(res["obsjd"].to_numpy(), format="jd").isot
 
-    # Useless for now as long as Fritz also depends on TAP
-
-    # if len(mns.data) == 0:
-    #     logger.debug("Empty observation log, try Fritz instead.")
-    #     mns = get_obs_summary_fritz(t_min=t_min, t_max=t_max)
-
-    if len(mns.data) == 0:
-        logger.debug("Empty observation log, try IRSA instead.")
-        mns = get_obs_summary_irsa(t_min=t_min, t_max=t_max)
-
-    logger.debug(f"Found {len(mns.data)} observations in total.")
-
-    return mns
-
-
-def get_obs_summary_irsa(t_min, t_max):
-    """
-    Get observation summary from IRSA
-    """
-    jds = np.arange(int(t_min.jd), int(t_max.jd) + 1)
-
-    logger.debug("Getting coverage")
-
-    df = get_coverage(jds)
-    mns = MNS(df)
+    mns = MNS(df=res)
 
     mns.data.query(f"obsjd >= {t_min.jd} and obsjd <= {t_max.jd}", inplace=True)
+
     mns.data.reset_index(inplace=True)
     mns.data.drop(columns=["index"], inplace=True)
-
-    logger.debug("Done")
 
     return mns
 
@@ -237,101 +429,30 @@ def get_obs_summary_skyvision(t_min, t_max):
     return mns
 
 
-def get_obs_summary_fritz(t_min, t_max) -> MNS | None:
+def get_obs_summary(t_min, t_max=None, max_days: float = None) -> MNS | None:
     """
-    Get observation summary from Fritz
+    Get observation summary from IPAC depot
     """
+    now = Time.now()
 
-    res = fritz_api(method="GET", endpoint_extension="api/observation", data=data)
-    res = res.json().get("data", {}).get("observations")
+    if t_max and max_days:
+        raise ValueError("Choose either t_max or max_days, not both")
 
-    t_min_date = t_min.to_value("iso").split(".")[0]
-    t_max_date = t_max.to_value("iso").split(".")[0]
+    if t_max is None:
+        if max_days is None:
+            t_max = now
+        else:
+            t_max = t_min + (max_days * u.day)
 
-    logger.debug(
-        f"Fritz: Obtaining nightly observation logs from {t_min_date} to {t_max_date}"
-    )
+    if t_max > now:
+        t_max = now
 
-    params = {
-        "telescopeName": "Palomar 1.2m Oschin",
-        "startDate": t_min_date,
-        "endDate": t_max_date,
-    }
+    logger.info("Getting observation logs from IPAC depot.")
+    mns = get_obs_summary_depot(t_min=t_min, t_max=t_max)
 
-    res = fritz_api(method="GET", endpoint_extension="api/observation", data=params)
-    res = res.json().get("data", {}).get("observations")
-
-    if res is None:
-        return res
-
-    resdict = {}
-    for i, entry in enumerate(res):
-        resdict.update(
-            {
-                i: {
-                    "datetime": entry["obstime"],
-                    "date": Time(entry["obstime"]).to_value("iso", subfmt="date"),
-                    "exptime": entry["exposure_time"],
-                    "fid": entry["id"],
-                    "field": entry["field"]["field_id"],
-                    "obsjd": Time(entry["obstime"]).to_value("jd"),
-                    "maglim": entry["limmag"],
-                }
-            }
-        )
-
-    df = pd.DataFrame.from_dict(resdict, orient="index")
-
-    mns = MNS(df)
-
-    logger.debug(f"Found {len(mns.data)} observations in total.")
+    if mns is not None:
+        logger.info(f"Found {len(set(mns.data))} observations in total.")
+    else:
+        logger.warning("Found no observations on IPAC depot or TAP.")
 
     return mns
-
-
-def get_most_recent_obs(ra: float, dec: float, lookback_weeks_max: int = 12):
-    """ """
-
-    fields = get_fields_containing_target(ra, dec)._data
-
-    logger.info(f"Target in fields {fields}")
-
-    mask = 0.0
-
-    t_max = Time.now()
-
-    lookback_weeks = 1
-
-    while np.sum(mask) < 1 and lookback_weeks <= lookback_weeks_max:
-        t_min = t_max - 1 * u.week
-
-        if lookback_weeks > 1:
-            logger.debug(
-                f"Searching for most recent obs during the last {lookback_weeks_max} weeks. Looking back {lookback_weeks} weeks."
-            )
-        else:
-            logger.debug(
-                f"Searching for most recent obs during the last {lookback_weeks_max} weeks. Looking back {lookback_weeks} week."
-            )
-
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=UserWarning)
-
-            mns = get_obs_summary(t_min=t_min, t_max=t_max)
-
-        mask = np.array([x in fields for x in mns.data["field"]])
-
-        t_max = t_min
-
-        lookback_weeks += 1
-
-    if np.sum(mask) >= 1:
-        index = list(mns.data["datetime"]).index(max(mns.data["datetime"][mask]))
-        mro = mns.data.iloc[index]
-        return mro
-
-    else:
-        logger.warning(
-            f"Found no observation during the last {lookback_weeks_max} weeks."
-        )
-        return None

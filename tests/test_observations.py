@@ -7,7 +7,7 @@ import unittest
 from astropy import units as u
 from astropy.time import Time
 
-from nuztf.observations import get_obs_summary_irsa, get_obs_summary_skyvision
+from nuztf.observations import get_obs_summary_skyvision
 
 
 class TestCoverage(unittest.TestCase):
