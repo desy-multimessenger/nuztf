@@ -814,6 +814,19 @@ class BaseScanner:
             f"corresponding to {np.mean(mask)*100:.2f}% of the total."
         )
 
+        self.logger.info("Unpacking observations")
+
+        if self.nside > 256:
+            (
+                self.map_coords,
+                self.pixel_nos,
+                self.nside,
+                self.map_probs,
+                self.data,
+                self.total_pixel_area,
+                self.key,
+            ) = self.unpack_skymap(output_nside=256)
+
         pix_map = dict()
         pix_obs_times = dict()
 
@@ -825,7 +838,7 @@ class BaseScanner:
             field = obs["field_id"].iloc[0]
 
             try:
-                flat_pix = nested_pix[field]
+                flat_pix = nested_pix[int(field)]
 
                 mask = obs["status"].astype(int) == 0
                 indices = obs["qid"].values[mask]
@@ -844,7 +857,7 @@ class BaseScanner:
                         else:
                             pix_map[p] += [field]
 
-            except KeyError:
+            except (KeyError, ValueError):
                 self.logger.warning(
                     f"Field {field} not found in nested pix dict. "
                     f"This might be an engineering observation."

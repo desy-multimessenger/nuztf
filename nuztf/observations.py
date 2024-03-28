@@ -242,7 +242,7 @@ def write_coverage_skyvision(jds: list[float]):
                 lambda x: 1 if x == "FILTER_ZTF_G" else 2 if x == "FILTER_ZTF_R" else 3
             )
             res["maglim"] = 20.5
-            res["field_id"] = res["FieldID"]
+            res["field_id"] = res["FieldID"].astype(int)
             res["exposure_time"] = res["Exptime"]
             res = res[
                 ["obsjd", "filter_id", "field_id", "exposure_time", "maglim", "status"]
