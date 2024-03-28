@@ -250,8 +250,16 @@ class NeutrinoScanner(BaseScanner):
         data = np.zeros(hp.nside2npix(output_nside), dtype=np.dtype([(key, float)]))
         data[np.array(pixel_nos)] = map_probs
 
-        pixel_area = hp.nside2pixarea(output_nside, degrees=True) * float(
+        total_pixel_area = hp.nside2pixarea(output_nside, degrees=True) * float(
             len(map_coords)
         )
 
-        return map_coords, pixel_nos, output_nside, map_probs, data, pixel_area, key
+        return (
+            map_coords,
+            pixel_nos,
+            output_nside,
+            map_probs,
+            data,
+            total_pixel_area,
+            key,
+        )

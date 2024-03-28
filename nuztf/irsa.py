@@ -18,7 +18,6 @@ from ztfquery.io import LOCALSOURCE
 from ztfquery.lightcurve import LCQuery
 
 from nuztf.ampel_api import ampel_api_name
-from nuztf.observations import get_most_recent_obs
 from nuztf.parse_nu_gcn import find_gcn_no, parse_gcn_circular
 from nuztf.style import base_height, base_width, big_fontsize, dpi, plot_dir
 from nuztf.utils import cosmo, is_tns_name, is_ztf_name, query_tns_by_name
@@ -306,24 +305,6 @@ def plot_irsa_lightcurve(
         f"Most recent detection on {dt} UT at a magnitude of "
         f"{latest['filtercode'][1]}={latest['mag']:.2f}+/-{latest['magerr']:.2f}"
     )
-
-    # If you want, you can check the most recent observation
-
-    if check_obs:
-        logger.info(
-            f"Getting most recent ZTF observation, looking back {check_obs_lookback_weeks} weeks."
-        )
-        mro = get_most_recent_obs(
-            ra=source_coords[0],
-            dec=source_coords[1],
-            lookback_weeks_max=check_obs_lookback_weeks,
-        )
-
-        if mro is not None:
-            ot = format_date(Time(mro["obsjd"], format="jd"), atel=atel)
-            logger.info(f"Most recent observation at {ot}")
-        else:
-            logger.info("No recent observation found.")
 
     # Plot each band (g/r/i)
 
