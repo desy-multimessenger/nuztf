@@ -428,9 +428,11 @@ class SkymapScanner(BaseScanner):
                 map_coords.append(self.extract_ra_dec(nside, i))
                 pixel_nos.append(i)
 
-        pixel_area = hp.nside2pixarea(nside, degrees=True) * float(len(map_coords))
+        total_pixel_area = hp.nside2pixarea(nside, degrees=True) * float(
+            len(map_coords)
+        )
 
-        self.logger.info(f"Total pixel area: {pixel_area} degrees")
+        self.logger.info(f"Total pixel area: {total_pixel_area} degrees")
 
         map_coords = np.array(
             map_coords, dtype=np.dtype([("ra", float), ("dec", float)])
@@ -442,7 +444,7 @@ class SkymapScanner(BaseScanner):
             nside,
             self.skymap.data[self.skymap.key][mask],
             self.skymap.data,
-            pixel_area,
+            total_pixel_area,
             self.skymap.key,
         )
 

@@ -63,7 +63,7 @@ class BaseScanner:
             self.nside,
             self.map_probs,
             self.data,
-            self.pixel_area,
+            self.total_pixel_area,
             self.key,
         ) = self.unpack_skymap()
 
@@ -814,19 +814,6 @@ class BaseScanner:
             f"corresponding to {np.mean(mask)*100:.2f}% of the total."
         )
 
-        self.logger.info("Unpacking observations")
-
-        if self.nside > 256:
-            (
-                self.map_coords,
-                self.pixel_nos,
-                self.nside,
-                self.map_probs,
-                self.data,
-                self.pixel_area,
-                self.key,
-            ) = self.unpack_skymap(output_nside=256)
-
         pix_map = dict()
         pix_obs_times = dict()
 
@@ -840,11 +827,11 @@ class BaseScanner:
             try:
                 flat_pix = nested_pix[field]
 
-                mask = obs["status"] == 0
+                mask = obs["status"].astype(int) == 0
                 indices = obs["qid"].values[mask]
 
                 for qid in indices:
-                    pixels = flat_pix[qid]
+                    pixels = flat_pix[int(qid)]
 
                     for p in pixels:
                         if p not in pix_obs_times.keys():
@@ -1039,15 +1026,15 @@ class BaseScanner:
             "and excluding low galactic latitudes.\n"
             "These estimates account for chip gaps.".format(
                 100.0 * coverage_df.query("n_det_class > 0")["prob"].sum(),
-                100 * coverage_df.query("in_plane & n_det_class > 0")["prob"].sum(),
+                100.0 * coverage_df.query("in_plane & n_det_class > 0")["prob"].sum(),
                 100.0 * coverage_df.query("n_det_class == 2")["prob"].sum(),
                 100.0 * coverage_df.query("n_det_class == 2 & ~in_plane")["prob"].sum(),
             )
         )
 
-        n_pixels = len(coverage_df.query("n_det_class > 0"))
-        n_double = len(coverage_df.query("n_det_class == 2"))
-        n_plane = len(coverage_df.query("in_plane & n_det_class > 0"))
+        n_pixels = len(coverage_df.query("n_det_class > 0 & prob > 0.0"))
+        n_double = len(coverage_df.query("n_det_class == 2 & prob > 0.0"))
+        n_plane = len(coverage_df.query("in_plane & n_det_class > 0 & prob > 0.0"))
 
         self.healpix_area = self.pixel_area * n_pixels
         self.double_extragalactic_area = self.pixel_area * n_double

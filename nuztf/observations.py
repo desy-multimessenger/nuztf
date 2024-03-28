@@ -71,6 +71,9 @@ def download_depot_log(date):
     return response.json()
 
 
+# The following functions are used to find the paths to the cached coverage files
+
+
 def coverage_depot_path(jd: float) -> Path:
     """
     Return the path to the cached coverage file for a given JD
@@ -89,6 +92,23 @@ def coverage_depot_path(jd: float) -> Path:
     return coverage_dir.joinpath(f"{date}{partial_ext}.json")
 
 
+def coverage_skyvision_path(jd: float) -> Path:
+    """
+    Find the path to the Skyvision coverage file for a given JD
+
+    :param jd: JD
+    :return: Output path
+    """
+    if (Time.now().jd - jd) < 1:
+        partial_ext = partial_flag
+    else:
+        partial_ext = ""
+
+    output_path = coverage_dir.joinpath(f"{get_date(jd)}{partial_ext}_skyvision.json")
+
+    return output_path
+
+
 def coverage_tap_path(jd: float) -> Path:
     """
     Find the path to the TAP coverage file for a given JD
@@ -104,6 +124,31 @@ def coverage_tap_path(jd: float) -> Path:
     output_path = coverage_dir.joinpath(f"{get_date(jd)}{partial_ext}_tap.json")
 
     return output_path
+
+
+# The following functions are used to write the coverage to the cache
+
+
+def write_coverage_depot(jds: list[float]):
+    """
+    Write the depot coverage for a list of JDs to the cache
+
+    Requires a valid IPAC depot login
+
+    :param jds: JDs
+    :return: None
+    """
+    for jd in tqdm(jds):
+        date = get_date(jd)
+        try:
+            log = download_depot_log(date)
+        except NoDepotEntry as exc:
+            log = {}
+            logger.warning(f"No depot entry for {date}: {exc}")
+
+        path = coverage_depot_path(jd)
+        with open(path, "w") as f:
+            json.dump(log, f)
 
 
 @backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_time=60)
@@ -170,6 +215,53 @@ def write_coverage_tap(jds: [float]):
             )
 
 
+def write_coverage_skyvision(jds: list[float]):
+    """
+    Write the Skyvision coverage for a list of JDs to the cache
+
+    :param jds: JDs
+    :return: None
+    """
+    for jd in tqdm(jds):
+        date = get_date(jd)
+
+        assert jd - int(jd) == 0.5, "JD must be a half-integer"
+
+        res = skyvision.get_log(f"{date[:4]}-{date[4:6]}-{date[6:8]}", verbose=False)
+
+        path = coverage_skyvision_path(jd)
+
+        if res is not None:
+            jds = [
+                Time(f'{row["UT Date"]}T{row["UT Time"]}').jd
+                for _, row in res.iterrows()
+            ]
+            res["obsjd"] = jds
+            res["status"] = (res["Observation Status"] == "FAILED").astype(int)
+            res["filter_id"] = res["Filter"].apply(
+                lambda x: 1 if x == "FILTER_ZTF_G" else 2 if x == "FILTER_ZTF_R" else 3
+            )
+            res["maglim"] = 20.5
+            res["field_id"] = res["FieldID"]
+            res["exposure_time"] = res["Exptime"]
+            res = res[
+                ["obsjd", "filter_id", "field_id", "exposure_time", "maglim", "status"]
+            ]
+
+            new_res = []
+            for _, row in res.iterrows():
+                new = row.to_dict()
+                new_res += [dict(qid=int(i), **new) for i in range(64)]
+            pd.DataFrame(new_res).to_json(path)
+
+        else:
+            with open(path, "w") as f:
+                json.dump({}, f)
+
+
+# The following functions are used to get the coverage from the cache
+
+
 def get_coverage(jds: [int]) -> pd.DataFrame | None:
     """
     Get a dataframe of the coverage for a list of JDs
@@ -203,31 +295,49 @@ def get_coverage(jds: [int]) -> pd.DataFrame | None:
                 missing_logs.append(jd)
 
     if len(missing_logs) > 0:
-        logger.debug(
+        logger.info(
             f"Some logs were missing from the cache. "
-            f"Querying for the following JDs: {missing_logs}"
+            f"Querying for the following JDs in depot: {missing_logs}"
         )
         write_coverage_depot(missing_logs)
 
-    # Try TAP for missing logs
-
+    # Try skyvision for missing logs
     still_missing_logs = []
-
     for jd in missing_logs:
-        depot_path = coverage_depot_path(jd)
-        if not depot_path.exists():
+        skyvision_path = coverage_skyvision_path(jd)
+        if not skyvision_path.exists():
             still_missing_logs.append(jd)
         else:
-            df = pd.read_json(coverage_depot_path(jd))
+            df = pd.read_json(coverage_skyvision_path(jd))
             if len(df) == 0:
                 still_missing_logs.append(jd)
 
     if len(still_missing_logs) > 0:
-        logger.debug(
+        logger.info(
             f"Some logs were still missing from the cache. "
-            f"Querying for the following JDs: {still_missing_logs}"
+            f"Querying for the following JDs from skyvision: {still_missing_logs}"
         )
-        write_coverage_tap(still_missing_logs)
+        write_coverage_skyvision(still_missing_logs)
+
+    # Try TAP for missing logs
+
+    completely_missing_logs = []
+
+    for jd in still_missing_logs:
+        depot_path = coverage_depot_path(jd)
+        if not depot_path.exists():
+            completely_missing_logs.append(jd)
+        else:
+            df = pd.read_json(coverage_depot_path(jd))
+            if len(df) == 0:
+                completely_missing_logs.append(jd)
+
+    if len(completely_missing_logs) > 0:
+        logger.info(
+            f"Some logs were still missing from the cache. "
+            f"Querying for the following JDs from TAP: {completely_missing_logs}"
+        )
+        write_coverage_tap(completely_missing_logs)
 
     # Load logs from cache
 
@@ -238,36 +348,18 @@ def get_coverage(jds: [int]) -> pd.DataFrame | None:
         if len(res) > 0:
             results.append(res)
         else:
-            res = pd.read_json(coverage_tap_path(jd))
-            results.append(res)
+            res = pd.read_json(coverage_skyvision_path(jd))
+            if len(res) > 0:
+                results.append(res)
+            else:
+                res = pd.read_json(coverage_tap_path(jd))
+                results.append(res)
 
     if results:
         result_df = pd.concat(results, ignore_index=True)
         return result_df
     else:
         return None
-
-
-def write_coverage_depot(jds: list[float]):
-    """
-    Write the depot coverage for a list of JDs to the cache
-
-    Requires a valid IPAC depot login
-
-    :param jds: JDs
-    :return: None
-    """
-    for jd in tqdm(jds):
-        date = get_date(jd)
-        try:
-            log = download_depot_log(date)
-        except NoDepotEntry as exc:
-            log = {}
-            logger.warning(f"No depot entry for {date}: {exc}")
-
-        path = coverage_depot_path(jd)
-        with open(path, "w") as f:
-            json.dump(log, f)
 
 
 def get_obs_summary_depot(t_min: Time, t_max: Time) -> MNS | None:
@@ -354,7 +446,7 @@ def get_obs_summary(t_min, t_max=None, max_days: float = None) -> MNS | None:
     mns = get_obs_summary_depot(t_min=t_min, t_max=t_max)
 
     if mns is not None:
-        logger.info(f"Found {len(set(mns.data['exposure_id']))} observations in total.")
+        logger.info(f"Found {len(set(mns.data))} observations in total.")
     else:
         logger.warning("Found no observations on IPAC depot or TAP.")
 
