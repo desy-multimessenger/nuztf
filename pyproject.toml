@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nuztf"
-version = "2.7.2"
+version = "2.8.0"
 description = "Package for multi-messenger correlation searches with ZTF"
 authors = ["Robert Stein <rdstein@caltech.edu>", "Simeon Reusch <simeon.reusch@desy.de>", "Jannis Necker <jannis.necker@desy.de>"]
 repository = "https://github.com/desy-multimessenger/nuztf"
