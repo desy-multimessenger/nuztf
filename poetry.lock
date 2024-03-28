@@ -1880,21 +1880,21 @@ files = [
 
 [[package]]
 name = "geopandas"
-version = "0.13.2"
+version = "0.14.3"
 description = "Geographic pandas extensions"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9"
 files = [
-    {file = "geopandas-0.13.2-py3-none-any.whl", hash = "sha256:101cfd0de54bcf9e287a55b5ea17ebe0db53a5e25a28bacf100143d0507cabd9"},
-    {file = "geopandas-0.13.2.tar.gz", hash = "sha256:e5b56d9c20800c77bcc0c914db3f27447a37b23b2cd892be543f5001a694a968"},
+    {file = "geopandas-0.14.3-py3-none-any.whl", hash = "sha256:41b31ad39e21bc9e8c4254f78f8dc4ce3d33d144e22e630a00bb336c83160204"},
+    {file = "geopandas-0.14.3.tar.gz", hash = "sha256:748af035d4a068a4ae00cab384acb61d387685c833b0022e0729aa45216b23ac"},
 ]
 
 [package.dependencies]
-fiona = ">=1.8.19"
+fiona = ">=1.8.21"
 packaging = "*"
-pandas = ">=1.1.0"
-pyproj = ">=3.0.1"
-shapely = ">=1.7.1"
+pandas = ">=1.4.0"
+pyproj = ">=3.3.0"
+shapely = ">=1.8.0"
 
 [[package]]
 name = "gunicorn"
@@ -6093,4 +6093,4 @@ slackbot = ["flask", "gunicorn", "slackclient", "slackeventsapi"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.12"
-content-hash = "102f8bd6d3aec6fca2fd404dcac7bf8e22e33496b139e6830387cb1b37f6ba27"
+content-hash = "1ba67cfc913b196697ed275eaa2c6fcf85f9bf10d9382e93aa4893354da45dc7"
