@@ -1,12 +1,17 @@
 name: Dependabot auto-merge
-on: pull_request
+
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push or pull request events
+  push:
+  pull_request:
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  dependabot:
+  automerge:
     runs-on: ubuntu-latest
     if: github.actor == 'dependabot[bot]'
     steps:
