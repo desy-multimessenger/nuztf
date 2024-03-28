@@ -354,7 +354,9 @@ class SkymapScanner(BaseScanner):
             self.logger.debug(f"❌ {res['objectId']}: Outside of event contour.")
             return False
 
-        self.logger.debug(f"✅ {res['objectId']}: Passes first filtering stage (no prv)")
+        self.logger.debug(
+            f"✅ {res['objectId']}: Passes first filtering stage (no prv)"
+        )
 
         return True
 
