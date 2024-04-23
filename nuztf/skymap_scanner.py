@@ -169,7 +169,7 @@ class SkymapScanner(BaseScanner):
         time_healpix_end = time.time()
         time_healpix = time_healpix_end - time_healpix_start
 
-        cache_file = self.get_cache_dir().joinpath("all_alerts.json")
+        cache_file = self.get_cache_dir().joinpath("initial_stage.json")
 
         with open(cache_file, "w") as outfile:
             json.dump(self.queue, outfile)
@@ -287,6 +287,16 @@ class SkymapScanner(BaseScanner):
             "variability prior to the merger time"
         )
 
+    def in_contour(self, ra, dec):
+        """
+        Whether a given coordinate is within the skymap contour
+
+        :param ra: right ascension
+        :param dec: declination
+        :return: bool
+        """
+        return self.skymap.in_contour(ra, dec)
+
     def candidate_text(
         self, ztf_id: str, first_detection: float, lul_lim: float, lul_jd: float
     ):
@@ -350,7 +360,7 @@ class SkymapScanner(BaseScanner):
             pass
 
         # Check contour
-        if not self.skymap.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
+        if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
             self.logger.debug(f"❌ {res['objectId']}: Outside of event contour.")
             return False
 
@@ -499,10 +509,11 @@ class SkymapScanner(BaseScanner):
 
         return fig
 
-    def plot_coverage(self, plot_candidates: bool = True):
+    def plot_coverage(self, plot_candidates: bool = True, fields: list = None):
         """Plot ZTF coverage of skymap region"""
         fig, message = self.plot_overlap_with_observations(
-            first_det_window_days=self.n_days
+            first_det_window_days=self.n_days,
+            fields=fields,
         )
 
         if plot_candidates:
