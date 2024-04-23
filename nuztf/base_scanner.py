@@ -418,6 +418,9 @@ class BaseScanner:
         ra_deg = np.rad2deg(ra_rad)
         return ra_deg
 
+    def in_contour(self, ra, dec):
+        raise NotImplementedError
+
     def ampel_object_search(self, ztf_ids: list) -> list:
         """ """
         all_results = []
@@ -843,14 +846,40 @@ class BaseScanner:
         return text
 
     def calculate_overlap_with_observations(
-        self, first_det_window_days=3.0, min_sep=0.01
+        self, first_det_window_days=3.0, min_sep=0.01, fields=None
     ):
-        mns = get_obs_summary(t_min=self.t_min, max_days=first_det_window_days)
 
-        if mns is None:
-            return None, None, None
+        if fields is not None:
+            new = []
+            for i, field in enumerate(fields):
+                new.append(
+                    pd.DataFrame(
+                        {
+                            "filter_id": [1 for _ in range(64)],
+                            "exposure_time": [300.0 for _ in range(64)],
+                            "qid": [i for i in range(64)],
+                            "field_id": [field for _ in range(64)],
+                            "maglim": [21.0 for _ in range(64)],
+                            "obsjd": [
+                                self.t_min.jd + (0.02 * (i + 1)) for _ in range(64)
+                            ],
+                            "status": [0 for _ in range(64)],
+                            "date": [
+                                (self.t_min + (0.02 * (i + 1) * u.day)).isot
+                                for _ in range(64)
+                            ],
+                        }
+                    )
+                )
+            data = pd.concat(new)
 
-        data = mns.data.copy()
+        else:
+            mns = get_obs_summary(t_min=self.t_min, max_days=first_det_window_days)
+
+            if mns is None:
+                return None, None, None
+
+            data = mns.data.copy()
 
         mask = data["status"] == 0
         self.logger.info(
@@ -984,12 +1013,18 @@ class BaseScanner:
             overlapping_fields,
         )
 
-    def plot_overlap_with_observations(self, first_det_window_days=None, min_sep=0.01):
+    def plot_overlap_with_observations(
+        self,
+        first_det_window_days=None,
+        min_sep=0.01,
+        fields=None,
+    ):
         """
         Function to plot the overlap of the field with observations.
 
         :param first_det_window_days: Window of time in days to consider for the first detection.
         :param min_sep: Minimum separation between observations to consider them as separate.
+        :param fields: Fields to consider.
 
         """
 
@@ -1000,6 +1035,7 @@ class BaseScanner:
         ) = self.calculate_overlap_with_observations(
             first_det_window_days=first_det_window_days,
             min_sep=min_sep,
+            fields=fields,
         )
 
         if coverage_df is None:
