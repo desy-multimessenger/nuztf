@@ -109,9 +109,14 @@ def ampel_api_tns(
     return full_name, discovery_date, source_group
 
 
-def get_cross_match_info(raw: dict, logger=None):
-    """ """
+def get_cross_match_info(raw: dict, logger=None) -> str:
+    """
+    Function to get cross-match info for a given alert
 
+    :param raw: Raw alert data
+    :param logger: Logger
+    :return: String with cross-match info
+    """
     cache_file = CROSSMATCH_CACHE.joinpath(f"{raw['objectId']}.json")
 
     if cache_file.exists():
@@ -184,6 +189,7 @@ def get_cross_match_info(raw: dict, logger=None):
             logger=logger,
         )
         if res is not None:
+
             if res[0]["body"]["Plx"] is not None:
                 plx_sig = res[0]["body"]["Plx"] / res[0]["body"]["ErrPlx"]
                 if plx_sig > 3.0:
@@ -191,6 +197,23 @@ def get_cross_match_info(raw: dict, logger=None):
                         f"[GAIADR2: {plx_sig:.1f}-sigma parallax "
                         f"({res[0]['dist_arcsec']:.2f} arsec)]"
                     )
+
+            elif res[0]["body"]["PMRA"] is not None:
+                pmra_sig = abs(res[0]["body"]["PMRA"] / res[0]["body"]["ErrPMRA"])
+                if pmra_sig > 3.0:
+                    label = (
+                        f"[GAIADR2: {pmra_sig:.1f}-sigma proper motion (RA) "
+                        f"({res[0]['dist_arcsec']:.2f} arsec)]"
+                    )
+                elif res[0]["body"]["PMDec"] is not None:
+                    pmdec_sig = abs(
+                        res[0]["body"]["PMDec"] / res[0]["body"]["ErrPMDec"]
+                    )
+                    if pmdec_sig > 3.0:
+                        label = (
+                            f"[GAIADR2: {pmdec_sig:.1f}-sigma proper motion (Dec) "
+                            f"({res[0]['dist_arcsec']:.2f} arsec)]"
+                        )
 
     # Check if classified as probable star in SDSS
 
