@@ -427,6 +427,13 @@ class SkymapScanner(BaseScanner):
 
         mask = self.skymap.data[self.skymap.key] > self.skymap.pixel_threshold
 
+        max_pix = max(self.skymap.data[self.skymap.key])
+        idx_max = list(self.skymap.data[self.skymap.key]).index(max_pix)
+
+        ra, dec = self.extract_ra_dec(nside, idx_max)
+
+        self.logger.info(f"hottest_pixel: {ra} {dec}")
+
         map_coords = []
 
         pixel_nos = []
