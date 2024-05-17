@@ -47,7 +47,7 @@ slackeventsapi = {version = "^3.0.1", optional = true}
 
 [tool.poetry.dev-dependencies]
 black = "^24.4.2"
-coverage = "^6.0"
+coverage = "^7.4"
 coveralls = "^4.0.0"
 pytest = "^8.1.1"
 isort = "^5.12.0"
