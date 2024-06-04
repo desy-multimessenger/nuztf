@@ -49,7 +49,7 @@ slackeventsapi = {version = "^3.0.1", optional = true}
 black = "^24.4.2"
 coverage = "^6.0"
 coveralls = "^4.0.0"
-pytest = "^8.1.1"
+pytest = "^8.2.2"
 isort = "^5.12.0"
 pre-commit = ">=2.20,<4.0"
 
