@@ -222,10 +222,10 @@ class NeutrinoScanner(BaseScanner):
 
         center_ra = np.radians(np.mean([self.ra_max, self.ra_min]))
         center_dec = np.radians(np.mean([self.dec_max, self.dec_min]))
-        rad = (
-            np.radians(max(self.ra_max - self.ra_min, self.dec_max - self.dec_min))
-            / 2.0
-        )
+        # Take the larger of the two sides and convert to radians
+        # To make sure to include all pixels until the edge of the rectangle, we have to devide by sqrt(2)
+        # (not 2 as previously done here!)
+        rad = np.radians(max(self.ra_max - self.ra_min, self.dec_max - self.dec_min)) / np.sqrt(2)
 
         nearish_pixels = list(
             hp.query_disc(
