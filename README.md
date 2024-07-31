@@ -3,7 +3,7 @@ Python package for correlating ZTF data with external multi-messenger triggers, 
 This package enables ZTF follow-up analysis of neutrinos/gravitational waves/gamma-ray bursts, built using the [AMPEL platform](https://arxiv.org/abs/1904.05922).
 
 [![DOI](https://zenodo.org/badge/193068064.svg)](https://zenodo.org/badge/latestdoi/193068064)
-[![CI](https://github.com/desy-multimessenger/nuztf/actions/workflows/continous_integration.yml/badge.svg)](https://github.com/desy-multimessenger/nuztf/actions/workflows/continous_integration.yml)
+[![CI](https://github.com/desy-multimessenger/nuztf/actions/workflows/continuous_integration.yml/badge.svg)](https://github.com/desy-multimessenger/nuztf/actions/workflows/continous_integration.yml)
 [![PyPI version](https://badge.fury.io/py/nuztf.svg)](https://badge.fury.io/py/nuztf)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/desy-multimessenger/nuztf/main)
 [![Coverage Status](https://coveralls.io/repos/github/desy-multimessenger/nuztf/badge.svg?branch=main)](https://coveralls.io/github/desy-multimessenger/nuztf?branch=main)
