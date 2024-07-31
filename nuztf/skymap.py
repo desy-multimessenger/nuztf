@@ -55,7 +55,7 @@ class Skymap:
             self.skymap_path = SKYMAP_DIR.joinpath(basename)
             self.rev = None
 
-            if event[:8] == "https://":
+            if (event[:8] == "https://") | (event[:7] == "http://"):
                 if not self.skymap_path.exists():
                     self.logger.info(f"Downloading from: {event}")
                     wget.download(event, str(self.skymap_path))

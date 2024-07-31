@@ -357,6 +357,63 @@ def ampel_api_lightcurve(
     requests.exceptions.RequestException,
     max_time=600,
 )
+def ampel_api_alerts(
+    ztf_name: str,
+    t_min_jd=Time("2017-01-01T00:00:00.0", format="isot", scale="utc").jd,
+    t_max_jd=Time.now().jd,
+    program_id: int = None,
+    logger=None,
+) -> list:
+    """
+    Function to query ampel via name, returns a virtual alert
+    constructed by AMPEL containing ALL photopoints and upper limits
+
+    """
+
+    if logger is None:
+        logger = logging.getLogger(__name__)
+
+    if program_id is None:
+        queryurl_lightcurve = (
+            API_ZTF_ARCHIVE_URL + f"/object/{ztf_name}/alerts?jd_start={t_min_jd}&"
+            f"jd_end={t_max_jd}&with_history=true"
+        )
+    else:
+        queryurl_lightcurve = (
+            API_ZTF_ARCHIVE_URL + f"/object/{ztf_name}/alerts?jd_start={t_min_jd}&"
+            f"jd_end={t_max_jd}&programid={program_id}"
+        )
+
+    logger.debug(queryurl_lightcurve)
+
+    headers = {"Authorization": f"Bearer {ampel_api_archive_token}"}
+
+    response = requests.get(
+        queryurl_lightcurve,
+        headers=headers,
+    )
+
+    if response.status_code == 503:
+        if response.headers:
+            logger.debug(response.headers)
+        raise requests.exceptions.RequestException
+
+    try:
+        query_res = [response.json()]
+
+    except JSONDecodeError:
+        if response.headers:
+            logger.debug(response.headers)
+        raise requests.exceptions.RequestException
+
+    return query_res
+
+
+@backoff.on_exception(
+    backoff.expo,
+    requests.exceptions.RequestException,
+    max_time=600,
+)
 def ampel_api_healpix(
     ipix: int,
     nside: int = 64,
