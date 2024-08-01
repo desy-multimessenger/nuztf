@@ -267,15 +267,24 @@ def write_coverage_skyvision(jds: list[float]):
 # The following functions are used to get the coverage from the cache
 
 
-def get_coverage(jds: [int]) -> pd.DataFrame | None:
+def get_coverage(jds: [int], backend="best") -> pd.DataFrame | None:
     """
     Get a dataframe of the coverage for a list of JDs
 
     Will use the cache if available, otherwise will query the depot, and lastly TAP
 
     :param jds: JDs
+    :param backend: "best" or "depot" or "tap" or "skyvision"
     :return: Coverage dataframe
     """
+
+    assert backend in [
+        "best",
+        "depot",
+        "tap",
+        "skyvision",
+    ], f"Invalid backend '{backend}'"
+
     # Clear any logs flagged as partial/incomplete
 
     cache_files = coverage_dir.glob("*.json")
@@ -288,77 +297,83 @@ def get_coverage(jds: [int]) -> pd.DataFrame | None:
 
     # Only write missing logs
 
-    missing_logs = []
+    missing_logs = [x for x in jds]
 
-    for jd in jds:
-        depot_path = coverage_depot_path(jd)
-        if not depot_path.exists():
-            missing_logs.append(jd)
-        else:
-            df = pd.read_json(coverage_depot_path(jd))
-            if len(df) == 0:
-                missing_logs.append(jd)
+    if backend in ["best", "depot"]:
 
-    if len(missing_logs) > 0:
-        logger.info(
-            f"Some logs were missing from the cache. "
-            f"Querying for the following JDs in depot: {missing_logs}"
-        )
-        write_coverage_depot(missing_logs)
+        for jd in missing_logs:
+            depot_path = coverage_depot_path(jd)
+            if depot_path.exists():
+                df = pd.read_json(coverage_depot_path(jd))
+                if len(df) > 0:
+                    missing_logs.remove(jd)
 
-    # Try skyvision for missing logs
-    still_missing_logs = []
-    for jd in missing_logs:
-        skyvision_path = coverage_skyvision_path(jd)
-        if not skyvision_path.exists():
-            still_missing_logs.append(jd)
-        else:
-            df = pd.read_json(coverage_skyvision_path(jd))
-            if len(df) == 0:
-                still_missing_logs.append(jd)
+        if len(missing_logs) > 0:
+            logger.info(
+                f"Some logs were missing from the cache. "
+                f"Querying for the following JDs in depot: {missing_logs}"
+            )
+            write_coverage_depot(missing_logs)
 
-    if len(still_missing_logs) > 0:
-        logger.info(
-            f"Some logs were still missing from the cache. "
-            f"Querying for the following JDs from skyvision: {still_missing_logs}"
-        )
-        write_coverage_skyvision(still_missing_logs)
+    if backend in ["best", "skyvision"]:
+        for jd in missing_logs:
+            skyvision_path = coverage_skyvision_path(jd)
+            if skyvision_path.exists():
+                df = pd.read_json(coverage_skyvision_path(jd))
+                if len(df) > 0:
+                    missing_logs.remove(jd)
+
+        if len(missing_logs) > 0:
+            logger.info(
+                f"Some logs were still missing from the cache. "
+                f"Querying for the following JDs from skyvision: {missing_logs}"
+            )
+            write_coverage_skyvision(missing_logs)
 
     # Try TAP for missing logs
 
-    completely_missing_logs = []
+    if backend in ["best", "tap"]:
+        for jd in missing_logs:
+            tap_path = coverage_tap_path(jd)
+            if tap_path.exists():
+                df = pd.read_json(coverage_tap_path(jd))
+                if len(df) > 0:
+                    missing_logs.remove(jd)
 
-    for jd in still_missing_logs:
-        depot_path = coverage_depot_path(jd)
-        if not depot_path.exists():
-            completely_missing_logs.append(jd)
-        else:
-            df = pd.read_json(coverage_depot_path(jd))
-            if len(df) == 0:
-                completely_missing_logs.append(jd)
-
-    if len(completely_missing_logs) > 0:
-        logger.info(
-            f"Some logs were still missing from the cache. "
-            f"Querying for the following JDs from TAP: {completely_missing_logs}"
-        )
-        write_coverage_tap(completely_missing_logs)
+        if len(missing_logs) > 0:
+            logger.info(
+                f"Some logs were still missing from the cache. "
+                f"Querying for the following JDs from TAP: {missing_logs}"
+            )
+            write_coverage_tap(missing_logs)
 
     # Load logs from cache
 
     results = []
 
     for jd in tqdm(jds):
-        res = pd.read_json(coverage_depot_path(jd))
-        if len(res) > 0:
+
+        res = None
+
+        if backend in ["best", "depot"]:
+            df = pd.read_json(coverage_depot_path(jd))
+            if len(df) > 0:
+                res = df
+
+        if backend in ["best", "skyvision"]:
+            if res is None:
+                df = pd.read_json(coverage_skyvision_path(jd))
+                if len(df) > 0:
+                    res = df
+
+        if backend in ["best", "tap"]:
+            if res is None:
+                df = pd.read_json(coverage_tap_path(jd))
+                if len(df) > 0:
+                    res = df
+
+        if res is not None:
             results.append(res)
-        else:
-            res = pd.read_json(coverage_skyvision_path(jd))
-            if len(res) > 0:
-                results.append(res)
-            else:
-                res = pd.read_json(coverage_tap_path(jd))
-                results.append(res)
 
     if results:
         result_df = pd.concat(results, ignore_index=True)
@@ -367,14 +382,19 @@ def get_coverage(jds: [int]) -> pd.DataFrame | None:
         return None
 
 
-def get_obs_summary_depot(t_min: Time, t_max: Time) -> MNS | None:
+def get_obs_summary_depot(t_min: Time, t_max: Time, backend="best") -> MNS | None:
     """
     Get observation summary from depot
+
+    :param t_min: Start time
+    :param t_max: End time
+    :param backend: "best" or "depot" or "tap" or "skyvision"
+    :return: MNS object
     """
 
     jds = np.arange(int(t_min.jd) - 0.5, int(t_max.jd) + 1.5)
 
-    res = get_coverage(jds)
+    res = get_coverage(jds, backend=backend)
 
     if len(res) == 0:
         return None
@@ -391,47 +411,20 @@ def get_obs_summary_depot(t_min: Time, t_max: Time) -> MNS | None:
     return mns
 
 
-def get_obs_summary_skyvision(t_min, t_max):
-    """
-    Get observation summary from Skyvision
-    """
-    t_min_date = t_min.to_value("iso", subfmt="date")
-    t_max_date = t_max.to_value("iso", subfmt="date")
-
-    # ztfquery saves nightly observations in a cache, and does not redownload them.
-    # If the nightly log was not complete, it will never be updated.
-    # Here we simply clear the cache and cleanly re-download everything.
-
-    logger.debug(
-        f"Skyvision: Obtaining nightly observation logs from {t_min_date} to {t_max_date}"
-    )
-
-    skyvision_log = os.path.join(LOCALSOURCE, "skyvision")
-
-    for filename in os.listdir(skyvision_log):
-        if ".csv" in filename:
-            path = os.path.join(skyvision_log, filename)
-            os.remove(path)
-
-    mns = skyvision.CompletedLog.from_daterange(
-        t_min_date, end=t_max_date, verbose=False
-    )
-
-    mns.data["obsjd"] = Time(list(mns.data.datetime.values), format="isot").jd
-
-    mns.data.query(f"obsjd >= {t_min.jd} and obsjd <= {t_max.jd}", inplace=True)
-
-    mns.data.reset_index(inplace=True)
-    mns.data.drop(columns=["index"], inplace=True)
-
-    logger.debug(f"Found {len(mns.data)} observations in total.")
-
-    return mns
-
-
-def get_obs_summary(t_min, t_max=None, max_days: float = None) -> MNS | None:
+def get_obs_summary(
+    t_min,
+    t_max=None,
+    max_days: float = None,
+    backend="best",
+) -> MNS | None:
     """
     Get observation summary from IPAC depot
+
+    :param t_min: Start time
+    :param t_max: End time
+    :param max_days: Maximum number of days
+    :param backend: "best" or "depot" or "tap" or "skyvision"
+    :return: MNS object
     """
     now = Time.now()
 
@@ -447,12 +440,12 @@ def get_obs_summary(t_min, t_max=None, max_days: float = None) -> MNS | None:
     if t_max > now:
         t_max = now
 
-    logger.info("Getting observation logs from IPAC depot.")
-    mns = get_obs_summary_depot(t_min=t_min, t_max=t_max)
+    logger.info(f"Getting observation logs  using backend {backend}.")
+    mns = get_obs_summary_depot(t_min=t_min, t_max=t_max, backend=backend)
 
     if mns is not None:
         logger.info(f"Found {len(set(mns.data))} observations in total.")
     else:
-        logger.warning("Found no observations on IPAC depot or TAP.")
+        logger.warning(f"Found no observations using backend {backend}.")
 
     return mns
