@@ -53,6 +53,7 @@ class BaseScanner:
         filter_class=DecentFilter,
         cone_nside=64,
         cones_to_scan=None,
+        output_nside: None | int = None,
         logger=None,
     ):
         self.cone_nside = cone_nside
@@ -65,7 +66,7 @@ class BaseScanner:
             self.data,
             self.total_pixel_area,
             self.key,
-        ) = self.unpack_skymap()
+        ) = self.unpack_skymap(output_nside)
 
         if not hasattr(self, "prob_threshold"):
             self.prob_threshold = None
@@ -141,7 +142,7 @@ class BaseScanner:
         cache_dir.mkdir(exist_ok=True, parents=True)
         return cache_dir
 
-    def unpack_skymap(self):
+    def unpack_skymap(self, output_nside: None | int = None):
         raise NotImplementedError
 
     @staticmethod
@@ -905,7 +906,7 @@ class BaseScanner:
 
         self.logger.info("Unpacking observations")
 
-        if self.nside > 256:
+        if self.nside < 1024:
             (
                 self.map_coords,
                 self.pixel_nos,
@@ -914,7 +915,7 @@ class BaseScanner:
                 self.data,
                 self.total_pixel_area,
                 self.key,
-            ) = self.unpack_skymap(output_nside=256)
+            ) = self.unpack_skymap(output_nside=1024)
 
         pix_map = dict()
         pix_obs_times = dict()

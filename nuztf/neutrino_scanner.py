@@ -25,6 +25,7 @@ class NeutrinoScanner(BaseScanner):
         cone_nside: int = 128,
         t_precursor: float = None,
         config: dict = None,
+        output_nside: int = 1024,
     ):
         self.logger = logging.getLogger(__name__)
 
@@ -87,6 +88,7 @@ class NeutrinoScanner(BaseScanner):
             t_min=nu_time,
             run_config=self.config,
             cone_nside=cone_nside,
+            output_nside=output_nside,
         )
         self.prob_threshold = 0.9
         self.rectangular_area = (
@@ -215,7 +217,7 @@ class NeutrinoScanner(BaseScanner):
 
     def unpack_skymap(self, skymap=None, output_nside: None | int = None):
         """ """
-        output_nside = 1024
+        output_nside = 2048 if output_nside is None else output_nside
 
         map_coords = []
         pixel_nos = []
