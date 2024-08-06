@@ -58,6 +58,7 @@ class BaseScanner:
     ):
         self.cone_nside = cone_nside
         self.t_min = t_min
+
         (
             self.map_coords,
             self.pixel_nos,
@@ -905,17 +906,6 @@ class BaseScanner:
         )
 
         self.logger.info("Unpacking observations")
-
-        if self.nside < 1024:
-            (
-                self.map_coords,
-                self.pixel_nos,
-                self.nside,
-                self.map_probs,
-                self.data,
-                self.total_pixel_area,
-                self.key,
-            ) = self.unpack_skymap(output_nside=1024)
 
         pix_map = dict()
         pix_obs_times = dict()

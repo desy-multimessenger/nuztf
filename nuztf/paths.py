@@ -28,3 +28,5 @@ FLATPIX_CACHE_DIR.mkdir(exist_ok=True, parents=True)
 
 PREPROCESSED_CACHE_DIR = CACHE_DIR / "preprocessed"
 PREPROCESSED_CACHE_DIR.mkdir(exist_ok=True, parents=True)
+
+ZTF_LOG_PATH = CACHE_DIR / "allexp.tbl"
