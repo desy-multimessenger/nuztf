@@ -8,7 +8,7 @@ from astropy.time import Time
 from ztfquery.io import LOCALSOURCE
 
 coverage_dir = Path(LOCALSOURCE).joinpath("all_obs")
-coverage_dir.mkdir(exist_ok=True)
+coverage_dir.mkdir(exist_ok=True, parents=True)
 
 partial_flag = "_PARTIAL"
 

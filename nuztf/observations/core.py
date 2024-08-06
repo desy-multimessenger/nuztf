@@ -21,9 +21,7 @@ logger = logging.getLogger(__name__)
 # The following functions are used to get the coverage from the cache
 
 
-def get_coverage(
-    jds: [int], backend="best", master_log: pd.DataFrame | None = None
-) -> pd.DataFrame | None:
+def get_coverage(jds: [int], backend="best") -> pd.DataFrame | None:
     """
     Get a dataframe of the coverage for a list of JDs
 
@@ -31,7 +29,6 @@ def get_coverage(
 
     :param jds: JDs
     :param backend: "best" or "depot" or "tap" or "skyvision" or "masterlog"
-    :param master_log: Master log dataframe
     :return: Coverage dataframe
     """
 
@@ -66,7 +63,7 @@ def get_coverage(
                     if len(df) > 0:
                         covered_jds.append(jd)
 
-        missing_logs = list(set(jds) - set(covered_jds))
+        missing_logs = sorted(set(jds) - set(covered_jds))
 
         if len(missing_logs) > 0:
             logger.info(
@@ -84,7 +81,7 @@ def get_coverage(
                     if len(df) > 0:
                         covered_jds.append(jd)
 
-        missing_logs = list(set(jds) - set(covered_jds))
+        missing_logs = sorted(set(jds) - set(covered_jds))
 
         if len(missing_logs) > 0:
             logger.info(
@@ -104,7 +101,7 @@ def get_coverage(
                     if len(df) > 0:
                         covered_jds.append(jd)
 
-        missing_logs = list(set(jds) - set(covered_jds))
+        missing_logs = sorted(set(jds) - set(covered_jds))
 
         if len(missing_logs) > 0:
             logger.info(
