@@ -21,14 +21,17 @@ logger = logging.getLogger(__name__)
 # The following functions are used to get the coverage from the cache
 
 
-def get_coverage(jds: [int], backend="best") -> pd.DataFrame | None:
+def get_coverage(
+    jds: [int], backend="best", master_log: pd.DataFrame | None = None
+) -> pd.DataFrame | None:
     """
     Get a dataframe of the coverage for a list of JDs
 
     Will use the cache if available, otherwise will query the depot, and lastly TAP
 
     :param jds: JDs
-    :param backend: "best" or "depot" or "tap" or "skyvision"
+    :param backend: "best" or "depot" or "tap" or "skyvision" or "masterlog"
+    :param master_log: Master log dataframe
     :return: Coverage dataframe
     """
 
@@ -37,6 +40,7 @@ def get_coverage(jds: [int], backend="best") -> pd.DataFrame | None:
         "depot",
         "tap",
         "skyvision",
+        "masterlog",
     ], f"Invalid backend '{backend}'"
 
     # Clear any logs flagged as partial/incomplete
@@ -51,16 +55,18 @@ def get_coverage(jds: [int], backend="best") -> pd.DataFrame | None:
 
     # Only write missing logs
 
-    missing_logs = [x for x in jds]
+    covered_jds = []
 
     if backend in ["best", "depot"]:
+        for jd in jds:
+            if jd not in covered_jds:
+                depot_path = coverage_depot_path(jd)
+                if depot_path.exists():
+                    df = pd.read_json(depot_path)
+                    if len(df) > 0:
+                        covered_jds.append(jd)
 
-        for jd in missing_logs:
-            depot_path = coverage_depot_path(jd)
-            if depot_path.exists():
-                df = pd.read_json(coverage_depot_path(jd))
-                if len(df) > 0:
-                    missing_logs.remove(jd)
+        missing_logs = list(set(jds) - set(covered_jds))
 
         if len(missing_logs) > 0:
             logger.info(
@@ -70,12 +76,15 @@ def get_coverage(jds: [int], backend="best") -> pd.DataFrame | None:
             write_coverage_depot(missing_logs)
 
     if backend in ["best", "skyvision"]:
-        for jd in missing_logs:
-            skyvision_path = coverage_skyvision_path(jd)
-            if skyvision_path.exists():
-                df = pd.read_json(coverage_skyvision_path(jd))
-                if len(df) > 0:
-                    missing_logs.remove(jd)
+        for jd in jds:
+            if jd not in covered_jds:
+                skyvision_path = coverage_skyvision_path(jd)
+                if skyvision_path.exists():
+                    df = pd.read_json(coverage_skyvision_path(jd))
+                    if len(df) > 0:
+                        covered_jds.append(jd)
+
+        missing_logs = list(set(jds) - set(covered_jds))
 
         if len(missing_logs) > 0:
             logger.info(
@@ -87,12 +96,15 @@ def get_coverage(jds: [int], backend="best") -> pd.DataFrame | None:
     # Try TAP for missing logs
 
     if backend in ["best", "tap"]:
-        for jd in missing_logs:
-            tap_path = coverage_tap_path(jd)
-            if tap_path.exists():
-                df = pd.read_json(coverage_tap_path(jd))
-                if len(df) > 0:
-                    missing_logs.remove(jd)
+        for jd in jds:
+            if jd not in covered_jds:
+                tap_path = coverage_tap_path(jd)
+                if tap_path.exists():
+                    df = pd.read_json(coverage_tap_path(jd))
+                    if len(df) > 0:
+                        covered_jds.append(jd)
+
+        missing_logs = list(set(jds) - set(covered_jds))
 
         if len(missing_logs) > 0:
             logger.info(
