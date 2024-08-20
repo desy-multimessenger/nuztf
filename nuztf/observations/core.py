@@ -97,7 +97,7 @@ def get_coverage(jds: [int], backend="best") -> pd.DataFrame | None:
             if jd not in covered_jds:
                 tap_path = coverage_tap_path(jd)
                 if tap_path.exists():
-                    df = pd.read_json(coverage_tap_path(jd))
+                    df = pd.read_json(tap_path)
                     if len(df) > 0:
                         covered_jds.append(jd)
 
