@@ -5,7 +5,6 @@ import io
 import logging
 from base64 import b64encode
 from json import JSONDecodeError
-from pathlib import Path
 
 import backoff
 import numpy as np
@@ -14,8 +13,6 @@ from ampel.util.json import load
 from ampel.ztf.util.ZTFIdMapper import ZTFIdMapper
 from astropy.io import fits  # type: ignore
 from astropy.time import Time  # type: ignore
-from requests.auth import HTTPBasicAuth
-from requests.exceptions import HTTPError
 
 from nuztf import utils
 from nuztf.credentials import load_credentials
