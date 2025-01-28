@@ -21,7 +21,6 @@ from astropy.coordinates import Distance, SkyCoord
 from astropy.time import Time
 from matplotlib.backends.backend_pdf import PdfPages
 from tqdm import tqdm
-from ztfquery import fields as ztfquery_fields
 
 from nuztf.ampel_api import (
     ampel_api_acknowledge_chunk,
@@ -30,7 +29,7 @@ from nuztf.ampel_api import (
     ampel_api_skymap,
 )
 from nuztf.cat_match import ampel_api_tns, get_cross_match_info, query_ned_for_z
-from nuztf.flatpix import get_flatpix, get_nested_pix
+from nuztf.flatpix import get_nested_pix
 from nuztf.fritz import save_source_to_group
 from nuztf.observations import get_obs_summary
 from nuztf.paths import BASE_CANDIDATE_DIR, RESULTS_DIR
