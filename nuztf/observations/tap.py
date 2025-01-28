@@ -69,7 +69,9 @@ def write_coverage_tap(jds: [float]):
         )
 
         # Create service
-        client = pyvo.dal.TAPService("https://irsa.ipac.caltech.edu/TAP", session)
+        client = pyvo.dal.TAPService(
+            "https://irsa.ipac.caltech.edu/TAP", session=session
+        )
 
         for jd in jds:
             assert jd - int(jd) == 0.5, "JD must be a half-integer"
