@@ -1,6 +1,8 @@
 import logging
 import unittest
 
+import pytest
+
 from nuztf.skymap_scanner import SkymapScanner
 
 
@@ -116,6 +118,7 @@ class TestSkymapScanner(unittest.TestCase):
     #
     #     self.assertEqual(res, true_gcn)
 
+    @pytest.mark.skip(reason="DESY tokens are expired")
     def test_gw_scan_desy_download(self):
         self.logger.info("\n\n Testing GW result download from DESY \n\n")
 
