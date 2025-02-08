@@ -14,9 +14,9 @@ from astropy.time import Time
 
 
 def main(
-        nu_name: str,
+        nu_name: Annotated[str, typer.Argument(..., help="Name of the neutrino, e.g. `IC200530A`")],
         logging_level:  Annotated[str, typer.Option("--logging-level", "-l")] = "INFO",
-        gcn_filename: str | None = None
+        gcn_filename: Annotated[str, typer.Option("--gcn-filename", "-f")] = None
 ):
 
     logger = logging.getLogger("nuztf")
