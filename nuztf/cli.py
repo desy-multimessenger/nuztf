@@ -1,5 +1,9 @@
+try:
+    import typer
+except ImportError:
+    raise ImportError("Please install typer if you want to use the CLI using `poetry install -E cli`")
+
 import logging
-import typer
 from typing import Annotated
 from rich.console import Console
 from rich.logging import RichHandler
@@ -14,6 +18,7 @@ def main(
         logging_level:  Annotated[str, typer.Option("--logging-level", "-l")] = "INFO",
         gcn_filename: str | None = None
 ):
+
     logger = logging.getLogger("nuztf")
     logger.addHandler(RichHandler())
     logger.setLevel(logging_level)
