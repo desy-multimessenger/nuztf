@@ -39,7 +39,7 @@ def main(
         m = nu.observations.obsjd == jd
         bands = nu.observations.band[m].unique()
         exp_times = nu.observations.exposure_time[m].unique()
-        time = Time(jd, format="jd").ymdhms
+        time = Time(jd, format="jd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
         table.add_row(str(time), str(bands), str(exp_times))
 
     console.print(table)
