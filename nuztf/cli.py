@@ -50,7 +50,8 @@ def main(
         with open(gcn_filename, "w") as f:
             f.write(gcn_draft)
     else:
-        print(gcn_draft)
+        console.print("Here is your GCN draft:\n\n", style="bold magenta")
+        console.print(gcn_draft)
 
 
 def cli_command():
