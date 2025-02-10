@@ -1,22 +1,27 @@
 try:
     import typer
 except ImportError:
-    raise ImportError("Please install typer if you want to use the CLI using `poetry install -E cli`")
+    raise ImportError(
+        "Please install typer if you want to use the CLI using `poetry install -E cli`"
+    )
 
 import logging
 from typing import Annotated
+
+from astropy.time import Time
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.table import Table
 
 from nuztf.neutrino_scanner import NeutrinoScanner
-from astropy.time import Time
 
 
 def main(
-        nu_name: Annotated[str, typer.Argument(..., help="Name of the neutrino, e.g. `IC200530A`")],
-        logging_level:  Annotated[str, typer.Option("--logging-level", "-l")] = "INFO",
-        gcn_filename: Annotated[str, typer.Option("--gcn-filename", "-f")] = None
+    nu_name: Annotated[
+        str, typer.Argument(..., help="Name of the neutrino, e.g. `IC200530A`")
+    ],
+    logging_level: Annotated[str, typer.Option("--logging-level", "-l")] = "INFO",
+    gcn_filename: Annotated[str, typer.Option("--gcn-filename", "-f")] = None,
 ):
 
     logger = logging.getLogger("nuztf")
@@ -28,7 +33,7 @@ def main(
     nu = NeutrinoScanner(nu_name)
     nu.query_ampel()
     nu.scan_area()
-    nu.plot_overlap_with_observations(first_det_window_days=30.)
+    nu.plot_overlap_with_observations(first_det_window_days=30.0)
     jds = nu.observations.obsjd.unique()
 
     table = Table(title="Observations")
