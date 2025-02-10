@@ -30,6 +30,20 @@ You will need the [IRSA login details](https://irsa.ipac.caltech.edu/account/sig
 
 Additionally, you need an AMPEL API token. This can be obtained [here](https://ampel.zeuthen.desy.de/live/dashboard/tokens).
 
+# CLI for IceCube neutrino counterparts
+ `nuztf` comes with a command line interface to scan for counterparts to IceCube neutrino alerts. To be eble to use it, you must install the `cli` extra dependencies:
+
+```pip install nuztf[cli]```
+
+or
+
+```poetry install -E cli```
+
+For usage information run:
+
+```nuztf --help```
+
+
 # Citing the code
 
 If you make use of this code, please cite it! A DOI is provided by Zenodo, which can reference both the code repository, or specific releases:
