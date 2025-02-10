@@ -21,7 +21,14 @@ def main(
         str, typer.Argument(..., help="Name of the neutrino, e.g. `IC200530A`")
     ],
     logging_level: Annotated[str, typer.Option("--logging-level", "-l")] = "INFO",
-    gcn_filename: Annotated[str, typer.Option("--gcn-filename", "-f")] = None,
+    gcn_filename: Annotated[
+        str,
+        typer.Option(
+            "--gcn-filename",
+            "-f",
+            help="Filename to write GCN to, if None (default) print to console",
+        ),
+    ] = None,
 ):
 
     logger = logging.getLogger("nuztf")
