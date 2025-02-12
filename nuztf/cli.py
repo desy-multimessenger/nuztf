@@ -6,8 +6,9 @@ except ImportError:
     )
 
 import logging
-from typing import Annotated
 from pathlib import Path
+from typing import Annotated
+
 from astropy.time import Time
 from rich.console import Console
 from rich.logging import RichHandler
