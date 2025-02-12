@@ -1,8 +1,8 @@
-import unittest
 import logging
+import unittest
 from pathlib import Path
-from nuztf.cli import main
 
+from nuztf.cli import main
 
 logger = logging.getLogger(__name__)
 
