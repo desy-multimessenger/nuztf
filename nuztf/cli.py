@@ -29,12 +29,21 @@ def main(
             help="Filename to write GCN to, if None (default) print to console",
         ),
     ] = None,
+    rich_handler: Annotated[
+        bool, typer.Option("--rich", "-r", help="Use a nice logging markup")
+    ] = True,
+    stream_handler: Annotated[
+        bool,
+        typer.Option("--stream", "-s", help="Use the standard stdout logging handler"),
+    ] = False,
 ):
 
     logger = logging.getLogger("nuztf")
-    logger.addHandler(RichHandler())
+    if rich_handler:
+        logger.addHandler(RichHandler())
+    if not stream_handler:
+        logger.propagate = False
     logger.setLevel(logging_level)
-    logger.propagate = False
     console = Console()
     console.print(f"Searching for candidates for {nu_name}", style="bold magenta")
     nu = NeutrinoScanner(nu_name)
