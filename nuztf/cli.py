@@ -7,7 +7,7 @@ except ImportError:
 
 import logging
 from typing import Annotated
-
+from pathlib import Path
 from astropy.time import Time
 from rich.console import Console
 from rich.logging import RichHandler
@@ -22,7 +22,7 @@ def main(
     ],
     logging_level: Annotated[str, typer.Option("--logging-level", "-l")] = "INFO",
     gcn_filename: Annotated[
-        str,
+        str | Path,
         typer.Option(
             "--gcn-filename",
             "-f",
