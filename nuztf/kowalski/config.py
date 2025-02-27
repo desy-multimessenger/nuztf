@@ -1,7 +1,9 @@
 """
 Shared configuration for Kowalski
 """
+
 from penquins import Kowalski
+
 from nuztf.credentials import load_credentials
 
 fp_mapping = {"mag": "magpsf", "magerr": "sigmapsf"}
@@ -13,6 +15,7 @@ kwargs = {
     "verbose": False,
     "timeout": 300.0,
 }
+
 
 def get_kowalski():
     """

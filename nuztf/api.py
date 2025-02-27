@@ -1,9 +1,21 @@
-import os
 import logging
+import os
+
 import dotenv
-from nuztf.ampel import ampel_api_name, ampel_api_skymap, ampel_api_cutout, ensure_ampel_cutouts
-from nuztf.kowalski import kowalski_api_name, kowalski_api_skymap, kowalski_api_cutout, ensure_kowalski_cutouts
 from astropy.time import Time
+
+from nuztf.ampel import (
+    ampel_api_cutout,
+    ampel_api_name,
+    ampel_api_skymap,
+    ensure_ampel_cutouts,
+)
+from nuztf.kowalski import (
+    ensure_kowalski_cutouts,
+    kowalski_api_cutout,
+    kowalski_api_name,
+    kowalski_api_skymap,
+)
 
 OVERWRITE = False
 
@@ -12,6 +24,7 @@ dotenv.load_dotenv()
 
 ZTF_BACKEND = os.getenv("ZTF_BACKEND", "ampel")
 assert ZTF_BACKEND in ["ampel", "kowalski"], f"Invalid ZTF backend: {ZTF_BACKEND}"
+
 
 def api_name(
     ztf_name: str,
@@ -43,6 +56,7 @@ def api_name(
             ztf_name,
             with_cutouts=with_cutouts,
         )
+
 
 def api_skymap(
     t_min: Time,
@@ -76,6 +90,7 @@ def api_skymap(
             cone_nside=cone_nside,
             cone_ids=cone_ids,
         )
+
 
 def api_cutout(
     candid: int,

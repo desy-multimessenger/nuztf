@@ -102,8 +102,10 @@ try:
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=UserWarning)
         io.set_account(
-            which="kowalski", token=os.environ["KOWALSKI_API_TOKEN"], token_based=True,
-            force=True
+            which="kowalski",
+            token=os.environ["KOWALSKI_API_TOKEN"],
+            token_based=True,
+            force=True,
         )
         logging.info('Set up "kowalski" credentials')
 

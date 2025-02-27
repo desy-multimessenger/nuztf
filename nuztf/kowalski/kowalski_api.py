@@ -3,7 +3,8 @@ This module contains functions to interact with the Kowalski API.
 """
 
 from penquins import Kowalski
-from nuztf.kowalski.config import get_kowalski, fp_mapping
+
+from nuztf.kowalski.config import fp_mapping, get_kowalski
 
 
 def kowalski_api_name(
@@ -83,10 +84,7 @@ def kowalski_api_name(
 
     if len(out) > 0:
         for prv_cand in out[0]["prv_candidates"]:
-            if (
-                (prv_cand["jd"] not in jds)
-                & ("magpsf" in prv_cand)
-            ):
+            if (prv_cand["jd"] not in jds) & ("magpsf" in prv_cand):
                 jds.append(prv_cand["jd"])
                 prv_alerts.append(prv_cand)
 

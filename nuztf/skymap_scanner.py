@@ -387,9 +387,7 @@ class SkymapScanner(BaseScanner):
         )
 
     def find_cone_coords(self):
-        """
-
-        """
+        """ """
 
         cone_ids = []
 

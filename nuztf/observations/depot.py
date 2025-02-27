@@ -22,7 +22,6 @@ def get_depot_credentials() -> tuple[str, str]:
     return credentials.load_credentials("ipacdepot")
 
 
-
 def download_depot_log(date):
     """
     Download the depot log for a given date

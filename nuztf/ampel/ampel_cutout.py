@@ -72,9 +72,8 @@ def create_empty_cutout():
 
     return blank_compressed
 
-def ensure_ampel_cutouts(
-    alert: list, logger=None
-):
+
+def ensure_ampel_cutouts(alert: list, logger=None):
     """Make sure alert contains cutouts (if not, query them from AMPEL API)"""
 
     if logger is None:

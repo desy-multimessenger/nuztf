@@ -1,12 +1,14 @@
 """
 This module contains functions to query Kowalski for objects in a skymap
 """
-import healpy as hp
-from penquins import Kowalski
-from astropy.time import Time
 
+import healpy as hp
+from astropy.time import Time
+from penquins import Kowalski
 from pydantic import BaseModel
+
 from nuztf.kowalski.config import get_kowalski
+
 
 class Cone(BaseModel):
     """
@@ -39,6 +41,7 @@ def get_cones_for_map(nside: int, cone_ids: list[id]) -> list[Cone]:
         r = hp.max_pixrad(nside, degrees=True)
         cones.append(Cone(ra=ra, dec=dec, radius=r))
     return cones
+
 
 def kowalski_api_skymap(
     cone_nside: int,
@@ -91,7 +94,7 @@ def kowalski_api_skymap(
                             "prv_candidates": 0,
                         },
                     },
-                }
+                },
             },
         }
 

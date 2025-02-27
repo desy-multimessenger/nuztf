@@ -1,7 +1,9 @@
 """
 Utility functions for Ampel API
 """
+
 from nuztf.credentials import load_credentials
+
 
 def merge_alerts(alert_list: list) -> list:
     """ """
@@ -32,6 +34,7 @@ def merge_alerts(alert_list: list) -> list:
             merged_list.append(latest)
 
     return merged_list
+
 
 def get_ampel_token() -> str:
     """

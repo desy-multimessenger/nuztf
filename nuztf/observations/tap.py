@@ -25,6 +25,7 @@ def get_ipac_credentials() -> tuple[str, str]:
     """
     return load_credentials("irsa")
 
+
 headers = {"Content-Type": "application/x-www-form-urlencoded", "Accept": "text/plain"}
 IPAC_TAP_URL = "https://irsa.ipac.caltech.edu/TAP"
 

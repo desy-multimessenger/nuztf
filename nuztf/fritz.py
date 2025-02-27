@@ -9,7 +9,8 @@ from nuztf.credentials import load_credentials
 
 API_BASEURL = "https://fritz.science"
 
-def get_fritz_token()-> str:
+
+def get_fritz_token() -> str:
     """
     Get the Fritz token from the environment variable or from the credentials file
     :return: Fritz token

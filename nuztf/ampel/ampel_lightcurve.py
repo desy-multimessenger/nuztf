@@ -1,4 +1,3 @@
-
 import logging
 from json import JSONDecodeError
 
@@ -9,6 +8,7 @@ from astropy.time import Time  # type: ignore
 
 from nuztf.ampel.urls import API_ZTF_ARCHIVE_URL
 from nuztf.ampel.utils import get_ampel_token, merge_alerts
+
 
 @backoff.on_exception(
     backoff.expo,

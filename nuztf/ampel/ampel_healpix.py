@@ -3,6 +3,7 @@
 
 import gzip
 import logging
+import time
 from json import JSONDecodeError
 
 import backoff
@@ -13,13 +14,10 @@ from astropy.io import fits  # type: ignore
 from astropy.time import Time  # type: ignore
 
 from nuztf import utils
-from nuztf.credentials import load_credentials
-from nuztf.paths import PREPROCESSED_CACHE_DIR
-
 from nuztf.ampel.urls import API_ZTF_ARCHIVE_URL
 from nuztf.ampel.utils import get_ampel_token
-import logging
-import time
+from nuztf.credentials import load_credentials
+from nuztf.paths import PREPROCESSED_CACHE_DIR
 
 MAX_N_PIX = 1000
 
@@ -251,10 +249,10 @@ def ampel_api_skymap_single(
 
 
 def ampel_api_skymap(
-        t_min: Time,
-        t_max: Time,
-        cone_nside: int,
-        cone_ids: list[int],
+    t_min: Time,
+    t_max: Time,
+    cone_nside: int,
+    cone_ids: list[int],
 ):
     logger.info("Commencing skymap scan")
 
@@ -301,13 +299,10 @@ def ampel_api_skymap(
             resume = False
             logger.info("Done.")
         else:
-            logger.debug(
-                f"Chunk size reached ({chunk_size}), commencing next query."
-            )
+            logger.debug(f"Chunk size reached ({chunk_size}), commencing next query.")
         i += 1
 
     return query_res
-
 
 
 def get_preprocessed_results(file_basename: str, logger=None) -> None | list:

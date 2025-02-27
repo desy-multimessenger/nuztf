@@ -3,11 +3,11 @@ This module contains functions to query Kowalski for cutouts
 """
 
 import logging
-
+from base64 import b64encode
 
 from penquins import Kowalski
+
 from nuztf.kowalski.config import get_kowalski
-from base64 import b64encode
 
 logger = logging.getLogger(__name__)
 
@@ -53,9 +53,7 @@ def kowalski_api_cutout(
     return cutouts
 
 
-def ensure_kowalski_cutouts(
-    alert: list[dict]
-)   -> list[dict]:
+def ensure_kowalski_cutouts(alert: list[dict]) -> list[dict]:
     """
     Make sure alert contains cutouts (if not, query them from Kowalski API)
 
