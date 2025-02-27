@@ -12,7 +12,7 @@ from astroquery.exceptions import RemoteServiceError
 from astroquery.ipac.irsa import Irsa
 from astroquery.ipac.ned import Ned
 
-from nuztf.ampel_api import ampel_api_catalog, ampel_api_name
+from nuztf.ampel import ampel_api_catalog, ampel_api_name
 from nuztf.paths import CROSSMATCH_CACHE
 
 

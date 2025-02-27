@@ -12,8 +12,15 @@ from nuztf.observations.shared import NoDepotEntry, coverage_dir, get_date, part
 
 logger = logging.getLogger(__name__)
 
-username, password = credentials.load_credentials("ipacdepot")
-data = {"username": username, "password": password}
+
+def get_depot_credentials() -> tuple[str, str]:
+    """
+    Get the depot credentials for the depot log
+
+    :return: username, password
+    """
+    return credentials.load_credentials("ipacdepot")
+
 
 
 def download_depot_log(date):
@@ -24,6 +31,7 @@ def download_depot_log(date):
     :return: json log
     """
     url = f"https://ztfweb.ipac.caltech.edu/ztf/depot/{date}/ztf_recentproc_{date}.json"
+    username, password = get_depot_credentials()
     response = requests.get(url, auth=HTTPBasicAuth(username, password))
     if response.status_code == 404:
         raise NoDepotEntry(f"No depot entry for {date} at url {url}")

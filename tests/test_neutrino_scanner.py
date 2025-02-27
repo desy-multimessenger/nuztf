@@ -1,13 +1,6 @@
 import logging
 import unittest
 
-import numpy as np
-from astropy.coordinates import Distance
-from astropy.time import Time
-
-from nuztf.ampel_api import ampel_api_catalog
-from nuztf.base_scanner import cosmo
-from nuztf.cat_match import query_ned_for_z
 from nuztf.neutrino_scanner import NeutrinoScanner
 
 

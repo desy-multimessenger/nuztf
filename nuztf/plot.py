@@ -4,7 +4,6 @@
 import gzip
 import io
 from base64 import b64decode
-from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -17,7 +16,8 @@ from matplotlib.colors import Normalize
 from matplotlib.ticker import MultipleLocator
 from ztfquery.utils.stamps import get_ps_stamp
 
-from nuztf.ampel_api import create_empty_cutout, ensure_cutouts
+from nuztf.ampel.ampel_cutout import create_empty_cutout
+from nuztf.api import ensure_cutouts
 from nuztf.cat_match import get_cross_match_info
 from nuztf.paths import CUTOUT_CACHE_DIR
 from nuztf.utils import cosmo
@@ -92,12 +92,12 @@ def lightcurve_from_alert(
                 logger.debug(f"{name}: Cutouts are present.")
             else:
                 logger.debug(f"{name}: Cutouts are missing data. Will obtain them")
-                alert = ensure_cutouts(alert, logger=logger)
+                alert = ensure_cutouts(alert)
         else:
             logger.debug(
                 "The alert dictionary does not contain cutouts. Will obtain them."
             )
-            alert = ensure_cutouts(alert, logger=logger)
+            alert = ensure_cutouts(alert)
 
     logger.debug(f"Plotting {name}")
 

@@ -3,7 +3,6 @@
 
 import json
 import logging
-import os
 import time
 
 import healpy as hp
@@ -13,15 +12,12 @@ import yaml
 from astropy.time import Time
 from tqdm import tqdm
 
-from nuztf.ampel_api import (
-    ampel_api_acknowledge_chunk,
-    ampel_api_lightcurve,
-    ampel_api_skymap,
-    ampel_api_timerange,
+from nuztf.ampel import (
     get_preprocessed_results,
 )
+from nuztf.api import api_name, api_skymap
 from nuztf.base_scanner import BaseScanner
-from nuztf.paths import BASE_CANDIDATE_DIR, CONFIG_DIR
+from nuztf.paths import CONFIG_DIR
 from nuztf.skymap import Skymap
 
 
@@ -106,82 +102,6 @@ class SkymapScanner(BaseScanner):
 
         self.final_candidates = final_objects
 
-    def get_alerts(self):
-        """Scan the skymap area and get ZTF transients"""
-        self.logger.info("Commencing skymap scan")
-
-        self.logger.debug(
-            f"API skymap search: nside = {self.cone_nside} "
-            f"/ # pixels = {len(self.cone_ids)} / "
-            f"timespan = {self.default_t_max.jd-self.t_min.jd:.1f} days."
-        )
-
-        time_healpix_start = time.time()
-
-        self.queue = []
-
-        resume = True
-        chunk_size = 2000
-        resume_token = None
-
-        i = 0
-        total_chunks = 0
-        t0 = time.time()
-
-        while resume:
-            res, resume_token, chunk_id, remaining_chunks = ampel_api_skymap(
-                pixels=self.cone_ids,
-                nside=self.cone_nside,
-                t_min_jd=self.t_min.jd,
-                t_max_jd=self.default_t_max.jd,
-                max_n_detections=10,
-                logger=self.logger,
-                chunk_size=chunk_size,
-                resume_token=resume_token,
-                warn_exceeding_chunk=False,
-            )
-            self.queue.extend(res)
-
-            ampel_api_acknowledge_chunk(resume_token=resume_token, chunk_id=chunk_id)
-
-            if i == 0:
-                total_chunks = remaining_chunks + 1
-                self.logger.info(f"Total chunks: {total_chunks}")
-
-            if remaining_chunks % 50 == 0 and remaining_chunks != 0:
-                t1 = time.time()
-                processed_chunks = total_chunks - remaining_chunks
-                time_per_chunk = (t1 - t0) / processed_chunks
-                remaining_time = time_per_chunk * remaining_chunks
-                self.logger.info(
-                    f"Remaining chunks: {remaining_chunks}. Estimated time to finish: {remaining_time/60:.0f} min"
-                )
-
-            if len(res) < chunk_size:
-                resume = False
-                self.logger.info("Done.")
-            else:
-                self.logger.debug(
-                    f"Chunk size reached ({chunk_size}), commencing next query."
-                )
-            i += 1
-
-        time_healpix_end = time.time()
-        time_healpix = time_healpix_end - time_healpix_start
-
-        cache_file = self.get_cache_dir().joinpath("initial_stage.json")
-
-        with open(cache_file, "w") as outfile:
-            json.dump(self.queue, outfile)
-
-        self.n_alerts = len(self.queue)
-
-        self.logger.info(
-            f"Added {self.n_alerts} alerts found between {self.t_min}"
-            f" and {self.default_t_max.isot}"
-        )
-        self.logger.info(f"This took {time_healpix:.1f} s in total")
-
     def filter_alerts(self, load_cachefile=False):
         """ """
         self.logger.info(f"Commencing first stage filtering.")
@@ -242,7 +162,7 @@ class SkymapScanner(BaseScanner):
 
         for ztf_id in tqdm(first_stage_objects):
             # Get the full lightcurve from the API
-            query_res = ampel_api_lightcurve(ztf_name=ztf_id, logger=self.logger)
+            query_res = api_name(ztf_name=ztf_id)
 
             for res in query_res:
                 _ztf_id = res["objectId"]
@@ -378,6 +298,7 @@ class SkymapScanner(BaseScanner):
 
         # Veto old transients
         ztf_id = res["objectId"]
+
         if res["candidate"]["jdstarthist"] < self.t_min.jd:
             self.logger.debug(
                 f"❌ {ztf_id}: Transient is too old. (jdstarthist history predates event)"
@@ -466,7 +387,9 @@ class SkymapScanner(BaseScanner):
         )
 
     def find_cone_coords(self):
-        """ """
+        """
+
+        """
 
         cone_ids = []
 

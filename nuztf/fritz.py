@@ -9,7 +9,13 @@ from nuztf.credentials import load_credentials
 
 API_BASEURL = "https://fritz.science"
 
-fritz_token = load_credentials("fritz", token_based=True)
+def get_fritz_token()-> str:
+    """
+    Get the Fritz token from the environment variable or from the credentials file
+    :return: Fritz token
+    """
+    fritz_token = load_credentials("fritz", token_based=True)
+    return fritz_token
 
 
 def fritz_api(method: str, endpoint_extension: str, data: dict = None):
@@ -21,7 +27,7 @@ def fritz_api(method: str, endpoint_extension: str, data: dict = None):
     :param data: Data to send (e.g. {"ra": 0, "dec": 0})
     :return:
     """
-    headers = {"Authorization": f"token {fritz_token}"}
+    headers = {"Authorization": f"token {get_fritz_token()}"}
     endpoint = os.path.join(API_BASEURL, endpoint_extension)
     if method in ["post", "POST"]:
         response = requests.request(method, endpoint, json=data, headers=headers)

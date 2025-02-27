@@ -3,7 +3,6 @@
 
 import json
 import logging
-import time
 from pathlib import Path
 
 import backoff
@@ -22,12 +21,7 @@ from astropy.time import Time
 from matplotlib.backends.backend_pdf import PdfPages
 from tqdm import tqdm
 
-from nuztf.ampel_api import (
-    ampel_api_acknowledge_chunk,
-    ampel_api_lightcurve,
-    ampel_api_name,
-    ampel_api_skymap,
-)
+from nuztf.api import api_name, api_skymap
 from nuztf.cat_match import ampel_api_tns, get_cross_match_info, query_ned_for_z
 from nuztf.flatpix import get_nested_pix
 from nuztf.fritz import save_source_to_group
@@ -214,14 +208,14 @@ class BaseScanner:
 
     def add_to_cache_by_names(self, ztf_ids: list):
         for ztf_id in ztf_ids:
-            query_res = ampel_api_name(ztf_id, logger=self.logger)
+            query_res = api_name(ztf_id)
             self.add_res_to_cache(query_res)
 
     def check_ampel_filter(self, ztf_name):
         lvl = logging.getLogger().getEffectiveLevel()
         logging.getLogger().setLevel(logging.DEBUG)
         self.logger.info("Set logger level to DEBUG")
-        all_query_res = ampel_api_name(ztf_name, logger=self.logger)
+        all_query_res = api_name(ztf_name)
         assert len(all_query_res) > 0, f"No results from ampel api for {ztf_name}"
         pipeline_bool = False
         for query_res in all_query_res:
@@ -259,61 +253,12 @@ class BaseScanner:
         if t_min is None:
             t_min = self.t_min
 
-        self.logger.info("Commencing skymap scan")
-
-        self.logger.debug(
-            f"API skymap search: nside = {self.cone_nside} / "
-            f"# pixels = {len(self.cone_ids)} / "
-            f"timespan = {t_max.jd-t_min.jd:.1f} days."
+        query_res = api_skymap(
+            t_min=t_min,
+            t_max=t_max,
+            cone_nside=self.cone_nside,
+            cone_ids=self.cone_ids,
         )
-
-        query_res = []
-
-        resume = True
-        chunk_size = 2000
-        resume_token = None
-
-        i = 0
-        total_chunks = 0
-        t0 = time.time()
-
-        while resume:
-            res, resume_token, chunk_id, remaining_chunks = ampel_api_skymap(
-                pixels=self.cone_ids,
-                nside=self.cone_nside,
-                t_min_jd=t_min.jd,
-                t_max_jd=t_max.jd,
-                logger=self.logger,
-                chunk_size=chunk_size,
-                resume_token=resume_token,
-                warn_exceeding_chunk=False,
-            )
-            query_res.extend(res)
-
-            ampel_api_acknowledge_chunk(resume_token=resume_token, chunk_id=chunk_id)
-
-            if i == 0:
-                total_chunks = remaining_chunks + 1
-                self.logger.info(f"Total chunks: {total_chunks}")
-
-            if remaining_chunks % 50 == 0 and remaining_chunks != 0:
-                t1 = time.time()
-                processed_chunks = total_chunks - remaining_chunks
-                time_per_chunk = (t1 - t0) / processed_chunks
-                remaining_time = time_per_chunk * remaining_chunks
-                self.logger.info(
-                    f"Remaining chunks: {remaining_chunks}. Estimated time to finish: "
-                    f"{remaining_time/60:.0f} min"
-                )
-
-            if len(res) < chunk_size:
-                resume = False
-                self.logger.info("Done.")
-            else:
-                self.logger.debug(
-                    f"Chunk size reached ({chunk_size}), commencing next query."
-                )
-            i += 1
 
         self.logger.info(f"Ingested {len(query_res)} alerts. Commencing filtering now.")
 
@@ -382,7 +327,7 @@ class BaseScanner:
 
         self.logger.info(f"Retrieving alert history from AMPEL for filtering stage 2")
 
-        results = self.ampel_object_search(ztf_ids=ztf_ids_first_stage)
+        results = self.object_search(ztf_ids=ztf_ids_first_stage)
 
         with open(self.get_final_cache_path(), "w") as outfile:
             json.dump(results, outfile)
@@ -422,13 +367,13 @@ class BaseScanner:
     def in_contour(self, ra, dec):
         raise NotImplementedError
 
-    def ampel_object_search(self, ztf_ids: list) -> list:
+    def object_search(self, ztf_ids: list) -> list:
         """ """
         all_results = []
 
         for ztf_id in tqdm(ztf_ids):
             # get the full lightcurve from the API
-            query_res = ampel_api_lightcurve(ztf_name=ztf_id, logger=self.logger)
+            query_res = api_name(ztf_name=ztf_id)
 
             final_res = []
 
