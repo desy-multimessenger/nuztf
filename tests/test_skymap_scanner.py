@@ -29,7 +29,7 @@ class TestSkymapScanner(unittest.TestCase):
 
         scanner.plot_skymap()
 
-        scanner.get_alerts()
+        scanner.scan_area()
 
         n_retrieved_alerts = scanner.n_alerts
         n_expected_alerts = 1319
@@ -40,9 +40,7 @@ class TestSkymapScanner(unittest.TestCase):
 
         self.assertEqual(n_retrieved_alerts, n_expected_alerts)
 
-        scanner.filter_alerts()
-
-        n_retrieved_candidates = len(scanner.final_candidates)
+        n_retrieved_candidates = scanner.n_candidates
         n_expected_candidates = 1
 
         self.logger.info(
@@ -138,6 +136,6 @@ class TestSkymapScanner(unittest.TestCase):
 
         n_expected_candidates = 13
 
-        n_retrieved_candidates = len(scanner.final_candidates)
+        n_retrieved_candidates = scanner.n_candidates
 
         self.assertEqual(n_retrieved_candidates, n_expected_candidates)

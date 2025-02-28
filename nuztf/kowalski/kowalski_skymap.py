@@ -67,15 +67,18 @@ def kowalski_api_skymap(
 
     cones = get_cones_for_map(nside=cone_nside, cone_ids=cone_ids)
 
-    filter = {
+    filter_dict = {
         "candidate.jd": {"$gt": t_min.jd, "$lt": t_max.jd},
+        # "candidate.jdstarthist": {"$gt": t_min.jd, "$lt": t_max.jd},
+        # "candidate.jdendhist": {"$gt": t_min.jd, "$lt": t_max.jd},
+        "candidate.isdiffpos": {"$in": ["1", "t", "true", "True", "T", 1]},
     }
 
     queries = []
     for cone in cones:
         query = {
             "query_type": "cone_search",
-            "filter": filter,
+            "filter": filter_dict,
             "query": {
                 "object_coordinates": {
                     "cone_search_radius": cone.radius,
@@ -84,7 +87,7 @@ def kowalski_api_skymap(
                 },
                 "catalogs": {
                     "ZTF_alerts": {
-                        "filter": filter,
+                        "filter": filter_dict,
                         "projection": {
                             "_id": 0,
                             "cutoutScience": 0,

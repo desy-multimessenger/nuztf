@@ -22,16 +22,15 @@ class TestNeutrinoScanner(unittest.TestCase):
 
         t_max = nu.default_t_max - 8
 
-        # nu.scan_cones(t_max=t_max)
         nu.scan_area(t_max=t_max)
-        retrieved_candidates = len(nu.cache)
+        retrieved_candidates = nu.n_candidates
 
         self.logger.info(
             f"found {retrieved_candidates}, expected {expected_candidates}"
         )
         self.assertEqual(expected_candidates, retrieved_candidates)
 
-        for name, res in sorted(nu.cache.items()):
+        for name, res in sorted(nu.cache_candidates.items()):
             # Only use old data, so new detections do not change CI
             dets = [
                 x

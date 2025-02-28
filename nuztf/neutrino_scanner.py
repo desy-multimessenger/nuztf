@@ -126,7 +126,7 @@ class NeutrinoScanner(BaseScanner):
         ztf_id = res["objectId"]
 
         # Positive detection
-        if res["candidate"]["isdiffpos"] not in ["t", "1"]:
+        if res["candidate"]["isdiffpos"] not in ["t", "1", "true"]:
             self.logger.debug(f"❌ {ztf_id}: Negative subtraction")
             return False
 

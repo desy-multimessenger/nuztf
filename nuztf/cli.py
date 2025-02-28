@@ -48,7 +48,7 @@ def main(
     console = Console()
     console.print(f"Searching for candidates for {nu_name}", style="bold magenta")
     nu = NeutrinoScanner(nu_name)
-    nu.query_ampel()
+    nu.query_for_alerts()
     nu.scan_area()
     nu.plot_overlap_with_observations(first_det_window_days=30.0)
     jds = nu.observations.obsjd.unique()
