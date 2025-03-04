@@ -56,7 +56,8 @@ def ampel_api_healpix(
 
     queryurl_healpix = (
         API_ZTF_ARCHIVE_URL
-        + f"/alerts/healpix?nside={nside}&ipix={ipix}&jd_start={t_min_jd}&jd_end={t_max_jd}&with_history={hist}&with_cutouts={cutouts}&chunk_size={chunk_size}"
+        + f"/alerts/healpix?nside={nside}&ipix={ipix}&jd_start={t_min_jd}&jd_end={t_max_jd}&with_history={hist}"
+        f"&with_cutouts={cutouts}&chunk_size={chunk_size}"
     )
 
     logger.debug(queryurl_healpix)
@@ -130,7 +131,6 @@ def ampel_api_skymap_single(
     nside: int = 64,
     t_min_jd=Time("2018-04-01T00:00:00.123456789", format="isot", scale="utc").jd,
     t_max_jd=Time.now().jd,
-    max_n_detections: int = 99999999,
     with_history: bool = False,
     with_cutouts: bool = False,
     chunk_size: int = 500,
@@ -197,11 +197,6 @@ def ampel_api_skymap_single(
                 "$gt": t_min_jd,
             },
             "latest": "false",
-            "candidate": {
-                "rb": {"$gt": 0.3},
-                "magpsf": {"$gt": 15},
-                "ndethist": {"$gt": 0, "$lte": max_n_detections},
-            },
             "with_history": hist,
             "with_cutouts": cutouts,
             "chunk_size": chunk_size,

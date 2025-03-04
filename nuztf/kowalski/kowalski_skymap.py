@@ -71,7 +71,10 @@ def kowalski_api_skymap(
         "candidate.jd": {"$gt": t_min.jd, "$lt": t_max.jd},
         # "candidate.jdstarthist": {"$gt": t_min.jd, "$lt": t_max.jd},
         # "candidate.jdendhist": {"$gt": t_min.jd, "$lt": t_max.jd},
-        "candidate.isdiffpos": {"$in": ["1", "t", "true", "True", "T", 1]},
+        # "candidate.isdiffpos": {"$in": ["1", "t", "true", "True", "T", 1]},
+        # "candidate.drb": {"$gt": 0.3},
+        # "candidate.magpsf": {"$gt": 15},
+        # "candidate.ndethist": {"$gt": 0, "$lte": max_n_detections},
     }
 
     queries = []
@@ -108,8 +111,9 @@ def kowalski_api_skymap(
     )
 
     results = []
+    candids = []
 
-    # first we have on response per query. Each response contains a dict with one key per instance
+    # first we have one response per query. Each response contains a dict with one key per instance
     for name in list(response.keys()):
         for response in response[name]:
             data = response.get("data", None)
@@ -119,6 +123,9 @@ def kowalski_api_skymap(
             matches = data["ZTF_alerts"]["object"]
             if len(matches) > 0:
                 for match in matches:
+                    if match["candid"] in candids:
+                        continue
                     match["prv_candidates"] = []
                     results.append(match)
+                    candids.append(match["candid"])
     return results

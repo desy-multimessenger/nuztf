@@ -17,7 +17,7 @@ class TestSkymapScanner(unittest.TestCase):
         self.logger.info("\n\n Testing GW Scanning \n\n")
 
         gw_name = "S190814bv"
-        prob_threshold = 0.9
+        prob_threshold = 0.95
 
         self.logger.info(f"Scanning with GW {gw_name}")
 
@@ -32,7 +32,7 @@ class TestSkymapScanner(unittest.TestCase):
         scanner.scan_area()
 
         n_retrieved_alerts = scanner.n_alerts
-        n_expected_alerts = 1319
+        n_expected_alerts = 1399
 
         self.logger.info(
             f"Retrieved {n_retrieved_alerts} alerts. {n_expected_alerts} alerts expected."
@@ -69,6 +69,11 @@ class TestSkymapScanner(unittest.TestCase):
         true_tns_summary = "Candidate: ZTF19abpuhbh / RA=11.2569224 / Dec=-22.5161471 / First detection=2458710.9475231\nLast Upper Limit: None\nFirst Detection: 2458710.9475231 / band=r / mag=20.857 +/- 0.284\nFirst observed 13.56 hours after merger\n[2458710.9475231, 2458710.9948611]\n"
 
         self.assertEqual(tns_summary, true_tns_summary)
+
+        # Backend: Kowalski
+        scanner.scan_area(backend="kowalski")
+        n_retrieved_alerts = scanner.n_alerts
+        self.assertEqual(n_retrieved_alerts, n_expected_alerts)
 
     # def test_grb_scan(self):
     #     self.logger.info("\n\n Testing GRB Scanner \n\n")

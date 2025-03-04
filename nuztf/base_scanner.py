@@ -22,7 +22,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from tqdm import tqdm
 
 from nuztf.ampel.utils import merge_alerts
-from nuztf.api import api_name, api_skymap
+from nuztf.api import ZTF_BACKEND, api_name, api_skymap
 from nuztf.cat_match import ampel_api_tns, get_cross_match_info, query_ned_for_z
 from nuztf.flatpix import get_nested_pix
 from nuztf.fritz import save_source_to_group
@@ -293,11 +293,16 @@ class BaseScanner:
         #     mns = get_obs_summary(self.t_min, max_days=max_days)
         return mns
 
-    def query_for_alerts(
-        self,
-        t_min=None,
-        t_max=None,
-    ):
+    def query_for_alerts(self, t_min=None, t_max=None, backend: str = ZTF_BACKEND):
+        """
+        Query the API for alerts
+
+        :param t_min: Minimum time to query
+        :param t_max: Maximum time to query
+        :param backend: Backend to query (ampel or kowalski)
+
+        :return: List of alerts
+        """
         if t_max is None:
             t_max = self.default_t_max
 
@@ -309,11 +314,20 @@ class BaseScanner:
             t_max=t_max,
             cone_nside=self.cone_nside,
             cone_ids=self.cone_ids,
+            backend=backend,
         )
 
-        self.logger.info(f"Ingested {len(query_res)} alerts. Commencing filtering now.")
+        self.logger.info(f"Ingested {len(query_res)} alerts.")
 
-        return query_res
+        passed = [
+            x
+            for x in query_res
+            if self.in_contour(x["candidate"]["ra"], x["candidate"]["dec"])
+        ]
+
+        self.logger.info(f"Passed {len(passed)} alerts after contour check.")
+
+        return passed
 
     def get_initial_cache_path(self) -> Path:
         """
@@ -350,19 +364,16 @@ class BaseScanner:
 
         self.add_results(results, self.cache_candidates)
 
-    def get_alerts(
-        self,
-        t_min=None,
-        t_max=None,
-    ):
+    def get_alerts(self, t_min=None, t_max=None, backend: str = ZTF_BACKEND):
         """
         Retrieve alerts
 
         :param t_min: Minimum time to query
         :param t_max: Maximum time to query
+        :param backend: Backend to query (ampel or kowalski)
         :return: List of alerts
         """
-        alerts = self.query_for_alerts(t_min=t_min, t_max=t_max)
+        alerts = self.query_for_alerts(t_min=t_min, t_max=t_max, backend=backend)
 
         with open(self.get_initial_cache_path(), "w") as outfile:
             json.dump(alerts, outfile)
@@ -396,16 +407,18 @@ class BaseScanner:
 
         return results
 
-    def scan_area(
-        self,
-        t_min=None,
-        t_max=None,
-    ):
+    def scan_area(self, t_min=None, t_max=None, backend: str = ZTF_BACKEND):
         """
-        Retrieve alerts for the healpix map from AMPEL API,
+        Retrieve alerts for the healpix map from API,
         filter the candidates and create a summary
+
+        :param t_min: Minimum time to query
+        :param t_max: Maximum time to query
+        :param backend: Backend to query (ampel or kowalski)
+
+        :return: None
         """
-        alerts = self.get_alerts(t_min=t_min, t_max=t_max)
+        alerts = self.get_alerts(t_min=t_min, t_max=t_max, backend=backend)
         self.add_results([[x] for x in alerts], cache=self.cache_alerts)
         candidates = self.filter_alerts(alerts)
         self.add_results(candidates, cache=self.cache_candidates)
