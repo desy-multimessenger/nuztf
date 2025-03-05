@@ -62,8 +62,8 @@ try:
         warnings.filterwarnings("ignore", category=UserWarning)
         io.set_account(
             "ampel_api_archive_token",
-            username="",
-            password=os.environ["AMPEL_API_ARCHIVE_TOKEN"],
+            token=os.environ["AMPEL_API_ARCHIVE_TOKEN"],
+            token_based=True,
         )
         logging.info('Set up "ampel_api_archive_token" credentials')
 

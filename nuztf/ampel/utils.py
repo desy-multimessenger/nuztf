@@ -42,5 +42,7 @@ def get_ampel_token() -> str:
     """
 
     # Load credentials from environment
-    _, ampel_api_archive_token = load_credentials("ampel_api_archive_token")
+    ampel_api_archive_token = load_credentials(
+        "ampel_api_archive_token", token_based=True
+    )
     return ampel_api_archive_token
