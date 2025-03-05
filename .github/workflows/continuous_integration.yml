@@ -42,8 +42,7 @@ jobs:
       # Runs all tests in the 'tests' directory and gets coverage
       - name: Test the code
         env:
-          AMPEL_API_ARCHIVE_TOKEN_USER: ${{ secrets.ampel_api_archive_token_user }}
-          AMPEL_API_ARCHIVE_TOKEN_PASSWORD: ${{ secrets.ampel_api_archive_token_password }}
+          AMPEL_API_ARCHIVE_TOKEN: ${{ secrets.ampel_api_archive_token }}
           TNS_API_TOKEN: ${{ secrets.tns_api_token }}
           IRSA_USER: ${{ secrets.irsa_user }}
           IRSA_PASSWORD: ${{ secrets.irsa_password }}
@@ -53,6 +52,7 @@ jobs:
           DESY_CLOUD_TOKEN: ${{ secrets.desy_cloud_token }}
           DEPOT_USER: ${{ secrets.depot_user }}
           DEPOT_PASSWORD: ${{ secrets.depot_password }}
+          KOWALSKI_API_TOKEN: ${{ secrets.kowalski_api_token }}
           ZTFDATA: ./
         run: |
           poetry run coverage run -m pytest -v
