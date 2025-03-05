@@ -5,7 +5,10 @@ import logging
 import os
 import warnings
 
+import dotenv
 from ztfquery import io
+
+dotenv.load_dotenv()
 
 # Manage ztfquery logins from environment variables
 
@@ -59,8 +62,8 @@ try:
         warnings.filterwarnings("ignore", category=UserWarning)
         io.set_account(
             "ampel_api_archive_token",
-            username=os.environ["AMPEL_API_ARCHIVE_TOKEN_USER"],
-            password=os.environ["AMPEL_API_ARCHIVE_TOKEN_PASSWORD"],
+            username="",
+            password=os.environ["AMPEL_API_ARCHIVE_TOKEN"],
         )
         logging.info('Set up "ampel_api_archive_token" credentials')
 

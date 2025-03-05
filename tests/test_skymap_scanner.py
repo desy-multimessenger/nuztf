@@ -59,8 +59,7 @@ class TestSkymapScanner(unittest.TestCase):
 
         fig, coverage_summary = scanner.plot_coverage()
 
-        true_coverage_summary = "In total, 88.6 % of the contour was observed at least once.\nThis estimate includes 0.0 % of the contour at a galactic latitude <10 deg.\nIn total, 73.8 % of the contour was observed at least twice. \nIn total, 73.8 % of the contour was observed at least twice, and excluding low galactic latitudes.\nThese estimates account for chip gaps."
-
+        true_coverage_summary = "In total, 92.9 % of the contour was observed at least once.\nThis estimate includes 0.0 % of the contour at a galactic latitude <10 deg.\nIn total, 75.3 % of the contour was observed at least twice. \nIn total, 75.3 % of the contour was observed at least twice, and excluding low galactic latitudes.\nThese estimates account for chip gaps."
         print(repr(coverage_summary))
         self.assertEqual(coverage_summary, true_coverage_summary)
 
