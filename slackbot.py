@@ -96,7 +96,7 @@ class Slackbot:
         elif self.event_type == "gw":
             if self.dl_results:
                 self.scanner.download_results()
-                if len(self.scanner.cache) == 0:
+                if len(self.scanner.cache_candidates) == 0:
                     self.post("No candidates found on DESY cloud, rerunning scan")
                     self.scanner.get_alerts()
                     self.scanner.filter_alerts()
@@ -106,16 +106,18 @@ class Slackbot:
 
         scan_message = "Scanning done."
 
-        if len(self.scanner.cache) > 0:
-            scan_message += f" Found {len(self.scanner.cache)} candidates:\n\n"
-            for entry in list(self.scanner.cache.keys()):
+        if len(self.scanner.cache_candidates) > 0:
+            scan_message += (
+                f" Found {len(self.scanner.cache_candidates)} candidates:\n\n"
+            )
+            for entry in list(self.scanner.cache_candidates.keys()):
                 scan_message += f"{entry}\n"
         else:
             scan_message += "\nNo candidates found."
 
         self.post(scan_message)
 
-        if len(self.scanner.cache) > 0:
+        if len(self.scanner.cache_candidates) > 0:
             self.scanner.create_candidate_summary()
             pdf_overview_path = self.scanner.get_output_dir() / "candidates.pdf"
             self.post_file(pdf_overview_path, f"{self.name}_candidates.pdf")
@@ -124,7 +126,7 @@ class Slackbot:
             csv_path = self.scanner.get_output_dir() / "candidate_table.csv"
             self.post_file(csv_path, f"{self.name}_candidates.csv")
 
-        if do_gcn and len(self.scanner.cache) > 0:
+        if do_gcn and len(self.scanner.cache_candidates) > 0:
             self.create_gcn()
 
     def create_gcn(self):

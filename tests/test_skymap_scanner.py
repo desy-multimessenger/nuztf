@@ -17,7 +17,7 @@ class TestSkymapScanner(unittest.TestCase):
         self.logger.info("\n\n Testing GW Scanning \n\n")
 
         gw_name = "S190814bv"
-        prob_threshold = 0.9
+        prob_threshold = 0.95
 
         self.logger.info(f"Scanning with GW {gw_name}")
 
@@ -29,10 +29,10 @@ class TestSkymapScanner(unittest.TestCase):
 
         scanner.plot_skymap()
 
-        scanner.get_alerts()
+        scanner.scan_area()
 
         n_retrieved_alerts = scanner.n_alerts
-        n_expected_alerts = 1319
+        n_expected_alerts = 1399
 
         self.logger.info(
             f"Retrieved {n_retrieved_alerts} alerts. {n_expected_alerts} alerts expected."
@@ -40,9 +40,7 @@ class TestSkymapScanner(unittest.TestCase):
 
         self.assertEqual(n_retrieved_alerts, n_expected_alerts)
 
-        scanner.filter_alerts()
-
-        n_retrieved_candidates = len(scanner.final_candidates)
+        n_retrieved_candidates = scanner.n_candidates
         n_expected_candidates = 1
 
         self.logger.info(
@@ -61,8 +59,7 @@ class TestSkymapScanner(unittest.TestCase):
 
         fig, coverage_summary = scanner.plot_coverage()
 
-        true_coverage_summary = "In total, 88.6 % of the contour was observed at least once.\nThis estimate includes 0.0 % of the contour at a galactic latitude <10 deg.\nIn total, 73.8 % of the contour was observed at least twice. \nIn total, 73.8 % of the contour was observed at least twice, and excluding low galactic latitudes.\nThese estimates account for chip gaps."
-
+        true_coverage_summary = "In total, 92.9 % of the contour was observed at least once.\nThis estimate includes 0.0 % of the contour at a galactic latitude <10 deg.\nIn total, 75.3 % of the contour was observed at least twice. \nIn total, 75.3 % of the contour was observed at least twice, and excluding low galactic latitudes.\nThese estimates account for chip gaps."
         print(repr(coverage_summary))
         self.assertEqual(coverage_summary, true_coverage_summary)
 
@@ -71,6 +68,11 @@ class TestSkymapScanner(unittest.TestCase):
         true_tns_summary = "Candidate: ZTF19abpuhbh / RA=11.2569224 / Dec=-22.5161471 / First detection=2458710.9475231\nLast Upper Limit: None\nFirst Detection: 2458710.9475231 / band=r / mag=20.857 +/- 0.284\nFirst observed 13.56 hours after merger\n[2458710.9475231, 2458710.9948611]\n"
 
         self.assertEqual(tns_summary, true_tns_summary)
+
+        # Backend: Kowalski
+        scanner.scan_area(backend="kowalski")
+        n_retrieved_alerts = scanner.n_alerts
+        self.assertEqual(n_retrieved_alerts, n_expected_alerts)
 
     # def test_grb_scan(self):
     #     self.logger.info("\n\n Testing GRB Scanner \n\n")
@@ -138,6 +140,6 @@ class TestSkymapScanner(unittest.TestCase):
 
         n_expected_candidates = 13
 
-        n_retrieved_candidates = len(scanner.final_candidates)
+        n_retrieved_candidates = scanner.n_candidates
 
         self.assertEqual(n_retrieved_candidates, n_expected_candidates)

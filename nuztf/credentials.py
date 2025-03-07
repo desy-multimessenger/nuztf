@@ -5,13 +5,18 @@ import logging
 import os
 import warnings
 
+import dotenv
 from ztfquery import io
+
+dotenv.load_dotenv()
 
 # Manage ztfquery logins from environment variables
 
 
 def load_credentials(name: str, token_based: bool = False):
-    """ZTFquery wrapper for loading credentials."""
+    """
+    ZTFquery wrapper for loading credentials.
+    """
     return io._load_id_(name, token_based=token_based)
 
 
@@ -57,8 +62,8 @@ try:
         warnings.filterwarnings("ignore", category=UserWarning)
         io.set_account(
             "ampel_api_archive_token",
-            username=os.environ["AMPEL_API_ARCHIVE_TOKEN_USER"],
-            password=os.environ["AMPEL_API_ARCHIVE_TOKEN_PASSWORD"],
+            token=os.environ["AMPEL_API_ARCHIVE_TOKEN"],
+            token_based=True,
         )
         logging.info('Set up "ampel_api_archive_token" credentials')
 
@@ -95,3 +100,17 @@ try:
 
 except KeyError:
     logging.info("No Token for Fritz API found in environment" "Assume it is set.")
+
+try:
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning)
+        io.set_account(
+            which="kowalski",
+            token=os.environ["KOWALSKI_API_TOKEN"],
+            token_based=True,
+            force=True,
+        )
+        logging.info('Set up "kowalski" credentials')
+
+except KeyError:
+    logging.info("No Token for Kowalski API found in environment" "Assume it is set.")

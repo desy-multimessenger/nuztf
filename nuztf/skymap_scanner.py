@@ -3,7 +3,6 @@
 
 import json
 import logging
-import os
 import time
 
 import healpy as hp
@@ -13,15 +12,10 @@ import yaml
 from astropy.time import Time
 from tqdm import tqdm
 
-from nuztf.ampel_api import (
-    ampel_api_acknowledge_chunk,
-    ampel_api_lightcurve,
-    ampel_api_skymap,
-    ampel_api_timerange,
-    get_preprocessed_results,
-)
+from nuztf.ampel import get_preprocessed_results
+from nuztf.api import api_name, api_skymap
 from nuztf.base_scanner import BaseScanner
-from nuztf.paths import BASE_CANDIDATE_DIR, CONFIG_DIR
+from nuztf.paths import CONFIG_DIR
 from nuztf.skymap import Skymap
 
 
@@ -95,7 +89,7 @@ class SkymapScanner(BaseScanner):
         else:
             final_objects = [alert["objectId"] for alert in res]
             for alert in res:
-                self.cache[alert["objectId"]] = alert
+                self.cache_candidates[alert["objectId"]] = alert
 
         final_objects = self.remove_duplicates(final_objects)
 
@@ -104,174 +98,10 @@ class SkymapScanner(BaseScanner):
             f"{self.get_name()} from DESY cloud."
         )
 
-        self.final_candidates = final_objects
+        self.add_results(res, cache=self.cache_candidates)
 
-    def get_alerts(self):
-        """Scan the skymap area and get ZTF transients"""
-        self.logger.info("Commencing skymap scan")
-
-        self.logger.debug(
-            f"API skymap search: nside = {self.cone_nside} "
-            f"/ # pixels = {len(self.cone_ids)} / "
-            f"timespan = {self.default_t_max.jd-self.t_min.jd:.1f} days."
-        )
-
-        time_healpix_start = time.time()
-
-        self.queue = []
-
-        resume = True
-        chunk_size = 2000
-        resume_token = None
-
-        i = 0
-        total_chunks = 0
-        t0 = time.time()
-
-        while resume:
-            res, resume_token, chunk_id, remaining_chunks = ampel_api_skymap(
-                pixels=self.cone_ids,
-                nside=self.cone_nside,
-                t_min_jd=self.t_min.jd,
-                t_max_jd=self.default_t_max.jd,
-                max_n_detections=10,
-                logger=self.logger,
-                chunk_size=chunk_size,
-                resume_token=resume_token,
-                warn_exceeding_chunk=False,
-            )
-            self.queue.extend(res)
-
-            ampel_api_acknowledge_chunk(resume_token=resume_token, chunk_id=chunk_id)
-
-            if i == 0:
-                total_chunks = remaining_chunks + 1
-                self.logger.info(f"Total chunks: {total_chunks}")
-
-            if remaining_chunks % 50 == 0 and remaining_chunks != 0:
-                t1 = time.time()
-                processed_chunks = total_chunks - remaining_chunks
-                time_per_chunk = (t1 - t0) / processed_chunks
-                remaining_time = time_per_chunk * remaining_chunks
-                self.logger.info(
-                    f"Remaining chunks: {remaining_chunks}. Estimated time to finish: {remaining_time/60:.0f} min"
-                )
-
-            if len(res) < chunk_size:
-                resume = False
-                self.logger.info("Done.")
-            else:
-                self.logger.debug(
-                    f"Chunk size reached ({chunk_size}), commencing next query."
-                )
-            i += 1
-
-        time_healpix_end = time.time()
-        time_healpix = time_healpix_end - time_healpix_start
-
-        cache_file = self.get_cache_dir().joinpath("initial_stage.json")
-
-        with open(cache_file, "w") as outfile:
-            json.dump(self.queue, outfile)
-
-        self.n_alerts = len(self.queue)
-
-        self.logger.info(
-            f"Added {self.n_alerts} alerts found between {self.t_min}"
-            f" and {self.default_t_max.isot}"
-        )
-        self.logger.info(f"This took {time_healpix:.1f} s in total")
-
-    def filter_alerts(self, load_cachefile=False):
-        """ """
-        self.logger.info(f"Commencing first stage filtering.")
-        cache_file = self.get_cache_dir().joinpath("all_alerts.json")
-
-        if load_cachefile:
-            self.queue = json.load(open(cache_file, "r"))
-
-        first_stage_objects = []
-        filter_time_start = time.time()
-
-        i_survived = []
-
-        for i, res in enumerate(tqdm(self.queue)):
-            ztf_id = res["objectId"]
-
-            if self.filter_f_no_prv(
-                res=res,
-            ):
-                self.logger.debug(
-                    f"{ztf_id}: Passed first cut (does not have previous detections)."
-                )
-                if self.filter_ampel(res):
-                    self.logger.debug(f"{ztf_id}: Passed AMPEL cut.")
-                    i_survived.append(i)
-                else:
-                    self.logger.debug(f"{ztf_id}: Failed AMPEL cut.")
-            else:
-                self.logger.debug(
-                    f"{ztf_id}: Failed first cut (has previous detections)."
-                )
-
-        first_stage_objects = [self.queue[i]["objectId"] for i in i_survived]
-        first_stage_objects = self.remove_duplicates(first_stage_objects)
-
-        filter_time_end = time.time()
-        filter_time = filter_time_end - filter_time_start
-
-        self.logger.info(
-            f"First stage of filtering (based on predetections plus AMPEL cuts) "
-            f"took {filter_time:.1f} s in total. "
-            f"{len(first_stage_objects)} transients make the cut."
-        )
-
-        cache_file_first_stage = self.get_cache_dir().joinpath("first_stage.json")
-
-        with open(cache_file_first_stage, "w") as outfile:
-            json.dump(first_stage_objects, outfile)
-
-        # Second and final stage
-        self.logger.info(
-            f"Second stage commencing: Now we do additional filtering based on history."
-        )
-
-        start_secondfilter = time.time()
-
-        final_objects = []
-
-        for ztf_id in tqdm(first_stage_objects):
-            # Get the full lightcurve from the API
-            query_res = ampel_api_lightcurve(ztf_name=ztf_id, logger=self.logger)
-
-            for res in query_res:
-                _ztf_id = res["objectId"]
-
-                if self.filter_f_history(res=res):
-                    final_objects.append(_ztf_id)
-                    self.cache[_ztf_id] = res
-                    self.logger.debug(f"✅ {_ztf_id}: Passed all filters.")
-                else:
-                    self.logger.debug(f"❌ {_ztf_id}: Failed History.")
-
-        end_secondfilter = time.time()
-        filter_time = end_secondfilter - start_secondfilter
-
-        final_objects = self.remove_duplicates(final_objects)
-
-        cache_file_final_stage = self.get_cache_dir().joinpath("final_stage.json")
-
-        with open(cache_file_final_stage, "w") as outfile:
-            json.dump(final_objects, outfile)
-
-        self.logger.info(
-            f"Final stage of filtering took {filter_time:.1f} s in total. "
-            f"{len(final_objects)} transients make the cut."
-        )
-
-        self.final_candidates = final_objects
-
-    def remove_duplicates(self, ztf_ids: list):
+    @staticmethod
+    def remove_duplicates(ztf_ids: list):
         """ """
         return list(set(ztf_ids))
 
@@ -348,7 +178,7 @@ class SkymapScanner(BaseScanner):
             return False
 
         # Exclude negative detection
-        if res["candidate"]["isdiffpos"] not in ["t", "1"]:
+        if res["candidate"]["isdiffpos"] not in ["t", "1", "true"]:
             self.logger.debug(f"❌ {res['objectId']}: Negative subtraction")
             return False
 
@@ -378,6 +208,7 @@ class SkymapScanner(BaseScanner):
 
         # Veto old transients
         ztf_id = res["objectId"]
+
         if res["candidate"]["jdstarthist"] < self.t_min.jd:
             self.logger.debug(
                 f"❌ {ztf_id}: Transient is too old. (jdstarthist history predates event)"
@@ -402,8 +233,18 @@ class SkymapScanner(BaseScanner):
             for x in res["prv_candidates"]
             if np.logical_and("isdiffpos" in x.keys(), x["jd"] > self.t_min.jd)
         ]
+        old_detections = [
+            x
+            for x in old_detections
+            if str(x["isdiffpos"]).lower() in ["t", "1", "true"]
+        ]
 
         pos_detections = [x for x in old_detections if "isdiffpos" in x.keys()]
+        pos_detections = [
+            x
+            for x in pos_detections
+            if str(x["isdiffpos"]).lower() in ["t", "1", "true"]
+        ]
 
         if len(pos_detections) < 1:
             self.logger.debug(f"❌ {ztf_id}: Does not have two detections")
@@ -524,7 +365,7 @@ class SkymapScanner(BaseScanner):
         )
 
         if plot_candidates:
-            for candidate, res in self.cache.items():
+            for candidate, res in self.cache_candidates.items():
                 ra = np.deg2rad(
                     self.wrap_around_180(np.array([res["candidate"]["ra"]]))
                 )

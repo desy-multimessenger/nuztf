@@ -3,7 +3,6 @@
 
 import json
 import logging
-import time
 from pathlib import Path
 
 import backoff
@@ -22,12 +21,8 @@ from astropy.time import Time
 from matplotlib.backends.backend_pdf import PdfPages
 from tqdm import tqdm
 
-from nuztf.ampel_api import (
-    ampel_api_acknowledge_chunk,
-    ampel_api_lightcurve,
-    ampel_api_name,
-    ampel_api_skymap,
-)
+from nuztf.ampel.utils import merge_alerts
+from nuztf.api import ZTF_BACKEND, api_name, api_skymap
 from nuztf.cat_match import ampel_api_tns, get_cross_match_info, query_ned_for_z
 from nuztf.flatpix import get_nested_pix
 from nuztf.fritz import save_source_to_group
@@ -108,7 +103,8 @@ class BaseScanner:
         else:
             self.cone_ids, self.cone_coords = cones_to_scan
 
-        self.cache = dict()
+        self.cache_alerts = dict()
+        self.cache_candidates = dict()
         self.default_t_max = t_min + 10.0
 
         self.overlap_prob = None
@@ -126,11 +122,58 @@ class BaseScanner:
         if not hasattr(self, "dist"):
             self.dist = None
 
+    @property
+    def n_alerts(self):
+        """
+        Number of alerts retrieved from the API
+        """
+        return len(self.cache_alerts)
+
+    @property
+    def n_candidates(self):
+        """
+        Number of candidates after filtering
+        """
+        return len(self.cache_candidates)
+
     def get_full_name(self) -> str:
         raise NotImplementedError
 
     def get_name(self) -> str:
         raise NotImplementedError
+
+    @staticmethod
+    def get_table(alerts: dict) -> pd.DataFrame:
+        """
+        Create a pandas DataFrame with the candidate table
+
+        :return: DataFrame
+        """
+        all_alerts = []
+        for ztf_id, alert in tqdm(sorted(alerts.items())):
+            data = {
+                "ztf_id": ztf_id,
+                **{k: v for k, v in alert.items() if "candidate" not in k},
+                **{k: v for k, v in alert["candidate"].items()},
+            }
+            all_alerts.append(data)
+        return pd.DataFrame(all_alerts)
+
+    def get_alerts_table(self) -> pd.DataFrame:
+        """
+        Get the alerts table
+
+        :return: DataFrame
+        """
+        return self.get_table(self.cache_alerts)
+
+    def get_candidates_table(self) -> pd.DataFrame:
+        """
+        Get the candidates table
+
+        :return: DataFrame
+        """
+        return self.get_table(self.cache_candidates)
 
     def get_output_dir(self) -> Path:
         output_dir = RESULTS_DIR.joinpath(self.get_name())
@@ -197,31 +240,33 @@ class BaseScanner:
         else:
             return False
 
-    @backoff.on_exception(
-        backoff.expo,
-        requests.exceptions.RequestException,
-        max_time=600,
-    )
-    def add_res_to_cache(self, res):
+    @staticmethod
+    def add_res_to_cache(res, cache: dict):
+        """
+        Add the results to the cache
+
+        :param res: Results from the API
+        :param cache: Cache to add the results to
+        """
         for res_alert in res:
-            if res_alert["objectId"] not in self.cache.keys():
-                self.cache[res_alert["objectId"]] = res_alert
+            if res_alert["objectId"] not in cache.keys():
+                cache[res_alert["objectId"]] = res_alert
             elif (
                 res_alert["candidate"]["jd"]
-                > self.cache[res_alert["objectId"]]["candidate"]["jd"]
+                > cache[res_alert["objectId"]]["candidate"]["jd"]
             ):
-                self.cache[res_alert["objectId"]] = res_alert
+                cache[res_alert["objectId"]] = res_alert
 
     def add_to_cache_by_names(self, ztf_ids: list):
         for ztf_id in ztf_ids:
-            query_res = ampel_api_name(ztf_id, logger=self.logger)
-            self.add_res_to_cache(query_res)
+            query_res = api_name(ztf_id)
+            self.add_res_to_cache(query_res, cache=self.cache_candidates)
 
     def check_ampel_filter(self, ztf_name):
         lvl = logging.getLogger().getEffectiveLevel()
         logging.getLogger().setLevel(logging.DEBUG)
         self.logger.info("Set logger level to DEBUG")
-        all_query_res = ampel_api_name(ztf_name, logger=self.logger)
+        all_query_res = api_name(ztf_name)
         assert len(all_query_res) > 0, f"No results from ampel api for {ztf_name}"
         pipeline_bool = False
         for query_res in all_query_res:
@@ -248,76 +293,41 @@ class BaseScanner:
         #     mns = get_obs_summary(self.t_min, max_days=max_days)
         return mns
 
-    def query_ampel(
-        self,
-        t_min=None,
-        t_max=None,
-    ):
+    def query_for_alerts(self, t_min=None, t_max=None, backend: str = ZTF_BACKEND):
+        """
+        Query the API for alerts
+
+        :param t_min: Minimum time to query
+        :param t_max: Maximum time to query
+        :param backend: Backend to query (ampel or kowalski)
+
+        :return: List of alerts
+        """
         if t_max is None:
             t_max = self.default_t_max
 
         if t_min is None:
             t_min = self.t_min
 
-        self.logger.info("Commencing skymap scan")
-
-        self.logger.debug(
-            f"API skymap search: nside = {self.cone_nside} / "
-            f"# pixels = {len(self.cone_ids)} / "
-            f"timespan = {t_max.jd-t_min.jd:.1f} days."
+        query_res = api_skymap(
+            t_min=t_min,
+            t_max=t_max,
+            cone_nside=self.cone_nside,
+            cone_ids=self.cone_ids,
+            backend=backend,
         )
 
-        query_res = []
+        self.logger.info(f"Ingested {len(query_res)} alerts.")
 
-        resume = True
-        chunk_size = 2000
-        resume_token = None
+        passed = [
+            x
+            for x in query_res
+            if self.in_contour(x["candidate"]["ra"], x["candidate"]["dec"])
+        ]
 
-        i = 0
-        total_chunks = 0
-        t0 = time.time()
+        self.logger.info(f"Passed {len(passed)} alerts after contour check.")
 
-        while resume:
-            res, resume_token, chunk_id, remaining_chunks = ampel_api_skymap(
-                pixels=self.cone_ids,
-                nside=self.cone_nside,
-                t_min_jd=t_min.jd,
-                t_max_jd=t_max.jd,
-                logger=self.logger,
-                chunk_size=chunk_size,
-                resume_token=resume_token,
-                warn_exceeding_chunk=False,
-            )
-            query_res.extend(res)
-
-            ampel_api_acknowledge_chunk(resume_token=resume_token, chunk_id=chunk_id)
-
-            if i == 0:
-                total_chunks = remaining_chunks + 1
-                self.logger.info(f"Total chunks: {total_chunks}")
-
-            if remaining_chunks % 50 == 0 and remaining_chunks != 0:
-                t1 = time.time()
-                processed_chunks = total_chunks - remaining_chunks
-                time_per_chunk = (t1 - t0) / processed_chunks
-                remaining_time = time_per_chunk * remaining_chunks
-                self.logger.info(
-                    f"Remaining chunks: {remaining_chunks}. Estimated time to finish: "
-                    f"{remaining_time/60:.0f} min"
-                )
-
-            if len(res) < chunk_size:
-                resume = False
-                self.logger.info("Done.")
-            else:
-                self.logger.debug(
-                    f"Chunk size reached ({chunk_size}), commencing next query."
-                )
-            i += 1
-
-        self.logger.info(f"Ingested {len(query_res)} alerts. Commencing filtering now.")
-
-        return query_res
+        return passed
 
     def get_initial_cache_path(self) -> Path:
         """
@@ -352,21 +362,31 @@ class BaseScanner:
         with open(self.get_final_cache_path(), "r") as infile:
             results = json.load(infile)
 
-        self.add_results(results)
+        self.add_results(results, self.cache_candidates)
 
-    def scan_area(
-        self,
-        t_min=None,
-        t_max=None,
-    ):
+    def get_alerts(self, t_min=None, t_max=None, backend: str = ZTF_BACKEND):
         """
-        Retrieve alerts for the healpix map from AMPEL API,
-        filter the candidates and create a summary
+        Retrieve alerts
+
+        :param t_min: Minimum time to query
+        :param t_max: Maximum time to query
+        :param backend: Backend to query (ampel or kowalski)
+        :return: List of alerts
         """
-        query_res = self.query_ampel(t_min=t_min, t_max=t_max)
+        alerts = self.query_for_alerts(t_min=t_min, t_max=t_max, backend=backend)
 
         with open(self.get_initial_cache_path(), "w") as outfile:
-            json.dump(query_res, outfile)
+            json.dump(alerts, outfile)
+
+        return alerts
+
+    def filter_alerts(self, query_res):
+        """
+        Filter the alerts based on the filters
+
+        :param query_res: List of alerts
+        :return: List of filtered alerts
+        """
 
         ztf_ids_first_stage = []
         for res in tqdm(query_res):
@@ -376,31 +396,44 @@ class BaseScanner:
 
         ztf_ids_first_stage = list(set(ztf_ids_first_stage))
 
-        self.logger.info(
-            f"{len(ztf_ids_first_stage)} candidates survive filtering stage 1"
-        )
+        self.logger.info(f"{len(ztf_ids_first_stage)} alerts survive filtering stage 1")
 
-        self.logger.info(f"Retrieving alert history from AMPEL for filtering stage 2")
+        self.logger.info(f"Retrieving alert history for filtering stage 2")
 
-        results = self.ampel_object_search(ztf_ids=ztf_ids_first_stage)
+        results = self.filter_with_history(ztf_ids=ztf_ids_first_stage)
 
         with open(self.get_final_cache_path(), "w") as outfile:
             json.dump(results, outfile)
 
-        self.add_results(results)
-        self.create_candidate_summary()
+        return results
 
-    def add_results(self, results):
+    def scan_area(self, t_min=None, t_max=None, backend: str = ZTF_BACKEND):
         """
-        Add the results to the cache and create a summary
+        Retrieve alerts for the healpix map from API,
+        filter the candidates and create a summary
+
+        :param t_min: Minimum time to query
+        :param t_max: Maximum time to query
+        :param backend: Backend to query (ampel or kowalski)
+
+        :return: None
+        """
+        alerts = self.get_alerts(t_min=t_min, t_max=t_max, backend=backend)
+        self.add_results([[x] for x in alerts], cache=self.cache_alerts)
+        candidates = self.filter_alerts(alerts)
+        self.add_results(candidates, cache=self.cache_candidates)
+
+    def add_results(self, results, cache: dict):
+        """
+        Add the final results to the cache and create a summary
 
         :param results: Results from the AMPEL API
+        :param cache: Cache to add the results to
         :return: None
         """
         for res in results:
-            self.add_res_to_cache(res)
-
-        self.logger.info(f"Found {len(self.cache)} candidates")
+            self.add_res_to_cache(res, cache=cache)
+        self.logger.info(f"Found {len(results)} alerts, with {len(cache)} unique names")
 
     def filter_f_no_prv(self, res):
         raise NotImplementedError
@@ -422,21 +455,23 @@ class BaseScanner:
     def in_contour(self, ra, dec):
         raise NotImplementedError
 
-    def ampel_object_search(self, ztf_ids: list) -> list:
+    def filter_with_history(self, ztf_ids: list) -> list:
         """ """
         all_results = []
 
         for ztf_id in tqdm(ztf_ids):
             # get the full lightcurve from the API
-            query_res = ampel_api_lightcurve(ztf_name=ztf_id, logger=self.logger)
+            query_res = api_name(ztf_name=ztf_id)
 
-            final_res = []
+            candidate_passes = False
 
             for res in query_res:
                 if self.filter_f_history(res):
-                    final_res.append(res)
+                    candidate_passes = True
+                    break
 
-            all_results.append(final_res)
+            if candidate_passes:
+                all_results.append(merge_alerts(query_res))
 
         return all_results
 
@@ -455,7 +490,7 @@ class BaseScanner:
         Returns: str
         """
 
-        if len(self.cache) > 0:
+        if len(self.cache_candidates) > 0:
             s = (
                 "We are left with the following high-significance transient "
                 "candidates by our pipeline, all lying within the "
@@ -480,7 +515,7 @@ class BaseScanner:
             "| ZTF Name     | IAU Name  | RA (deg)    | DEC (deg)   | Filter | Mag   | MagErr |\n"
             "+--------------------------------------------------------------------------------+\n"
         )
-        for name, res in sorted(self.cache.items()):
+        for name, res in sorted(self.cache_candidates.items()):
             jds = [x["jd"] for x in res["prv_candidates"]]
 
             if res["candidate"]["jd"] > max(jds):
@@ -593,13 +628,13 @@ class BaseScanner:
 
         return int(hp.ang2pix(nside, theta, phi, nest=True))
 
-    def create_candidate_summary(self, include_ps1: bool = True) -> str:
+    def create_candidate_summary(self, include_ps1: bool = True):
         """
         Create pdf with lightcurve plots of all candidates
 
         :return None:
         """
-        if len(self.cache.items()) == 0:
+        if len(self.cache_candidates.items()) == 0:
             self.logger.info("No candidates found, skipping pdf creation")
             return
 
@@ -611,7 +646,7 @@ class BaseScanner:
         self.logger.debug(f"Overview pdf path: {pdf_path}")
 
         with PdfPages(pdf_path) as pdf:
-            for name, alert in tqdm(sorted(self.cache.items())):
+            for name, alert in tqdm(sorted(self.cache_candidates.items())):
                 fig, _ = lightcurve_from_alert(
                     [alert],
                     include_cutouts=True,
@@ -629,7 +664,7 @@ class BaseScanner:
 
         :return None:
         """
-        if len(self.cache.items()) == 0:
+        if len(self.cache_candidates.items()) == 0:
             self.logger.info("No candidates found, skipping csv creation")
             return
 
@@ -647,7 +682,7 @@ class BaseScanner:
             "kilonova_score": [],
         }
 
-        for ztf_id, alert in tqdm(sorted(self.cache.items())):
+        for ztf_id, alert in tqdm(sorted(self.cache_candidates.items())):
             data["ztf_id"].append(ztf_id)
             data["RA"].append(alert["candidate"]["ra"])
             data["Dec"].append(alert["candidate"]["dec"])
@@ -670,7 +705,7 @@ class BaseScanner:
         """
         summary = ""
 
-        for name, res in sorted(self.cache.items()):
+        for name, res in sorted(self.cache_candidates.items()):
             detections = [
                 x
                 for x in res["prv_candidates"] + [res["candidate"]]
@@ -720,7 +755,7 @@ class BaseScanner:
         :return: str
         """
 
-        for name, res in sorted(self.cache.items()):
+        for name, res in sorted(self.cache_candidates.items()):
             detections = [
                 x
                 for x in res["prv_candidates"] + [res["candidate"]]
@@ -782,7 +817,7 @@ class BaseScanner:
         :return:
         """
         text = ""
-        for name, res in sorted(self.cache.items()):
+        for name, res in sorted(self.cache_candidates.items()):
             detections = [
                 x
                 for x in res["prv_candidates"] + [res["candidate"]]
@@ -1236,7 +1271,7 @@ class BaseScanner:
 
         saved_sources = []
 
-        for source in self.cache.keys():
+        for source in self.cache_candidates.keys():
             response = save_source_to_group(object_id=source, group_id=group_id)
 
             if response.status_code not in [200]:

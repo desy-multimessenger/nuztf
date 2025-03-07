@@ -17,8 +17,15 @@ logger = logging.getLogger(__name__)
 
 
 # IPAC TAP login
-username, password = load_credentials("irsa")
-data = {"username": username, "password": password}
+def get_ipac_credentials() -> tuple[str, str]:
+    """
+    Get the IPAC credentials for the TAP service
+
+    :return: username, password
+    """
+    return load_credentials("irsa")
+
+
 headers = {"Content-Type": "application/x-www-form-urlencoded", "Accept": "text/plain"}
 IPAC_TAP_URL = "https://irsa.ipac.caltech.edu/TAP"
 
@@ -56,7 +63,7 @@ def write_coverage_tap(jds: [float]):
     :return: None
     """
     with create_session() as session:
-        session.auth = (username, password)
+        session.auth = get_ipac_credentials()
 
         # Setup AuthSession
         auth = authsession.AuthSession()

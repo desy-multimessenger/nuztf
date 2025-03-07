@@ -7,7 +7,7 @@ import unittest
 import astropy.units as u
 from astropy.time import Time
 
-from nuztf.ampel_api import (
+from nuztf.ampel import (
     ampel_api_cone,
     ampel_api_cutout,
     ampel_api_healpix,

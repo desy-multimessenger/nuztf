@@ -17,7 +17,7 @@ from astroquery.ipac.ned import Ned
 from ztfquery.io import LOCALSOURCE
 from ztfquery.lightcurve import LCQuery
 
-from nuztf.ampel_api import ampel_api_name
+from nuztf.api import api_name
 from nuztf.parse_nu_gcn import find_gcn_no, parse_gcn_circular
 from nuztf.style import base_height, base_width, big_fontsize, dpi, plot_dir
 from nuztf.utils import cosmo, is_tns_name, is_ztf_name, query_tns_by_name
@@ -99,7 +99,7 @@ def plot_irsa_lightcurve(
 
         if is_ztf_name(name=source_name):
             logger.info("Source name is a ZTF name.")
-            res = ampel_api_name(source_name, with_history=False)[0]
+            res = api_name(source_name, with_history=False)[0]
             source_coords = [res["candidate"]["ra"], res["candidate"]["dec"]]
             logger.info(f"Found ZTF coordinates for source {source_name}")
 
