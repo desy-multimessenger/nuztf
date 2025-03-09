@@ -12,11 +12,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import requests
+from ampel.log.AmpelLogger import DEBUG as AMPEL_DEBUG
 from ampel.ztf.alert.ZiAlertSupplier import ZiAlertSupplier
 from ampel.ztf.dev.DevAlertConsumer import DevAlertConsumer
 from ampel.ztf.t0.DecentFilter import DecentFilter
 from astropy import units as u
 from astropy.coordinates import Distance, SkyCoord
+from astropy.logger import level
 from astropy.time import Time
 from matplotlib.backends.backend_pdf import PdfPages
 from tqdm import tqdm
@@ -31,7 +33,6 @@ from nuztf.paths import BASE_CANDIDATE_DIR, RESULTS_DIR
 from nuztf.plot import lightcurve_from_alert
 from nuztf.utils import cosmo
 
-DEBUG = False
 RATELIMIT_CALLS = 10
 RATELIMIT_PERIOD = 1
 
@@ -232,7 +233,6 @@ class BaseScanner:
 
     def filter_ampel(self, res):
         self.logger.debug(f"{res['objectId']}: Running AMPEL filter")
-
         shaped_alert = ZiAlertSupplier.shape_alert_dict(res, ["FilterTest"])
         filterres = self.ampel_filter_class.process(alert=shaped_alert)
         if filterres:
@@ -265,6 +265,15 @@ class BaseScanner:
     def check_ampel_filter(self, ztf_name):
         lvl = logging.getLogger().getEffectiveLevel()
         logging.getLogger().setLevel(logging.DEBUG)
+
+        # Reengineer the ampel log level
+        ampel_logger = self.ampel_filter_class.logger
+        ampel_log_lvl = ampel_logger.level
+        handler = ampel_logger.handlers[0]
+        handler.level = AMPEL_DEBUG
+        ampel_logger.level = AMPEL_DEBUG
+        self.ampel_filter_class.logger = ampel_logger
+
         self.logger.info("Set logger level to DEBUG")
         all_query_res = api_name(ztf_name)
         assert len(all_query_res) > 0, f"No results from ampel api for {ztf_name}"
@@ -285,6 +294,12 @@ class BaseScanner:
                         pipeline_bool = True
         self.logger.info(f"Setting logger back to {lvl}")
         logging.getLogger().setLevel(lvl)
+
+        # Reset the ampel log level
+        ampel_logger.level = ampel_log_lvl
+        handler.level = ampel_log_lvl
+        self.ampel_filter_class.logger = ampel_logger
+
         return pipeline_bool
 
     def get_multi_night_summary(self, max_days=None):
