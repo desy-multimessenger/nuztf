@@ -22,6 +22,7 @@ def main(
         str, typer.Argument(..., help="Name of the neutrino, e.g. `IC200530A`")
     ],
     logging_level: Annotated[str, typer.Option("--logging-level", "-l")] = "INFO",
+    coverage_backend: Annotated[str, typer.Option("--coverage-backend", "-b")] = "best",
     gcn_filename: Annotated[
         str,
         typer.Option(
@@ -50,7 +51,7 @@ def main(
     nu = NeutrinoScanner(nu_name)
     nu.query_for_alerts()
     nu.scan_area()
-    nu.plot_overlap_with_observations(first_det_window_days=30.0)
+    nu.plot_overlap_with_observations(first_det_window_days=30.0, backend=coverage_backend)
     jds = nu.observations.obsjd.unique()
 
     table = Table(title="Observations")

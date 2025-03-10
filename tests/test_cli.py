@@ -15,7 +15,7 @@ class TestCLI(unittest.TestCase):
         main(
             nu_name=neutrino_name,
             logging_level="DEBUG",
-            gcn_filename=tmpfile,
+            gcn_filename=str(tmpfile),
             rich_handler=False,
             stream_handler=True,
         )
