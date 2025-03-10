@@ -23,7 +23,7 @@ def main(
     ],
     logging_level: Annotated[str, typer.Option("--logging-level", "-l")] = "INFO",
     gcn_filename: Annotated[
-        str | Path,
+        str,
         typer.Option(
             "--gcn-filename",
             "-f",
