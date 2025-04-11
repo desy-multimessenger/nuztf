@@ -3289,14 +3289,14 @@ test = ["pytest"]
 
 [[package]]
 name = "ligo-gracedb"
-version = "2.14.0"
+version = "2.14.2"
 description = "A Python package for accessing the GraceDB API."
 optional = false
 python-versions = ">=3.6"
 groups = ["main"]
 files = [
-    {file = "ligo_gracedb-2.14.0-py3-none-any.whl", hash = "sha256:4f44d8a5f953f85cca89aea32117b657384503c95110edce5d2e49f6f0f9d48e"},
-    {file = "ligo_gracedb-2.14.0.tar.gz", hash = "sha256:d9afd77b03b0201123c8dfd306bfa181ae67c0a60f95885d47a14729a4709858"},
+    {file = "ligo_gracedb-2.14.2-py3-none-any.whl", hash = "sha256:6463af190ac27c136df0a074c4ea1261b407fc568a2a71a4fa04686797e725f5"},
+    {file = "ligo_gracedb-2.14.2.tar.gz", hash = "sha256:cd93fd50c7a999f88ef969826e678bdf99e242090b6d439d230e5f4f8043f39b"},
 ]
 
 [package.dependencies]
