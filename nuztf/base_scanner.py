@@ -115,10 +115,14 @@ class BaseScanner:
         self.n_fields = None
         self.rectangular_area = None
         self.double_extragalactic_area = None
+        self.healpix_area = None
+        self.double_area = None
 
         self.observations = None
 
         self.pixel_area = hp.pixelfunc.nside2pixarea(self.nside, degrees=True)
+
+        self.logger.info(f"Pixel area: total area: {self.total_pixel_area:.2f} deg^2")
 
         if not hasattr(self, "dist"):
             self.dist = None
@@ -218,15 +222,20 @@ class BaseScanner:
 
     def get_overlap_line(self):
         """ """
-        if (self.overlap_prob is not None) and (
-            self.double_extragalactic_area is not None
-        ):
-            return (
-                f"We covered {self.overlap_prob:.1f}% "
-                f"({self.double_extragalactic_area:.1f} sq deg) "
+        if (self.overlap_prob is not None) and (self.overlap_area is not None):
+            line = (
+                f"We covered {self.overlap_prob:.1f}% ({self.overlap_area:.1f} sq deg) "
                 f"of the reported localization region. "
-                "This estimate accounts for chip gaps. "
             )
+
+            if self.galactic_prob > 0:
+                line += (
+                    f"This includes {self.galactic_prob:.1f}% "
+                    f"({self.galactic_area:.1f} sq deg) at galactic latitude < 10 deg. "
+                )
+
+            line += "This estimate accounts for chip gaps. "
+            return line
         else:
             self.logger.warning("No overlap line added!")
             return ""
@@ -1102,9 +1111,6 @@ class BaseScanner:
 
         self.overlap_fields = list(set(overlapping_fields))
 
-        overlap_mask = (coverage_df["n_det_class"] == 2) & ~coverage_df["in_plane"]
-        self.overlap_prob = coverage_df[overlap_mask]["prob"].sum() * 100.0
-
         size = hp.max_pixrad(self.nside) ** 2 * 50.0
 
         veto_pixels = coverage_df.where(coverage_df["n_det_class"] == 0)
@@ -1184,23 +1190,36 @@ class BaseScanner:
         n_double = len(coverage_df.query("n_det_class == 2 & prob > 0.0"))
         n_plane = len(coverage_df.query("in_plane & n_det_class > 0 & prob > 0.0"))
 
-        self.healpix_area = self.pixel_area * n_pixels
-        self.double_extragalactic_area = self.pixel_area * n_double
-        plane_area = self.pixel_area * n_plane
+        overlap_mask = coverage_df["n_det_class"] == 2
+        self.overlap_prob = coverage_df[overlap_mask]["prob"].sum() * 100.0
+        self.overlap_area = self.pixel_area * n_double
+
+        galactic_mask = overlap_mask & coverage_df["in_plane"]
+        self.galactic_area = self.pixel_area * len(coverage_df[galactic_mask])
+        self.galactic_prob = coverage_df[galactic_mask]["prob"].sum() * 100.0
+
+        healpix_area = self.pixel_area * n_pixels
+        # self.double_extragalactic_area = self.pixel_area * n_double
+        # self.double_area = self.pixel_area * n_double
+        #
+        # print(self.overlap_area, self.double_area)
+        # raise
+        #
+        # plane_area = self.pixel_area * n_plane
 
         self.overlap_fields = overlapping_fields
 
         self.logger.info(
             f"{n_pixels} pixels were covered, covering approximately "
-            f"{self.healpix_area:.2g} sq deg."
+            f"{healpix_area:.2g} sq deg."
         )
         self.logger.info(
             f"{n_double} pixels were covered at least twice (b>10), "
-            f"covering approximately {self.double_extragalactic_area:.2g} sq deg."
+            f"covering approximately {self.overlap_prob:.2g} sq deg."
         )
         self.logger.info(
             f"{n_plane} pixels were covered at low galactic latitude, "
-            f"covering approximately {plane_area:.2g} sq deg."
+            f"covering approximately {self.galactic_area:.2g} sq deg."
         )
         return fig, message
 
