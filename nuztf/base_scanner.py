@@ -5,13 +5,11 @@ import json
 import logging
 from pathlib import Path
 
-import backoff
 import healpy as hp
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import requests
 from ampel.ztf.alert.ZiAlertSupplier import ZiAlertSupplier
 from ampel.ztf.dev.DevAlertConsumer import DevAlertConsumer
 from ampel.ztf.t0.DecentFilter import DecentFilter
@@ -977,8 +975,6 @@ class BaseScanner:
                     f"This might be an engineering observation."
                 )
 
-        npix = hp.nside2npix(self.nside)
-
         ras, decs = hp.pixelfunc.pix2ang(
             self.nside, hp.nest2ring(self.nside, self.pixel_nos), lonlat=True
         )
@@ -1064,6 +1060,7 @@ class BaseScanner:
         :param min_sep: Minimum separation between observations to consider them as separate.
         :param fields: Fields to consider.
         :param backend: Backend to use for coverage calculation
+        :return: Figure and message
 
         """
 
@@ -1096,7 +1093,7 @@ class BaseScanner:
 
         if len(veto_pixels) > 0:
             plt.scatter(
-                np.radians(veto_pixels["ra_deg"]),
+                np.radians(self.wrap_around_180(veto_pixels["ra_deg"])),
                 np.radians(veto_pixels["dec_deg"]),
                 color="red",
                 s=size,
@@ -1188,6 +1185,106 @@ class BaseScanner:
             f"covering approximately {plane_area:.2g} sq deg."
         )
         return fig, message
+
+    def plot_zoomed_overlap_with_observations(
+        self, first_det_window_days=None, min_sep=0.01, fields=None, backend="best"
+    ):
+        """
+        Function to plot the overlap of the field with observations.
+
+        :param first_det_window_days: Window of time in days to consider for the first detection.
+        :param min_sep: Minimum separation between observations to consider them as separate.
+        :param fields: Fields to consider.
+        :param backend: Backend to use for coverage calculation
+        :return: Figure and message
+
+        """
+
+        (
+            coverage_df,
+            times,
+            overlapping_fields,
+        ) = self.calculate_overlap_with_observations(
+            first_det_window_days=first_det_window_days,
+            min_sep=min_sep,
+            fields=fields,
+            backend=backend,
+        )
+
+        if coverage_df is None:
+            self.logger.warning("Not plotting overlap with observations.")
+            return
+
+        fig = plt.figure()
+        ax = plt.subplot()
+
+        double_pixels = coverage_df.where(
+            ~coverage_df["in_plane"] & (coverage_df["n_det_class"] == 2)
+        ).dropna()
+
+        # Set pixel size
+        ax.plot(
+            double_pixels["ra_deg"], double_pixels["dec_deg"], "o"
+        )  # Initial plot to set limits
+        marker_radius_data_units = 0.015 * (self.pixel_area / 0.0008) ** 0.5
+        r_display_units = (
+            ax.transData.transform([marker_radius_data_units, 0])[0]
+            - ax.transData.transform([0, 0])[0]
+        )
+        dpi = fig.dpi  # Get the figure's DPI
+        r_points = r_display_units / (dpi / 72)
+        s_value = np.pi * (r_points**2)
+
+        kwargs = {"s": s_value, "marker": "D", "zorder": 2, "edgecolor": "white"}
+
+        veto_pixels = coverage_df.where(coverage_df["n_det_class"] == 0)
+
+        if len(veto_pixels) > 0:
+            plt.scatter(
+                veto_pixels["ra_deg"], veto_pixels["dec_deg"], color="red", **kwargs
+            )
+
+        plane_pixels = coverage_df.where(
+            coverage_df["in_plane"] & (coverage_df["n_det_class"] > 0)
+        )
+
+        if len(plane_pixels) > 0:
+            plt.scatter(
+                plane_pixels["ra_deg"], plane_pixels["dec_deg"], color="green", **kwargs
+            )
+
+        single_pixels = coverage_df.where(
+            ~coverage_df["in_plane"] & (coverage_df["n_det_class"] == 1)
+        )
+
+        if len(single_pixels) > 0:
+            plt.scatter(
+                single_pixels["ra_deg"],
+                single_pixels["dec_deg"],
+                c=single_pixels["prob"],
+                vmin=0.0,
+                vmax=max(self.data[self.key]),
+                **kwargs,
+                cmap="gray",
+            )
+
+        if len(double_pixels) > 0:
+            plt.scatter(
+                double_pixels["ra_deg"],
+                double_pixels["dec_deg"],
+                c=double_pixels["prob"],
+                vmin=0.0,
+                vmax=max(self.data[self.key]),
+                **kwargs,
+            )
+
+        red_patch = mpatches.Patch(color="red", label="Not observed")
+        gray_patch = mpatches.Patch(color="gray", label="Observed once")
+        violet_patch = mpatches.Patch(
+            color="green", label="Observed Galactic Plane (|b|<10)"
+        )
+        plt.legend(handles=[red_patch, gray_patch, violet_patch])
+        return fig
 
     def get_exposure_summary(self) -> pd.DataFrame:
         """

@@ -238,7 +238,7 @@ class NeutrinoScanner(BaseScanner):
         center_dec = np.radians(np.mean([self.dec_max, self.dec_min]))
         # Take the larger of the two sides and convert to radians
         # To make sure to include all pixels until the edge of the rectangle,
-        # we have to devide by sqrt(2)
+        # we have to divide by sqrt(2)
         # (not 2 as previously done here!)
         rad = np.radians(
             max(self.ra_max - self.ra_min, self.dec_max - self.dec_min)
