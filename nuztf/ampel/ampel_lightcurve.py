@@ -49,9 +49,7 @@ def ampel_api_name(
         queryurl_ztf_name,
         headers=headers,
     )
-
-    if response.status_code == 503:
-        raise requests.exceptions.RequestException
+    response.raise_for_status()
 
     try:
         query_res = [i for i in response.json()]
