@@ -51,6 +51,7 @@ def main(
     nu = NeutrinoScanner(nu_name)
     nu.query_for_alerts()
     nu.scan_area()
+    nu.create_candidate_summary()
     nu.plot_overlap_with_observations(first_det_window_days=30.0, backend=coverage_backend)
     jds = nu.observations.obsjd.unique()
 
