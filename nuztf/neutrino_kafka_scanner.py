@@ -107,7 +107,7 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
 
 def alert_filename(alert: dict) -> Path:
     nu_name = alert["event_name"][0]
-    h = sha256(json.dumps(alert).encode()).digest().decode()
+    h = sha256(json.dumps(alert).encode()).hexdigest()
     return GCN_KAFKA_CACHE / f"{nu_name}_{h}.json"
 
 
