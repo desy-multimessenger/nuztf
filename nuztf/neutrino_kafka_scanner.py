@@ -4,7 +4,7 @@ from pathlib import Path
 import requests
 
 import healpy as hp
-
+from astropy.time import Time
 import numpy as np
 from ligo.skymap.postprocess.util import find_greedy_credible_levels, smooth_ud_grade
 from ligo.skymap.io.fits import read_sky_map
@@ -16,20 +16,16 @@ from nuztf.paths import SKYMAP_DIR
 class NeutrinoKafkaScanner(NeutrinoScanner):
     def __init__(
         self,
-        nu_name: str,
-        ra: float,
-        dec: float,
-        nu_time: float,
-        healpix_url: str,
+        alert: dict,
         prob_threshold: float = 0.9,
     ):
-        map_path = self.download_map(healpix_url)
+        map_path = self.download_map(alert["healpix_url"])
         hpx_map, header = read_sky_map(str(map_path))
 
         # to be compatible with code relying on the 90% rectangle
         # we parse accordingly from the header
-        ra = [ra, header["RA_ERR_MINUS"], header["RA_ERR_PLUS"]]
-        dec = [dec, header["DEC_ERR_MINUS"], header["DEC_ERR_PLUS"]]
+        ra = [alert["RA"], header["RA_ERR_MINUS"], header["RA_ERR_PLUS"]]
+        dec = [alert["DEC"], header["DEC_ERR_MINUS"], header["DEC_ERR_PLUS"]]
 
         self.skymap = np.array(hpx_map, dtype=[("PROB", float)])
         self.skymap_header = header
@@ -40,8 +36,10 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
 
         self.prob_threshold = prob_threshold
 
+        self.alert = alert
+
         super().__init__(
-            manual_args=(nu_name, ra, dec, nu_time),
+            manual_args=(alert["event_name"][0], ra, dec, Time(alert["trigger_time"])),
             cone_nside=128,
             t_precursor=None,
             config=None,
