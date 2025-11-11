@@ -41,14 +41,12 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
 
         self.skymap = np.array(hpx_map, dtype=[("PROB", float)])
         self.skymap_header = header
-
-        # the map contains the probability per pixel so we need to convert
-        # to cumulative probability contained within a contour
-        self.credible_levels = find_greedy_credible_levels(self.skymap)
-
         self.prob_threshold = prob_threshold
-
         self.alert = alert
+
+        # set up an attribute to store credible levels
+        # calculated in self.unpack_skymap
+        self._credible_levels = None
 
         super().__init__(
             manual_args=(alert["event_name"][0], ra, dec, Time(alert["trigger_time"])),
@@ -57,6 +55,11 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
             config=None,
             output_nside=hp.npix2nside(len(self.skymap)),
         )
+
+    @property
+    def credible_levels(self):
+        # the private attribute is calculated in self.unpack_skymap
+        return self._credible_levels
 
     @staticmethod
     def download_map(url: str) -> Path:
@@ -78,10 +81,14 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
                 f"Interpolating input skymap from nside {map_nside} to {output_nside}"
             )
             skymap = smooth_ud_grade(self.skymap, output_nside)
-            credible_levels = find_greedy_credible_levels(self.skymap)
+
         else:
             skymap = self.skymap
-            credible_levels = self.credible_levels
+
+        # the map contains the probability per pixel so we need to convert
+        # to cumulative probability contained within a contour
+        credible_levels = find_greedy_credible_levels(skymap)
+        self._credible_levels = credible_levels
 
         # find healpix indices inside credible region
         healpix_indices = np.where(credible_levels <= self.prob_threshold)[0]
