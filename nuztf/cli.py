@@ -6,7 +6,6 @@ except ImportError:
     )
 
 import logging
-from pathlib import Path
 from typing import Annotated
 
 from rich.console import Console
@@ -48,14 +47,14 @@ def main(
     ctx.obj = {"log_level": level, "console": console}
 
 
-@app.command
+@app.command()
 def nu_classic(
     ctx: typer.Context,
     nu_name: Annotated[
         str, typer.Argument(..., help="Name of the neutrino, e.g. `IC200530A`")
     ],
     gcn_filename: Annotated[
-        str | Path,
+        str,
         typer.Option(
             "--gcn-filename",
             "-f",
@@ -67,14 +66,14 @@ def nu_classic(
     nu.scan(console=ctx.obj["console"], gcn_filename=gcn_filename)
 
 
-@app.command
+@app.command()
 def nu_saved_kafka(
     ctx: typer.Context,
     nu_name: Annotated[
         str, typer.Argument(..., help="Name of the neutrino, e.g. `IC200530A`")
     ],
     gcn_filename: Annotated[
-        str | Path,
+        str,
         typer.Option(
             "--gcn-filename",
             "-f",
@@ -82,16 +81,17 @@ def nu_saved_kafka(
         ),
     ] = None,
 ):
+    print("scanning")
     scan_saved(nu_name=nu_name, console=ctx.obj["console"], gcn_filename=gcn_filename)
 
 
-@app.command
+@app.command()
 def nu_listen(
     ctx: typer.Context,
     client_id: Annotated[str, typer.Argument(..., help="GCN Kafka Client ID")],
     client_secret: Annotated[str, typer.Argument(..., help="GCN Kafka Client Secret")],
     gcn_filename: Annotated[
-        str | Path,
+        str,
         typer.Option(
             "--gcn-filename",
             "-f",
