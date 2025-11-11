@@ -49,11 +49,23 @@ class TestCLI(unittest.TestCase):
         tmpfile.unlink()
 
     def test_run_saved_kafka(self):
-        save_alert(EXAMPLE_KAFKA_ALERT)
+        save_alert(EXAMPLE_KAFKA_ALERT, overwrite=True)
         runner = CliRunner()
         tmpfile = Path("tmpfile.txt")
-        runner.invoke(
-            app, ["nu_saved_kafka", EXAMPLE_KAFKA_ALERT["event_name"][0], str(tmpfile)]
-        )
+        with self.assertRaisesRegex(
+            ValueError, "No observations of this event were found"
+        ) as cm:
+            res = runner.invoke(
+                app,
+                [
+                    "nu-saved-kafka",
+                    EXAMPLE_KAFKA_ALERT["event_name"][0],
+                    "-f",
+                    str(tmpfile),
+                ],
+            )
+            if res.exit_code != 0:
+                raise res.exc_info[1]
+
         self.assertTrue(tmpfile.exists())
         tmpfile.unlink()
