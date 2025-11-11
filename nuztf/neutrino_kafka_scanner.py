@@ -32,8 +32,12 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
 
         # to be compatible with code relying on the 90% rectangle
         # we parse accordingly from the header
-        ra = [alert["RA"], header["RA_ERR_MINUS"], header["RA_ERR_PLUS"]]
-        dec = [alert["DEC"], header["DEC_ERR_MINUS"], header["DEC_ERR_PLUS"]]
+        # TODO:
+        #  The position values are taken from the header for now
+        #  because the position does not match for the example alert
+        #  between alert json and header!
+        ra = [header["RA"], header["RA_ERR_MINUS"], header["RA_ERR_PLUS"]]
+        dec = [header["DEC"], header["DEC_ERR_MINUS"], header["DEC_ERR_PLUS"]]
 
         self.skymap = np.array(hpx_map, dtype=[("PROB", float)])
         self.skymap_header = header
