@@ -1,16 +1,24 @@
 # coding: utf-8
-
+import json
+import logging
 from pathlib import Path
 import requests
+from hashlib import sha256
 
 import healpy as hp
 from astropy.time import Time
 import numpy as np
 from ligo.skymap.postprocess.util import find_greedy_credible_levels, smooth_ud_grade
 from ligo.skymap.io.fits import read_sky_map
+from gcn_kafka import Consumer
 
 from nuztf.neutrino_scanner import NeutrinoScanner
-from nuztf.paths import SKYMAP_DIR
+from nuztf.paths import SKYMAP_DIR, GCN_KAFKA_CACHE
+
+
+logger = logging.getLogger(__name__)
+
+TEST_GCN_KAFKA_TOPIC = "gcn.notices.icecube.test.gold_bronze_track_alerts"
 
 
 class NeutrinoKafkaScanner(NeutrinoScanner):
@@ -95,3 +103,69 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
             hp.get_interp_val(self.credible_levels, ra_deg, dec_deg, lonlat=True)
             <= self.prob_threshold
         )
+
+
+def alert_filename(alert: dict) -> Path:
+    nu_name = alert["event_name"][0]
+    h = sha256(json.dumps(alert).encode()).digest().decode()
+    return GCN_KAFKA_CACHE / f"{nu_name}_{h}.json"
+
+
+def save_alert(alert: dict):
+    fn = alert_filename(alert)
+    if fn.exists():
+        raise FileExistsError(str(fn))
+    with fn.open("w") as f:
+        json.dump(alert, f)
+
+
+def load_alert(nu_name: str) -> dict:
+    files = list(GCN_KAFKA_CACHE.glob(f"{nu_name}*.json"))
+    if len(files) == 0:
+        raise FileNotFoundError(f"No file found in {GCN_KAFKA_CACHE} for {nu_name}!")
+    if len(files) > 1:
+        raise RuntimeError(
+            f"More than one file found in {GCN_KAFKA_CACHE} for {nu_name}!"
+        )
+    with open(GCN_KAFKA_CACHE / files[0], "r") as f:
+        return json.load(f)
+
+
+def listen(
+    client_id: str,
+    client_secret: str,
+    topics: list[str] = None,
+    console=None,
+    gcn_filename: str | None = None,
+):
+    consumer = Consumer(
+        client_id=client_id,
+        client_secret=client_secret,
+    )
+
+    # Subscribe to topics and receive alerts
+    consumer.subscribe(topics or [TEST_GCN_KAFKA_TOPIC])
+    logger.info("Connected ...")
+    while True:
+        for message in consumer.consume(timeout=1):
+            if message.error():
+                logger.error(message.error())
+                continue
+            # Print the topic and message ID
+            logger.info("Found alert!")
+            logger.info(f"topic={message.topic()}, offset={message.offset()}")
+            value = message.value()
+            logger.debug(value)
+
+            # save alert for future reference
+            save_alert(message)
+
+            # instantiate scanner
+            nu = NeutrinoKafkaScanner(alert=message)
+            nu.scan(console=console, gcn_filename=gcn_filename)
+
+
+def scan_saved(nu_name: str, console=None, gcn_filename: str | None = None):
+    alert = load_alert(nu_name)
+    nu = NeutrinoKafkaScanner(alert)
+    nu.scan(console=console, gcn_filename=gcn_filename)

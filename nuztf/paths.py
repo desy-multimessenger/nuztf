@@ -31,3 +31,6 @@ FLATPIX_CACHE_DIR.mkdir(exist_ok=True, parents=True)
 
 PREPROCESSED_CACHE_DIR = CACHE_DIR / "preprocessed"
 PREPROCESSED_CACHE_DIR.mkdir(exist_ok=True, parents=True)
+
+GCN_KAFKA_CACHE = CACHE_DIR / "gcn_kafka"
+GCN_KAFKA_CACHE.mkdir(exist_ok=True, parents=True)

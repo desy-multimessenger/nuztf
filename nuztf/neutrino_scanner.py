@@ -134,7 +134,7 @@ class NeutrinoScanner(BaseScanner):
             if res["candidate"]["drb"] < 0.3:
                 self.logger.debug(f"❌ {ztf_id}: DRB too low")
                 return False
-        except (KeyError, TypeError) as e:
+        except (KeyError, TypeError):
             pass
 
         # Check contour
@@ -153,7 +153,7 @@ class NeutrinoScanner(BaseScanner):
         if (endhist - starthist) < 0.01:
             self.logger.debug(
                 f"❌ {ztf_id}: Does have 2 detections, but these are not separated by "
-                f">15 mins (delta t = {(endhist-starthist)*1440:.0f} min)"
+                f">15 mins (delta t = {(endhist - starthist) * 1440:.0f} min)"
             )
             return False
 
@@ -278,3 +278,34 @@ class NeutrinoScanner(BaseScanner):
             total_pixel_area,
             key,
         )
+
+    def scan(self, console=None, gcn_filename: str | None = None):
+        self.query_for_alerts()
+        self.scan_area()
+        self.plot_overlap_with_observations(first_det_window_days=30.0)
+        jds = self.observations.obsjd.unique()
+
+        if console:
+            from rich.table import Table
+
+            table = Table(title="Observations")
+            table.add_column("Time", justify="right")
+            table.add_column("Bands")
+            table.add_column("Exp. Times")
+            for jd in jds:
+                m = self.observations.obsjd == jd
+                bands = self.observations.band[m].unique()
+                exp_times = self.observations.exposure_time[m].unique()
+                time = Time(jd, format="jd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
+                table.add_row(str(time), str(bands), str(exp_times))
+
+            console.print(table)
+
+        gcn_draft = self.draft_gcn()
+        if gcn_filename is not None:
+            self.logger.info(f"Writing GCN to {gcn_filename}")
+            with open(gcn_filename, "w") as f:
+                f.write(gcn_draft)
+        if console:
+            console.print("Here is your GCN draft:\n\n", style="bold magenta")
+            console.print(gcn_draft)
