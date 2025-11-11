@@ -87,7 +87,7 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
 
         # the map contains the probability per pixel so we need to convert
         # to cumulative probability contained within a contour
-        credible_levels = find_greedy_credible_levels(skymap)
+        credible_levels = find_greedy_credible_levels(skymap["PROB"])
         self._credible_levels = credible_levels
 
         # find healpix indices inside credible region
