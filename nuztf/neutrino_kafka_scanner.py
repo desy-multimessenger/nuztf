@@ -81,7 +81,6 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
                 f"Interpolating input skymap from nside {map_nside} to {output_nside}"
             )
             skymap = smooth_ud_grade(self.skymap, output_nside)
-
         else:
             skymap = self.skymap
 
