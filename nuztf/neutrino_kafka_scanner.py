@@ -115,9 +115,9 @@ def alert_filename(alert: dict) -> Path:
     return GCN_KAFKA_CACHE / f"{nu_name}_{h}.json"
 
 
-def save_alert(alert: dict):
+def save_alert(alert: dict, overwrite: bool = False):
     fn = alert_filename(alert)
-    if fn.exists():
+    if fn.exists() and not overwrite:
         new_fn = fn.parent / (fn.stem + "_new" + fn.suffix)
         logger.warning(f"{fn} already exists!")
         fn = new_fn
