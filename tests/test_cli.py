@@ -1,25 +1,59 @@
 import logging
 import unittest
 from pathlib import Path
+from typer.testing import CliRunner
 
-from nuztf.cli import main
+from nuztf.cli import app
+from nuztf.neutrino_kafka_scanner import save_alert
 
 logger = logging.getLogger(__name__)
 
 
+EXAMPLE_KAFKA_ALERT = {
+    "$schema": "https://gcn.nasa.gov/schema/v6.0.0/gcn/notices/icecube/single_neutrino_alerts.schema.json",
+    "mission": "IceCube",
+    "instrument": "IC86",
+    "messenger": "Neutrino",
+    "pipeline": "Bronze Track Alert",
+    "record_number": 1,
+    "event_name": ["IceCube-230416A"],
+    "id": ["137840_57034692_0"],
+    "alert_datetime": "2023-04-16T05:42:00.0Z",
+    "alert_type": "initial",
+    "alert_tense": "current",
+    "alert_topology": "Track",
+    "number_of_events": 1,
+    "ra": 345.82,
+    "dec": 9.01,
+    "ra_dec_error": 0.5,
+    "containment_probability": 0.9,
+    "systematic_included": False,
+    "healpix_url": "https://roc.icecube.wisc.edu/public/alerts/example/run00140078.evt000030891383.example.skymap_nside_1024_probability.fits.gz",
+    "trigger_time": "2023-04-16T05:22:26.150574Z",
+    "nu_energy": 127.29,
+    "p_astro": 0.34064,
+    "far": 8.029e-8,
+}
+
+
 class TestCLI(unittest.TestCase):
-    def test_cli(self):
+    def test_run_classic(self):
+        runner = CliRunner()
         neutrino_name = "IC200620A"
         true_gcn = "Astronomer Name (Institute of Somewhere), ............. report,\n\nOn behalf of the Zwicky Transient Facility (ZTF) and Global Relay of Observatories Watching Transients Happen (GROWTH) collaborations: \n\nAs part of the ZTF neutrino follow up program (Stein et al. 2023), we observed the localization region of the neutrino event IceCube-200620A (Santander et. al, GCN 27997) with the Palomar 48-inch telescope, equipped with the 47 square degree ZTF camera (Bellm et al. 2019, Graham et al. 2019). We started observations in the g- and r-band beginning at 2020-06-21 04:53 UTC, approximately 25.8 hours after event time. We covered 77.6% (1.3 sq deg) of the reported localization region. This estimate accounts for chip gaps. Each exposure was 300s with a typical depth of 21.0 mag. \n \nThe images were processed in real-time through the ZTF reduction and image subtraction pipelines at IPAC to search for potential counterparts (Masci et al. 2019). AMPEL (Nordin et al. 2019, Stein et al. 2021) was used to search the alerts database for candidates. We reject stellar sources (Tachibana and Miller 2018) and moving objects, and apply machine learning algorithms (Mahabal et al. 2019) . We are left with the following high-significance transient candidates by our pipeline, all lying within the 90.0% localization of the skymap.\n\n+--------------------------------------------------------------------------------+\n| ZTF Name     | IAU Name  | RA (deg)    | DEC (deg)   | Filter | Mag   | MagErr |\n+--------------------------------------------------------------------------------+\n| ZTF18acvhwtf | AT2020ncs | 162.0677272 | +12.1263357 | g      | 19.74 | 0.16   | (MORE THAN ONE DAY SINCE SECOND DETECTION) \n| ZTF20abgvabi | AT2020ncr | 162.5306341 | +12.1461187 | g      | 20.58 | 0.19   | (MORE THAN ONE DAY SINCE SECOND DETECTION) \n+--------------------------------------------------------------------------------+\n\n \n\nAmongst our candidates, \n\nZTF18acvhwtf was first detected on 2018-12-09. It has a spec-z of 0.291 [1500 Mpc] and an abs. mag of -21.1. Distance to SDSS galaxy is 0.06 arcsec. [MILLIQUAS: SDSS J104816.25+120734.7 - 'Q'-type source (0.06 arsec)] [TNS NAME=AT2020ncs]\nZTF20abgvabi was first detected on 2020-05-26. WISE DETECTION: W1-W2=0.04 (1.03 arsec) [TNS NAME=AT2020ncr]\n\n\nZTF and GROWTH are worldwide collaborations comprising Caltech, USA; IPAC, USA; WIS, Israel; OKC, Sweden; JSI/UMd, USA; DESY, Germany; TANGO, Taiwan; UW Milwaukee, USA; LANL, USA; TCD, Ireland; IN2P3, France.\n\nGROWTH acknowledges generous support of the NSF under PIRE Grant No 1545949.\nAlert distribution service provided by DIRAC@UW (Patterson et al. 2019).\nAlert database searches are done by AMPEL (Nordin et al. 2019).\nAlert filtering is performed with the nuztf (Stein et al. 2021, https://github.com/desy-multimessenger/nuztf ).\n"
         tmpfile = Path("tmpfile.txt")
-        main(
-            nu_name=neutrino_name,
-            logging_level="DEBUG",
-            gcn_filename=tmpfile,
-            rich_handler=False,
-            stream_handler=True,
-        )
+        runner.invoke(app, ["nu_classic", neutrino_name, str(tmpfile)])
         with tmpfile.open("r") as f:
             gcn = f.read()
         self.assertEqual(gcn, true_gcn)
+        tmpfile.unlink()
+
+    def test_run_saved_kafka(self):
+        save_alert(EXAMPLE_KAFKA_ALERT)
+        runner = CliRunner()
+        tmpfile = Path("tmpfile.txt")
+        runner.invoke(
+            app, ["nu_saved_kafka", EXAMPLE_KAFKA_ALERT["event_name"][0], str(tmpfile)]
+        )
+        self.assertTrue(tmpfile.exists())
         tmpfile.unlink()
