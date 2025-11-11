@@ -114,7 +114,9 @@ def alert_filename(alert: dict) -> Path:
 def save_alert(alert: dict):
     fn = alert_filename(alert)
     if fn.exists():
-        raise FileExistsError(str(fn))
+        new_fn = fn.parent / (fn.stem + "_new" + fn.suffix)
+        logger.warning(f"{fn} already exists!")
+        fn = new_fn
     with fn.open("w") as f:
         json.dump(alert, f)
 
