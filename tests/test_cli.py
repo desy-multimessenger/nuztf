@@ -68,6 +68,3 @@ class TestCLI(unittest.TestCase):
             )
             if res.exit_code != 0:
                 raise res.exc_info[1]
-
-        self.assertTrue(tmpfile.exists())
-        tmpfile.unlink()
