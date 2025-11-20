@@ -26,8 +26,9 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
         self,
         alert: dict,
         prob_threshold: float = 0.9,
+        map_path: Path = None,
     ):
-        map_path = self.download_map(alert["healpix_url"])
+        map_path = map_path or self.download_map(alert["healpix_url"])
         hpx_map, header = read_sky_map(str(map_path))
 
         # to be compatible with code relying on the 90% rectangle
