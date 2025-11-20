@@ -1,7 +1,42 @@
 import logging
 import unittest
+from collections import OrderedDict
+import tempfile
+from pathlib import Path
+
+import healpy as hp
+from astropy.time import Time
+from astropy.table import Table
 
 from nuztf.neutrino_scanner import NeutrinoScanner
+from nuztf.neutrino_kafka_scanner import NeutrinoKafkaScanner
+
+
+EXAMPLE_KAFKA_ALERT = {
+    "$schema": "https://gcn.nasa.gov/schema/v6.0.0/gcn/notices/icecube/single_neutrino_alerts.schema.json",
+    "mission": "IceCube",
+    "instrument": "IC86",
+    "messenger": "Neutrino",
+    "pipeline": "Bronze Track Alert",
+    "record_number": 1,
+    "event_name": ["IceCube-230416A"],
+    "id": ["137840_57034692_0"],
+    "alert_datetime": "2023-04-16T05:42:00.0Z",
+    "alert_type": "initial",
+    "alert_tense": "current",
+    "alert_topology": "Track",
+    "number_of_events": 1,
+    "ra": 345.82,
+    "dec": 9.01,
+    "ra_dec_error": 0.5,
+    "containment_probability": 0.9,
+    "systematic_included": False,
+    "healpix_url": "https://roc.icecube.wisc.edu/public/alerts/example/run00140078.evt000030891383.example.skymap_nside_1024_probability.fits.gz",
+    "trigger_time": "2023-04-16T05:22:26.150574Z",
+    "nu_energy": 127.29,
+    "p_astro": 0.34064,
+    "far": 8.029e-8,
+}
 
 
 class TestNeutrinoScanner(unittest.TestCase):
@@ -12,31 +47,98 @@ class TestNeutrinoScanner(unittest.TestCase):
         self.max_distance_diff_arcsec = 2
         self.maxDiff = None
 
-    def test_scan(self):
+        self.neutrino_name = "IC200620A"
+        self.expected_candidates = 2
+
+    def test_classical_scan(self):
         self.logger.info("\n\n Testing Neutrino Scanner \n\n")
 
-        neutrino_name = "IC200620A"
-        expected_candidates = 2
+        self.logger.info(f"scanning with neutrino {self.neutrino_name}")
+        nu = NeutrinoScanner(nu_name=self.neutrino_name)
+        self.scan(nu)
 
-        self.logger.info(f"scanning with neutrino {neutrino_name}")
-        nu = NeutrinoScanner(nu_name=neutrino_name)
+    def test_kafka_scan(self):
+        self.logger.info("\n\n Testing Neutrino Kafka Scanner \n\n")
 
-        t_max = nu.default_t_max - 8
+        # using classical scanner to get GCN infos
+        gcn_info = {
+            "author": "Santander",
+            "name": "IceCube-200620A",
+            "time": Time("2020-06-20T03:03:32.280"),
+            "ra": 162.11,
+            "ra_err": [0.64, -0.95],
+            "dec": 11.95,
+            "dec_err": [0.63, -0.48],
+        }
+        nu = NeutrinoScanner(nu_name=self.neutrino_name)
 
-        nu.scan_area(t_max=t_max)
-        retrieved_candidates = nu.n_candidates
+        # make a mock skymap
+        nside = 1024
+        shape = (int(hp.nside2npix(nside)) / nside, nside)
+        nu_skymap_out = nu.unpack_skymap(nside)
+        skymap = nu_skymap_out[4].reshape(shape)
+
+        meta = OrderedDict(
+            [
+                ("PIXTYPE", "HEALPIX"),
+                ("ORDERING", "RING"),
+                ("COORDSYS", "C"),
+                ("EXTNAME", "xtension"),
+                ("NSIDE", 1024),
+                ("FIRSTPIX", 0),
+                ("LASTPIX", 12582911),
+                ("INDXSCHM", "IMPLICIT"),
+                ("OBJECT", "FULLSKY"),
+                ("RUNID", 140078),
+                ("EVENTID", 30891383),
+                ("SENDER", "IceCube Collaboration"),
+                ("DATE-OBS", "2024-11-13T00:22:20.682"),
+                ("MJD-OBS", nu.t_min.mjd),
+                ("I3TYPE", "EHE"),
+                ("RA", gcn_info["ra"]),
+                ("DEC", gcn_info["dec"]),
+                ("RA_ERR_PLUS", gcn_info["ra_err"][0]),
+                ("RA_ERR_MINUS", gcn_info["ra_err"][1]),
+                ("DEC_ERR_PLUS", gcn_info["dec_err"][0]),
+                ("DEC_ERR_MINUS", gcn_info["dec_err"][1]),
+                (
+                    "COMMENTS",
+                    "90% uncertainty location => Highest posterior density 90% credible region",
+                ),
+                (
+                    "NOTE",
+                    "Please ignore pixels with infinite or NaN values. They are rare cases of the minimizer failing to converge",
+                ),
+            ]
+        )
+
+        alert = dict(EXAMPLE_KAFKA_ALERT)
+        alert["trigger_time"] = gcn_info["time"].isot
+        alert["event_name"] = ["IceCube-" + self.neutrino_name.replace("IC", "")]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filename = tmpdir + "/skymap.fits"
+            Table(skymap, meta=meta).write(filename, format="fits")
+            nu = NeutrinoKafkaScanner(alert=alert, map_path=Path(filename))
+            self.scan(scanner=nu)
+
+    def scan(self, scanner: NeutrinoScanner | NeutrinoKafkaScanner):
+        t_max = scanner.default_t_max - 8
+
+        scanner.scan_area(t_max=t_max)
+        retrieved_candidates = scanner.n_candidates
 
         self.logger.info(
-            f"found {retrieved_candidates}, expected {expected_candidates}"
+            f"found {retrieved_candidates}, expected {self.expected_candidates}"
         )
-        self.assertEqual(expected_candidates, retrieved_candidates)
+        self.assertEqual(self.expected_candidates, retrieved_candidates)
 
-        for name, res in sorted(nu.cache_candidates.items()):
+        for name, res in sorted(scanner.cache_candidates.items()):
             # Only use old data, so new detections do not change CI
             dets = [
                 x
                 for x in res["prv_candidates"]
-                if ("isdiffpos" in x.keys()) & (x["jd"] < nu.default_t_max.jd)
+                if ("isdiffpos" in x.keys()) & (x["jd"] < scanner.default_t_max.jd)
             ]
             dets = [
                 x for x in dets if str(x["isdiffpos"]).lower() in ["t", "true", "1"]
@@ -45,10 +147,10 @@ class TestNeutrinoScanner(unittest.TestCase):
             res["candidate"] = cand
             res["prv_candidates"] = dets[:-1]
 
-        nu.plot_overlap_with_observations(
-            first_det_window_days=(t_max - nu.t_min).to("d").value
+        scanner.plot_overlap_with_observations(
+            first_det_window_days=(t_max - scanner.t_min).to("d").value
         )
-        res = nu.draft_gcn()
+        res = scanner.draft_gcn()
 
         print(repr(res))
 
@@ -59,13 +161,13 @@ class TestNeutrinoScanner(unittest.TestCase):
 
         # Test manually adding candidates
 
-        nu.add_to_cache_by_names(
+        scanner.add_to_cache_by_names(
             ztf_ids=["ZTF18abteipt"],
         )
 
         # Check
 
-        false_candidate = nu.check_ampel_filter("ZTF18abteipt")
+        false_candidate = scanner.check_ampel_filter("ZTF18abteipt")
 
         self.logger.info(
             f"For the false candidate, the pipeline bool is {false_candidate}"
@@ -73,7 +175,7 @@ class TestNeutrinoScanner(unittest.TestCase):
 
         self.assertFalse(false_candidate)
 
-        true_candidate = nu.check_ampel_filter("ZTF20abgvabi")
+        true_candidate = scanner.check_ampel_filter("ZTF20abgvabi")
 
         self.logger.info(
             f"For the true candidate, the pipeline bool is {true_candidate}"
