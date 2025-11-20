@@ -4,7 +4,6 @@ from collections import OrderedDict
 import tempfile
 from pathlib import Path
 
-import healpy as hp
 from astropy.time import Time
 from astropy.table import Table
 
@@ -74,9 +73,8 @@ class TestNeutrinoScanner(unittest.TestCase):
 
         # make a mock skymap
         nside = 1024
-        shape = (int(hp.nside2npix(nside)) / nside, nside)
         nu_skymap_out = nu.unpack_skymap(nside)
-        skymap = nu_skymap_out[4].reshape(shape)
+        skymap = nu_skymap_out[4]
 
         meta = OrderedDict(
             [
