@@ -179,7 +179,7 @@ class TestNeutrinoScanner(unittest.TestCase):
             # radius="5 deg",
         )
         _t = ax.get_transform("world")
-        ax.imshow_hpx(filename)
+        ax.imshow_hpx(str(filename))
         ax.contour_hpx(nu_kafka.credible_levels, levels=[0.9], colors="C0")
         gcn_rect = Quadrangle(
             [left_lower_corner_ra, left_lower_corner_dec],
