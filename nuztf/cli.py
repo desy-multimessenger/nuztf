@@ -39,7 +39,7 @@ def main(
     logging.basicConfig(
         handlers=[RichHandler(rich_tracebacks=True, markup=True)],
     )
-    logging.getLogger("timewise").setLevel(level)
+    logging.getLogger("nuztf").setLevel(level)
     console = Console()
 
     # Store log level in context for subcommands
