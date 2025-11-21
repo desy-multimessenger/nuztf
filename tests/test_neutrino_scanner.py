@@ -152,6 +152,10 @@ class TestNeutrinoScanner(unittest.TestCase):
             Table([skymap], meta=meta, names=["PROB"], units=["1 / pix"]).write(filename, format="fits")
             nu_kafka = NeutrinoKafkaScanner(alert=alert, map_path=Path(filename))
 
+            # fake GCN circular info for compatibility
+            nu_kafka.author = "Santander"
+            nu_kafka.gcn_no = 27997
+
             center_ra = meta["RA"] * u.deg
             center_dec = meta["DEC"] * u.deg
             ra_err_minus = meta["RA_ERR_MINUS"] * u.deg
