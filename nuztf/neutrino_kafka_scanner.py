@@ -91,7 +91,10 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
         self._credible_levels = credible_levels
 
         # find healpix indices inside credible region
-        healpix_indices = np.where(credible_levels <= self.prob_threshold)[0]
+        healpix_indices = hp.ring2nest(
+            self.nside,
+            np.where(credible_levels <= self.prob_threshold)[0]
+        )
         map_coords = hp.pix2ang(map_nside, healpix_indices, lonlat=True)
 
         # calculate pixel area
