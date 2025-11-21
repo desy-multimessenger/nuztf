@@ -114,7 +114,7 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
     def in_contour(self, ra_deg, dec_deg):
         # check whether the position is inside the credible region defined by the threshold
         return (
-            hp.get_interp_val(self.credible_levels, ra_deg, dec_deg, lonlat=True)
+            hp.get_interp_val(self.credible_levels, ra_deg, dec_deg, lonlat=True, nest=True)
             <= self.prob_threshold
         )
 
