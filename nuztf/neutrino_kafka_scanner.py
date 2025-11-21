@@ -40,6 +40,9 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
         ra = [header["RA"], header["RA_ERR_MINUS"], header["RA_ERR_PLUS"]]
         dec = [header["DEC"], header["DEC_ERR_MINUS"], header["DEC_ERR_PLUS"]]
 
+        if not header["nest"]:
+            hpx_map = hp.reorder(hpx_map, r2n=True)
+
         self.skymap = np.array(hpx_map, dtype=[("PROB", float)])
         self.skymap_header = header
         self.prob_threshold = prob_threshold
@@ -91,10 +94,7 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
         self._credible_levels = credible_levels
 
         # find healpix indices inside credible region
-        healpix_indices = hp.ring2nest(
-            output_nside,
-            np.where(credible_levels <= self.prob_threshold)[0]
-        )
+        healpix_indices = np.where(credible_levels <= self.prob_threshold)[0]
         map_coords = hp.pix2ang(map_nside, healpix_indices, lonlat=True)
 
         # calculate pixel area
