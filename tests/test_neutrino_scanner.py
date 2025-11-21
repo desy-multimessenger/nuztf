@@ -174,13 +174,13 @@ class TestNeutrinoScanner(unittest.TestCase):
 
         fig = plt.figure()
         ax = plt.axes(
-            projection="astro degrees mollweide",
+            projection="astro degrees zoom",
             center=f"{gcn_info['ra']}d {gcn_info['dec']}d",
-            # radius="5 deg",
+            radius="5 deg",
         )
         _t = ax.get_transform("world")
         ax.imshow_hpx(str(filename))
-        ax.contour_hpx(nu_kafka.credible_levels, levels=[0.9], colors="C0")
+        ax.contour_hpx(nu_kafka.credible_levels, levels=[0.9], colors="C0", nested=True)
         gcn_rect = Quadrangle(
             [left_lower_corner_ra, left_lower_corner_dec],
             dra,
