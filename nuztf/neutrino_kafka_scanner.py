@@ -92,7 +92,7 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
 
         # find healpix indices inside credible region
         healpix_indices = hp.ring2nest(
-            self.nside,
+            output_nside,
             np.where(credible_levels <= self.prob_threshold)[0]
         )
         map_coords = hp.pix2ang(map_nside, healpix_indices, lonlat=True)
