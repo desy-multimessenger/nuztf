@@ -12,6 +12,8 @@ from astropy.visualization.wcsaxes import Quadrangle
 import matplotlib.pyplot as plt
 import ligo.skymap.plot as lkp
 import healpy as hp
+from matplotlib.patches import Polygon
+from ztfquery.fields import get_field_vertices
 
 from nuztf.neutrino_scanner import NeutrinoScanner
 from nuztf.neutrino_kafka_scanner import NeutrinoKafkaScanner
@@ -169,12 +171,12 @@ class TestNeutrinoScanner(unittest.TestCase):
 
             fig = plt.figure()
             ax = plt.axes(
-                projection="astro degrees zoom",
+                projection="astro degrees mollweide",
                 center=f"{gcn_info['ra']}d {gcn_info['dec']}d",
-                radius="1 deg",
+                # radius="5 deg",
             )
             _t = ax.get_transform("world")
-            ax.imshow_hpx(filename)
+            # ax.imshow_hpx(filename)
             ax.contour_hpx(nu_kafka.credible_levels, levels=[0.9], colors="C0")
             gcn_rect = Quadrangle(
                 [left_lower_corner_ra, left_lower_corner_dec],
@@ -186,6 +188,15 @@ class TestNeutrinoScanner(unittest.TestCase):
                 ls="--",
             )
             ax.add_patch(gcn_rect)
+
+            fields = [498, 499, 522, 546]
+            verts = np.squeeze(get_field_vertices(fields, squeeze=False), axis=1)
+            for i, vert in enumerate(verts):
+                c = f"C{2 + i}"
+                ax.add_patch(Polygon(vert, transform=_t, edgecolor=c, facecolor=c, ls="-", alpha=0.2))
+                ax.plot([], [], color=c, label=f"Field {fields[i]}")
+            ax.legend(loc="upper right")
+
             ax.set_xlabel("RA")
             ax.set_ylabel("Dec")
             fig.savefig("skymap.pdf")
