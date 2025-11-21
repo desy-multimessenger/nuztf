@@ -2,6 +2,7 @@ import logging
 import unittest
 from pathlib import Path
 
+import requests
 from typer.testing import CliRunner
 
 from nuztf.cli import app
@@ -29,7 +30,7 @@ EXAMPLE_KAFKA_ALERT = {
     "ra_dec_error": 0.5,
     "containment_probability": 0.9,
     "systematic_included": False,
-    "healpix_url": "https://roc.icecube.wisc.edu/public/alerts/example/run00140078.evt000030891383.example.skymap_nside_1024_probability.fits.gz",
+    "healpix_url": "https://roc.icecube.wisc.edu/public/alerts/example/run00140078.evt000030891383.example.skymap_nside_1024_probability.fits.gz_error",
     "trigger_time": "2023-04-16T05:22:26.150574Z",
     "nu_energy": 127.29,
     "p_astro": 0.34064,
@@ -52,12 +53,14 @@ class TestCLI(unittest.TestCase):
         tmpfile.unlink()
 
     def test_run_saved_kafka(self):
+        # this will only test entry into NeutrinoKafkaScanner
+        # The scanner itself is tested elsewhere
         save_alert(EXAMPLE_KAFKA_ALERT, overwrite=True)
         runner = CliRunner()
         tmpfile = Path("tmpfile.txt")
         with self.assertRaisesRegex(
-            ValueError, "No observations of this event were found"
-        ) as cm:
+            requests.HTTPError, "404 Client Error: Not Found for url"
+        ):
             res = runner.invoke(
                 app,
                 [
