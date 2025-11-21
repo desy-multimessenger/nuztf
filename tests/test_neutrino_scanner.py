@@ -3,21 +3,20 @@ import unittest
 from collections import OrderedDict
 from pathlib import Path
 
-import pytest
-import numpy as np
-from astropy.time import Time
-from astropy.table import Table
-from astropy import units as u
-from astropy.visualization.wcsaxes import Quadrangle
-import matplotlib.pyplot as plt
-import ligo.skymap.plot as lkp
 import healpy as hp
+import ligo.skymap.plot as lkp
+import matplotlib.pyplot as plt
+import numpy as np
+import pytest
+from astropy import units as u
+from astropy.table import Table
+from astropy.time import Time
+from astropy.visualization.wcsaxes import Quadrangle
 from matplotlib.patches import Polygon
 from ztfquery.fields import get_field_vertices
 
-from nuztf.neutrino_scanner import NeutrinoScanner
 from nuztf.neutrino_kafka_scanner import NeutrinoKafkaScanner
-
+from nuztf.neutrino_scanner import NeutrinoScanner
 
 EXAMPLE_KAFKA_ALERT = {
     "$schema": "https://gcn.nasa.gov/schema/v6.0.0/gcn/notices/icecube/single_neutrino_alerts.schema.json",
@@ -108,12 +107,11 @@ class TestNeutrinoScanner(unittest.TestCase):
         skymap = np.zeros(npix)
         num_inside = np.sum(mask)
         num_outside = npix - num_inside
-        skymap[mask] = .9 / num_inside
-        skymap[~mask] = .1 / num_outside
+        skymap[mask] = 0.9 / num_inside
+        skymap[~mask] = 0.1 / num_outside
 
         # normalize (just in case)
         skymap /= skymap.sum()
-
 
         meta = OrderedDict(
             [
@@ -154,7 +152,9 @@ class TestNeutrinoScanner(unittest.TestCase):
         alert["event_name"] = ["IceCube-" + self.neutrino_name.replace("IC", "")]
 
         filename = self.tmp_path / "skymap.fits"
-        Table([skymap], meta=meta, names=["PROB"], units=["1 / pix"]).write(filename, format="fits")
+        Table([skymap], meta=meta, names=["PROB"], units=["1 / pix"]).write(
+            filename, format="fits"
+        )
         nu_kafka = NeutrinoKafkaScanner(alert=alert, map_path=filename)
 
         assert len(nu_kafka.pixel_nos) == len(nu.pixel_nos)
@@ -201,7 +201,9 @@ class TestNeutrinoScanner(unittest.TestCase):
         verts = np.squeeze(get_field_vertices(fields, squeeze=False), axis=1)
         for i, vert in enumerate(verts):
             c = f"C{2 + i}"
-            ax.add_patch(Polygon(vert, transform=_t, edgecolor=c, facecolor=c, ls="-", alpha=0.5))
+            ax.add_patch(
+                Polygon(vert, transform=_t, edgecolor=c, facecolor=c, ls="-", alpha=0.5)
+            )
             ax.plot([], [], color=c, label=f"Field {fields[i]}")
         ax.legend(loc="upper right", ncol=2)
 

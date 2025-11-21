@@ -1,6 +1,7 @@
 import logging
 import unittest
 from pathlib import Path
+
 from typer.testing import CliRunner
 
 from nuztf.cli import app
