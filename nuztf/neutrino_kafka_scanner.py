@@ -97,6 +97,10 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
         healpix_indices = np.where(credible_levels <= self.prob_threshold)[0]
         map_coords = hp.pix2ang(map_nside, healpix_indices, lonlat=True)
 
+        # calculate the probability of the 90% region
+        map_inside_threshold = skymap[healpix_indices]["PROB"]
+        map_inside_threshold /= np.sum(map_inside_threshold)
+
         # calculate pixel area
         total_pixel_area = hp.nside2pixarea(output_nside, degrees=True) * float(
             len(healpix_indices)
@@ -105,7 +109,7 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
             map_coords,
             healpix_indices,
             map_nside,
-            skymap[healpix_indices]["PROB"],
+            map_inside_threshold,
             skymap,
             total_pixel_area,
             "PROB",
