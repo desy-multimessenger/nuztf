@@ -4,8 +4,14 @@ from collections import OrderedDict
 import tempfile
 from pathlib import Path
 
+import numpy as np
 from astropy.time import Time
 from astropy.table import Table
+from astropy import units as u
+from astropy.visualization.wcsaxes import Quadrangle
+import matplotlib.pyplot as plt
+import ligo.skymap.plot as lkp
+import healpy as hp
 
 from nuztf.neutrino_scanner import NeutrinoScanner
 from nuztf.neutrino_kafka_scanner import NeutrinoKafkaScanner
@@ -72,9 +78,36 @@ class TestNeutrinoScanner(unittest.TestCase):
         nu = NeutrinoScanner(nu_name=self.neutrino_name)
 
         # make a mock skymap
-        nside = 1024
-        nu_skymap_out = nu.unpack_skymap(nside)
-        skymap = nu_skymap_out[4]
+        nside = 2048
+        npix = hp.nside2npix(nside)
+
+        ra, dec = hp.pix2ang(nside, np.arange(npix), lonlat=True)
+
+        # -------- rectangle bounds --------
+        ra_min = gcn_info["ra"] + gcn_info["ra_err"][1]
+        ra_max = gcn_info["ra"] + gcn_info["ra_err"][0]
+        dec_min = gcn_info["dec"] + gcn_info["dec_err"][1]
+        dec_max = gcn_info["dec"] + gcn_info["dec_err"][0]
+
+        # -------- mask pixels inside rectangle --------
+        # RA may wrap across 0/360 → handle both cases
+        if ra_min <= ra_max:
+            inside_ra = (ra >= ra_min) & (ra <= ra_max)
+        else:
+            inside_ra = (ra >= ra_min) | (ra <= ra_max)
+
+        inside_dec = (dec >= dec_min) & (dec <= dec_max)
+
+        mask = inside_ra & inside_dec
+        skymap = np.zeros(npix)
+        num_inside = np.sum(mask)
+        num_outside = npix - num_inside
+        skymap[mask] = .9 / num_inside
+        skymap[~mask] = .1 / num_outside
+
+        # normalize (just in case)
+        skymap /= skymap.sum()
+
 
         meta = OrderedDict(
             [
@@ -116,9 +149,46 @@ class TestNeutrinoScanner(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             filename = tmpdir + "/skymap.fits"
-            Table(skymap, meta=meta).write(filename, format="fits")
-            nu = NeutrinoKafkaScanner(alert=alert, map_path=Path(filename))
-            self.scan(scanner=nu)
+            Table([skymap], meta=meta, names=["PROB"], units=["1 / pix"]).write(filename, format="fits")
+            nu_kafka = NeutrinoKafkaScanner(alert=alert, map_path=Path(filename))
+
+            center_ra = meta["RA"] * u.deg
+            center_dec = meta["DEC"] * u.deg
+            ra_err_minus = meta["RA_ERR_MINUS"] * u.deg
+            ra_err_plus = meta["RA_ERR_PLUS"] * u.deg
+            dec_err_minus = meta["DEC_ERR_MINUS"] * u.deg
+            dec_err_plus = meta["DEC_ERR_PLUS"] * u.deg
+            left_lower_corner_ra = center_ra + ra_err_minus
+            left_lower_corner_dec = center_dec + dec_err_minus
+            dra = ra_err_plus - ra_err_minus
+            ddec = dec_err_plus - dec_err_minus
+
+            fig = plt.figure()
+            ax = plt.axes(
+                projection="astro degrees zoom",
+                center=f"{gcn_info['ra']}d {gcn_info['dec']}d",
+                radius="1 deg",
+            )
+            _t = ax.get_transform("world")
+            ax.imshow_hpx(filename)
+            ax.contour_hpx(nu_kafka.credible_levels, levels=[0.9], colors="C0")
+            gcn_rect = Quadrangle(
+                [left_lower_corner_ra, left_lower_corner_dec],
+                dra,
+                ddec,
+                edgecolor="C1",
+                facecolor="none",
+                transform=_t,
+                ls="--",
+            )
+            ax.add_patch(gcn_rect)
+            ax.set_xlabel("RA")
+            ax.set_ylabel("Dec")
+            fig.savefig("skymap.pdf")
+
+            assert nu_kafka.cone_nside == nu.cone_nside
+            assert nu_kafka.cone_ids == nu.cone_ids
+            self.scan(scanner=nu_kafka)
 
     def scan(self, scanner: NeutrinoScanner | NeutrinoKafkaScanner):
         t_max = scanner.default_t_max - 8
