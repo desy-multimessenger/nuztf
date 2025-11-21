@@ -1,9 +1,9 @@
 import logging
 import unittest
 from collections import OrderedDict
-import tempfile
 from pathlib import Path
 
+import pytest
 import numpy as np
 from astropy.time import Time
 from astropy.table import Table
@@ -56,6 +56,10 @@ class TestNeutrinoScanner(unittest.TestCase):
 
         self.neutrino_name = "IC200620A"
         self.expected_candidates = 2
+
+    @pytest.fixture(autouse=True)
+    def initdir(self, tmp_path, monkeypatch):
+        self.tmp_path = tmp_path
 
     def test_classical_scan(self):
         self.logger.info("\n\n Testing Neutrino Scanner \n\n")
@@ -117,7 +121,7 @@ class TestNeutrinoScanner(unittest.TestCase):
                 ("ORDERING", "RING"),
                 ("COORDSYS", "C"),
                 ("EXTNAME", "xtension"),
-                ("NSIDE", 1024),
+                ("NSIDE", nside),
                 ("FIRSTPIX", 0),
                 ("LASTPIX", 12582911),
                 ("INDXSCHM", "IMPLICIT"),
@@ -149,61 +153,63 @@ class TestNeutrinoScanner(unittest.TestCase):
         alert["trigger_time"] = gcn_info["time"].isot
         alert["event_name"] = ["IceCube-" + self.neutrino_name.replace("IC", "")]
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            filename = tmpdir + "/skymap.fits"
-            Table([skymap], meta=meta, names=["PROB"], units=["1 / pix"]).write(filename, format="fits")
-            nu_kafka = NeutrinoKafkaScanner(alert=alert, map_path=Path(filename))
+        filename = self.tmp_path / "skymap.fits"
+        Table([skymap], meta=meta, names=["PROB"], units=["1 / pix"]).write(filename, format="fits")
+        nu_kafka = NeutrinoKafkaScanner(alert=alert, map_path=Path(filename))
 
-            # fake GCN circular info for compatibility
-            nu_kafka.author = "Santander"
-            nu_kafka.gcn_no = 27997
+        # fake GCN circular info for compatibility
+        nu_kafka.author = "Santander"
+        nu_kafka.gcn_no = 27997
 
-            center_ra = meta["RA"] * u.deg
-            center_dec = meta["DEC"] * u.deg
-            ra_err_minus = meta["RA_ERR_MINUS"] * u.deg
-            ra_err_plus = meta["RA_ERR_PLUS"] * u.deg
-            dec_err_minus = meta["DEC_ERR_MINUS"] * u.deg
-            dec_err_plus = meta["DEC_ERR_PLUS"] * u.deg
-            left_lower_corner_ra = center_ra + ra_err_minus
-            left_lower_corner_dec = center_dec + dec_err_minus
-            dra = ra_err_plus - ra_err_minus
-            ddec = dec_err_plus - dec_err_minus
+        center_ra = meta["RA"] * u.deg
+        center_dec = meta["DEC"] * u.deg
+        ra_err_minus = meta["RA_ERR_MINUS"] * u.deg
+        ra_err_plus = meta["RA_ERR_PLUS"] * u.deg
+        dec_err_minus = meta["DEC_ERR_MINUS"] * u.deg
+        dec_err_plus = meta["DEC_ERR_PLUS"] * u.deg
+        left_lower_corner_ra = center_ra + ra_err_minus
+        left_lower_corner_dec = center_dec + dec_err_minus
+        dra = ra_err_plus - ra_err_minus
+        ddec = dec_err_plus - dec_err_minus
 
-            fig = plt.figure()
-            ax = plt.axes(
-                projection="astro degrees mollweide",
-                center=f"{gcn_info['ra']}d {gcn_info['dec']}d",
-                # radius="5 deg",
-            )
-            _t = ax.get_transform("world")
-            ax.imshow_hpx(filename)
-            ax.contour_hpx(nu_kafka.credible_levels, levels=[0.9], colors="C0")
-            gcn_rect = Quadrangle(
-                [left_lower_corner_ra, left_lower_corner_dec],
-                dra,
-                ddec,
-                edgecolor="C1",
-                facecolor="none",
-                transform=_t,
-                ls="--",
-            )
-            ax.add_patch(gcn_rect)
+        fig = plt.figure()
+        ax = plt.axes(
+            projection="astro degrees mollweide",
+            center=f"{gcn_info['ra']}d {gcn_info['dec']}d",
+            # radius="5 deg",
+        )
+        _t = ax.get_transform("world")
+        ax.imshow_hpx(filename)
+        ax.contour_hpx(nu_kafka.credible_levels, levels=[0.9], colors="C0")
+        gcn_rect = Quadrangle(
+            [left_lower_corner_ra, left_lower_corner_dec],
+            dra,
+            ddec,
+            edgecolor="C1",
+            facecolor="none",
+            transform=_t,
+            ls="--",
+        )
+        ax.add_patch(gcn_rect)
 
-            fields = [522]
-            verts = np.squeeze(get_field_vertices(fields, squeeze=False), axis=1)
-            for i, vert in enumerate(verts):
-                c = f"C{2 + i}"
-                ax.add_patch(Polygon(vert, transform=_t, edgecolor=c, facecolor=c, ls="-", alpha=0.2))
-                ax.plot([], [], color=c, label=f"Field {fields[i]}")
-            ax.legend(loc="upper right", ncol=2)
+        fields = [522]
+        verts = np.squeeze(get_field_vertices(fields, squeeze=False), axis=1)
+        for i, vert in enumerate(verts):
+            c = f"C{2 + i}"
+            ax.add_patch(Polygon(vert, transform=_t, edgecolor=c, facecolor=c, ls="-", alpha=0.2))
+            ax.plot([], [], color=c, label=f"Field {fields[i]}")
+        ax.legend(loc="upper right", ncol=2)
 
-            ax.set_xlabel("RA")
-            ax.set_ylabel("Dec")
-            fig.savefig("skymap.pdf")
+        ax.set_xlabel("RA")
+        ax.set_ylabel("Dec")
+        fig_fn = self.tmp_path / "skymap.pdf"
+        self.logger.info(f"Saving skymap figure to {fig_fn}")
+        fig.savefig(fig_fn)
+        plt.close()
 
-            assert nu_kafka.cone_nside == nu.cone_nside
-            assert nu_kafka.cone_ids == nu.cone_ids
-            self.scan(scanner=nu_kafka)
+        assert nu_kafka.cone_nside == nu.cone_nside
+        assert nu_kafka.cone_ids == nu.cone_ids
+        self.scan(scanner=nu_kafka)
 
     def scan(self, scanner: NeutrinoScanner | NeutrinoKafkaScanner):
         t_max = scanner.default_t_max - 8
