@@ -189,7 +189,7 @@ class TestNeutrinoScanner(unittest.TestCase):
             )
             ax.add_patch(gcn_rect)
 
-            fields = [498, 499, 522, 546]
+            fields = [522]
             verts = np.squeeze(get_field_vertices(fields, squeeze=False), axis=1)
             for i, vert in enumerate(verts):
                 c = f"C{2 + i}"
