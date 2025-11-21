@@ -102,7 +102,7 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
             map_coords,
             healpix_indices,
             map_nside,
-            skymap[healpix_indices],
+            skymap[healpix_indices]["PROB"],
             skymap,
             total_pixel_area,
             "PROB",
