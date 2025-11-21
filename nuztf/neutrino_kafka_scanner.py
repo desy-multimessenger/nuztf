@@ -1,20 +1,19 @@
 # coding: utf-8
 import json
 import logging
-from pathlib import Path
-import requests
 from hashlib import sha256
+from pathlib import Path
 
 import healpy as hp
-from astropy.time import Time
 import numpy as np
-from ligo.skymap.postprocess.util import find_greedy_credible_levels, smooth_ud_grade
-from ligo.skymap.io.fits import read_sky_map
+import requests
+from astropy.time import Time
 from gcn_kafka import Consumer
+from ligo.skymap.io.fits import read_sky_map
+from ligo.skymap.postprocess.util import find_greedy_credible_levels, smooth_ud_grade
 
 from nuztf.neutrino_scanner import NeutrinoScanner
-from nuztf.paths import SKYMAP_DIR, GCN_KAFKA_CACHE
-
+from nuztf.paths import GCN_KAFKA_CACHE, SKYMAP_DIR
 
 logger = logging.getLogger(__name__)
 

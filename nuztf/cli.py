@@ -11,9 +11,8 @@ from typing import Annotated
 from rich.console import Console
 from rich.logging import RichHandler
 
+from nuztf.neutrino_kafka_scanner import listen, scan_saved
 from nuztf.neutrino_scanner import NeutrinoScanner
-from nuztf.neutrino_kafka_scanner import scan_saved, listen
-
 
 app = typer.Typer()
 
