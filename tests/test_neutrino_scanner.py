@@ -84,7 +84,7 @@ class TestNeutrinoScanner(unittest.TestCase):
         nu = NeutrinoScanner(nu_name=self.neutrino_name)
 
         # make a mock skymap
-        nside = 2048
+        nside = 1024
         npix = hp.nside2npix(nside)
 
         ra, dec = hp.pix2ang(nside, np.arange(npix), lonlat=True)
@@ -155,7 +155,10 @@ class TestNeutrinoScanner(unittest.TestCase):
 
         filename = self.tmp_path / "skymap.fits"
         Table([skymap], meta=meta, names=["PROB"], units=["1 / pix"]).write(filename, format="fits")
-        nu_kafka = NeutrinoKafkaScanner(alert=alert, map_path=Path(filename))
+        nu_kafka = NeutrinoKafkaScanner(alert=alert, map_path=filename)
+
+        assert len(nu_kafka.pixel_nos) == len(nu.pixel_nos)
+        assert (nu_kafka.pixel_nos == nu.pixel_nos).all()
 
         # fake GCN circular info for compatibility
         nu_kafka.author = "Santander"
@@ -180,7 +183,8 @@ class TestNeutrinoScanner(unittest.TestCase):
         )
         _t = ax.get_transform("world")
         ax.imshow_hpx(str(filename), label="skymap")
-        ax.contour_hpx(nu_kafka.credible_levels, levels=[0.9], colors="C0", nested=True, label="contour from skymap")
+        ax.contour_hpx(nu_kafka.credible_levels, levels=[0.9], colors="C0", nested=True)
+        ax.plot([], [], color="C0", label="90% contour from skymap", ls="-")
         gcn_rect = Quadrangle(
             [left_lower_corner_ra, left_lower_corner_dec],
             dra,
@@ -191,13 +195,13 @@ class TestNeutrinoScanner(unittest.TestCase):
             ls="--",
         )
         ax.add_patch(gcn_rect)
-        ax.plot([], [], color="C1", label="90% rectangle from GCN")
+        ax.plot([], [], color="C1", label="90% rectangle from GCN", ls="--")
 
         fields = [522]
         verts = np.squeeze(get_field_vertices(fields, squeeze=False), axis=1)
         for i, vert in enumerate(verts):
             c = f"C{2 + i}"
-            ax.add_patch(Polygon(vert, transform=_t, edgecolor=c, facecolor=c, ls="-", alpha=0.2))
+            ax.add_patch(Polygon(vert, transform=_t, edgecolor=c, facecolor=c, ls="-", alpha=0.5))
             ax.plot([], [], color=c, label=f"Field {fields[i]}")
         ax.legend(loc="upper right", ncol=2)
 
