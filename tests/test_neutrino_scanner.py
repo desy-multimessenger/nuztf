@@ -58,7 +58,7 @@ class TestNeutrinoScanner(unittest.TestCase):
         self.expected_candidates = 2
 
     @pytest.fixture(autouse=True)
-    def initdir(self, tmp_path, monkeypatch):
+    def initdir(self, tmp_path):
         self.tmp_path = tmp_path
 
     def test_classical_scan(self):
@@ -176,11 +176,11 @@ class TestNeutrinoScanner(unittest.TestCase):
         ax = plt.axes(
             projection="astro degrees zoom",
             center=f"{gcn_info['ra']}d {gcn_info['dec']}d",
-            radius="5 deg",
+            radius="2 deg",
         )
         _t = ax.get_transform("world")
-        ax.imshow_hpx(str(filename))
-        ax.contour_hpx(nu_kafka.credible_levels, levels=[0.9], colors="C0", nested=True)
+        ax.imshow_hpx(str(filename), label="skymap")
+        ax.contour_hpx(nu_kafka.credible_levels, levels=[0.9], colors="C0", nested=True, label="contour from skymap")
         gcn_rect = Quadrangle(
             [left_lower_corner_ra, left_lower_corner_dec],
             dra,
@@ -191,6 +191,7 @@ class TestNeutrinoScanner(unittest.TestCase):
             ls="--",
         )
         ax.add_patch(gcn_rect)
+        ax.plot([], [], color="C1", label="90% rectangle from GCN")
 
         fields = [522]
         verts = np.squeeze(get_field_vertices(fields, squeeze=False), axis=1)
