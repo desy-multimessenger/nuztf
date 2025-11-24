@@ -29,7 +29,7 @@ def main(
         case_sensitive=False,
     ),
 ):
-    """Global options for all Timewise commands."""
+    """Global options for all nuztf commands."""
     # Normalize log level
     level = getattr(logging, log_level.upper(), None)
     if not isinstance(level, int):
