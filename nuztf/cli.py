@@ -6,74 +6,104 @@ except ImportError:
     )
 
 import logging
-from pathlib import Path
 from typing import Annotated
 
-from astropy.time import Time
 from rich.console import Console
 from rich.logging import RichHandler
-from rich.table import Table
 
+from nuztf.neutrino_kafka_scanner import listen, scan_saved
 from nuztf.neutrino_scanner import NeutrinoScanner
 
+app = typer.Typer()
 
+
+# --- Global callback (runs before every command) ---
+@app.callback()
 def main(
+    ctx: typer.Context,
+    log_level: str = typer.Option(
+        "INFO",
+        "--log-level",
+        "-l",
+        help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
+        case_sensitive=False,
+    ),
+):
+    """Global options for all nuztf commands."""
+    # Normalize log level
+    level = getattr(logging, log_level.upper(), None)
+    if not isinstance(level, int):
+        raise typer.BadParameter(f"Invalid log level: {log_level}")
+
+    # Rich logging and printing
+    logging.basicConfig(
+        handlers=[RichHandler(rich_tracebacks=True, markup=True)],
+    )
+    logging.getLogger("nuztf").setLevel(level)
+    console = Console()
+
+    # Store log level in context for subcommands
+    ctx.obj = {"log_level": level, "console": console}
+
+
+@app.command()
+def nu_classic(
+    ctx: typer.Context,
     nu_name: Annotated[
         str, typer.Argument(..., help="Name of the neutrino, e.g. `IC200530A`")
     ],
-    logging_level: Annotated[str, typer.Option("--logging-level", "-l")] = "INFO",
     gcn_filename: Annotated[
-        str | Path,
+        str,
         typer.Option(
             "--gcn-filename",
             "-f",
             help="Filename to write GCN to, if None (default) print to console",
         ),
     ] = None,
-    rich_handler: Annotated[
-        bool, typer.Option("--rich", "-r", help="Use a nice logging markup")
-    ] = True,
-    stream_handler: Annotated[
-        bool,
-        typer.Option("--stream", "-s", help="Use the standard stdout logging handler"),
-    ] = False,
 ):
-
-    logger = logging.getLogger("nuztf")
-    if rich_handler:
-        logger.addHandler(RichHandler())
-    if not stream_handler:
-        logger.propagate = False
-    logger.setLevel(logging_level)
-    console = Console()
-    console.print(f"Searching for candidates for {nu_name}", style="bold magenta")
     nu = NeutrinoScanner(nu_name)
-    nu.query_for_alerts()
-    nu.scan_area()
-    nu.plot_overlap_with_observations(first_det_window_days=30.0)
-    jds = nu.observations.obsjd.unique()
+    nu.scan(console=ctx.obj["console"], gcn_filename=gcn_filename)
 
-    table = Table(title="Observations")
-    table.add_column("Time", justify="right")
-    table.add_column("Bands")
-    table.add_column("Exp. Times")
-    for jd in jds:
-        m = nu.observations.obsjd == jd
-        bands = nu.observations.band[m].unique()
-        exp_times = nu.observations.exposure_time[m].unique()
-        time = Time(jd, format="jd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
-        table.add_row(str(time), str(bands), str(exp_times))
 
-    console.print(table)
+@app.command()
+def nu_saved_kafka(
+    ctx: typer.Context,
+    nu_name: Annotated[
+        str, typer.Argument(..., help="Name of the neutrino, e.g. `IC200530A`")
+    ],
+    gcn_filename: Annotated[
+        str,
+        typer.Option(
+            "--gcn-filename",
+            "-f",
+            help="Filename to write GCN to, if None (default) print to console",
+        ),
+    ] = None,
+):
+    print("scanning")
+    scan_saved(nu_name=nu_name, console=ctx.obj["console"], gcn_filename=gcn_filename)
 
-    gcn_draft = nu.draft_gcn()
-    if gcn_filename is not None:
-        logger.info(f"Writing GCN to {gcn_filename}")
-        with open(gcn_filename, "w") as f:
-            f.write(gcn_draft)
-    else:
-        console.print("Here is your GCN draft:\n\n", style="bold magenta")
-        console.print(gcn_draft)
+
+@app.command()
+def nu_listen(
+    ctx: typer.Context,
+    client_id: Annotated[str, typer.Argument(..., help="GCN Kafka Client ID")],
+    client_secret: Annotated[str, typer.Argument(..., help="GCN Kafka Client Secret")],
+    gcn_filename: Annotated[
+        str,
+        typer.Option(
+            "--gcn-filename",
+            "-f",
+            help="Filename to write GCN to, if None (default) print to console",
+        ),
+    ] = None,
+):
+    listen(
+        client_id=client_id,
+        client_secret=client_secret,
+        gcn_filename=gcn_filename,
+        console=ctx.obj["console"],
+    )
 
 
 def cli_command():
