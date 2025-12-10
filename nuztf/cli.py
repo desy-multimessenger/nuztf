@@ -10,6 +10,7 @@ from typing import Annotated
 
 from rich.console import Console
 from rich.logging import RichHandler
+from astropy.time import Time
 
 from nuztf.neutrino_kafka_scanner import listen, scan_saved
 from nuztf.neutrino_scanner import NeutrinoScanner
@@ -52,6 +53,15 @@ def nu_classic(
     nu_name: Annotated[
         str, typer.Argument(..., help="Name of the neutrino, e.g. `IC200530A`")
     ],
+    manual_info: Annotated[
+        tuple[float, float, float, float, float, float, str],
+        typer.Argument(
+            ...,
+            help="Provide manual position and time in the format "
+                 "RA, RA_LOWER, RA_UPPER, DEC, DEC_LOWER, DEC_UPPER, MJD",
+
+        ),
+    ] = None,
     gcn_filename: Annotated[
         str,
         typer.Option(
@@ -61,7 +71,16 @@ def nu_classic(
         ),
     ] = None,
 ):
-    nu = NeutrinoScanner(nu_name)
+    if manual_info is not None:
+        manual_args = (
+            nu_name,
+            (manual_info[0], -manual_info[1], manual_info[2]),
+            (manual_info[3], -manual_info[4], manual_info[5]),
+            Time(manual_info[-1])
+        )
+        nu = NeutrinoScanner(manual_args=manual_args)
+    else:
+        nu = NeutrinoScanner(nu_name=nu_name)
     nu.scan(console=ctx.obj["console"], gcn_filename=gcn_filename)
 
 
