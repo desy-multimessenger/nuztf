@@ -282,6 +282,7 @@ class NeutrinoScanner(BaseScanner):
     def scan(self, console=None, gcn_filename: str | None = None):
         self.query_for_alerts()
         self.scan_area()
+        self.create_candidate_summary()
         self.plot_overlap_with_observations(first_det_window_days=30.0)
         jds = self.observations.obsjd.unique()
 
