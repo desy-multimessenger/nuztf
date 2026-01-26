@@ -1,4 +1,5 @@
 # coding: utf-8
+import datetime
 import json
 import logging
 from hashlib import sha256
@@ -169,9 +170,10 @@ def listen(
     # Parse replay time
     # ------------------------------------------------------------
 
-    replay_from_utc = None
     if from_utc_time is not None:
-        replay_from = datetime.fromisoformat(from_time).replace(tzinfo=timezone.utc)
+        replay_from = datetime.datetime.fromisoformat(from_utc_time).replace(tzinfo=datetime.timezone.utc)
+    else:
+        replay_from = None
 
     config = {}
 
