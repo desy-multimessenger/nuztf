@@ -116,6 +116,13 @@ def nu_listen(
             help="Filename to write GCN to, if None (default) print to console",
         ),
     ] = None,
+        from_utc_time: Annotated[str,
+        typer.Option(
+        "--from-utc-time",
+        "-t",
+        help="UTC time to start replaying from, in format YYYY-MM-DDTHH:MM:SS",
+        )
+        ] = None,
 ):
     listen(
         client_id=client_id,
