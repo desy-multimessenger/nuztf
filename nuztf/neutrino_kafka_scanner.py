@@ -18,7 +18,7 @@ from nuztf.paths import GCN_KAFKA_CACHE, SKYMAP_DIR
 
 logger = logging.getLogger(__name__)
 
-TEST_GCN_KAFKA_TOPIC = "gcn.notices.icecube.test.gold_bronze_track_alerts"
+ICECUBE_ASTROTRACK_TOPIC = "gcn.notices.icecube.gold_bronze_track_alerts"
 
 
 class NeutrinoKafkaScanner(NeutrinoScanner):
@@ -196,7 +196,7 @@ def listen(
         },
     )
 
-    consumer.subscribe(topics or [TEST_GCN_KAFKA_TOPIC])
+    consumer.subscribe(topics or [ICECUBE_ASTROTRACK_TOPIC], on_assign=on_assign)
     consumer.poll(timeout=1.0)
 
     # ------------------------------------------------------------
