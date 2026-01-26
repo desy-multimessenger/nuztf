@@ -254,14 +254,15 @@ def listen(
             # Print the topic and message ID
             logger.info("Found alert!")
             logger.info(f"topic={message.topic()}, offset={message.offset()}")
-            value = message.value()
-            logger.debug(value)
+            value = message.value().decode()
+            logger.debug(json.dumps(value, indent=4))
 
             # save alert for future reference
-            save_alert(message)
+            alert_dict = json.loads(value)
+            save_alert(alert_dict)
 
             # instantiate scanner
-            nu = NeutrinoKafkaScanner(alert=message)
+            nu = NeutrinoKafkaScanner(alert=alert_dict)
             gcn_filename = (
                 draft_directory / f"{nu.nu_name}_draft.txt" if draft_directory else None
             )
