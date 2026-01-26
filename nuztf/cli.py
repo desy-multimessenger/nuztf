@@ -108,7 +108,7 @@ def nu_listen(
     ctx: typer.Context,
     client_id: Annotated[str, typer.Argument(..., help="GCN Kafka Client ID")],
     client_secret: Annotated[str, typer.Argument(..., help="GCN Kafka Client Secret")],
-    gcn_filename: Annotated[
+    draft_directory: Annotated[
         str,
         typer.Option(
             "--gcn-filename",
@@ -120,7 +120,7 @@ def nu_listen(
     listen(
         client_id=client_id,
         client_secret=client_secret,
-        gcn_filename=gcn_filename,
+        draft_directory=draft_directory,
         console=ctx.obj["console"],
     )
 
