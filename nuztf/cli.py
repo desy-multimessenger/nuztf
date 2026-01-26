@@ -129,6 +129,7 @@ def nu_listen(
         client_secret=client_secret,
         draft_directory=draft_directory,
         console=ctx.obj["console"],
+        from_utc_time=from_utc_time,
     )
 
 
