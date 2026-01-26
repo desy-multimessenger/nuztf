@@ -232,7 +232,9 @@ def listen(
 
             # instantiate scanner
             nu = NeutrinoKafkaScanner(alert=message)
-            gcn_filename = draft_directory / f"{nu.nu_name}_draft.txt" if draft_directory else None
+            gcn_filename = (
+                draft_directory / f"{nu.nu_name}_draft.txt" if draft_directory else None
+            )
             nu.scan(console=console, gcn_filename=gcn_filename)
 
 

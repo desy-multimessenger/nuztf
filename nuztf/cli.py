@@ -58,8 +58,7 @@ def nu_classic(
         typer.Argument(
             ...,
             help="Provide manual position and time in the format "
-                 "RA, RA_LOWER, RA_UPPER, DEC, DEC_LOWER, DEC_UPPER, MJD",
-
+            "RA, RA_LOWER, RA_UPPER, DEC, DEC_LOWER, DEC_UPPER, MJD",
         ),
     ] = None,
     gcn_filename: Annotated[
@@ -76,7 +75,7 @@ def nu_classic(
             nu_name,
             (manual_info[0], -manual_info[1], manual_info[2]),
             (manual_info[3], -manual_info[4], manual_info[5]),
-            Time(manual_info[-1])
+            Time(manual_info[-1]),
         )
         nu = NeutrinoScanner(manual_args=manual_args)
     else:
@@ -116,13 +115,14 @@ def nu_listen(
             help="Filename to write GCN to, if None (default) print to console",
         ),
     ] = None,
-        from_utc_time: Annotated[str,
+    from_utc_time: Annotated[
+        str,
         typer.Option(
-        "--from-utc-time",
-        "-t",
-        help="UTC time to start replaying from, in format YYYY-MM-DDTHH:MM:SS",
-        )
-        ] = None,
+            "--from-utc-time",
+            "-t",
+            help="UTC time to start replaying from, in format YYYY-MM-DDTHH:MM:SS",
+        ),
+    ] = None,
 ):
     listen(
         client_id=client_id,
