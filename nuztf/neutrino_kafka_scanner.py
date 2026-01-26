@@ -160,13 +160,61 @@ def listen(
     draft_directory: str | None = None,
     from_utc_time: str | None = None,
 ):
+
+    if draft_directory:
+        draft_directory = Path(draft_directory)
+        draft_directory.mkdir(parents=True, exist_ok=True)
+
+    # ------------------------------------------------------------
+    # Parse replay time
+    # ------------------------------------------------------------
+
+    replay_from_utc = None
+    if from_utc_time is not None:
+        replay_from = datetime.fromisoformat(from_time).replace(tzinfo=timezone.utc)
+
+    config = {}
+
+    if replay_from is not None:
+        # a unique group id is required for replay because the
+        # offsets are committed for each group id (even if auto commit is disabled, I think)
+        config["group.id"] = f"nuztf-replay-{int(replay_from.timestamp())}"
+        config["enable.auto.commit"] = False
+
+    # ------------------------------------------------------------
+    # Subscribe to topics
+    # ------------------------------------------------------------
+
     consumer = Consumer(
         client_id=client_id,
         client_secret=client_secret,
+        config={
+            "group.id": "my-consumer-replay-2",
+            "auto.offset.reset": "earliest",
+        },
     )
 
-    # Subscribe to topics and receive alerts
     consumer.subscribe(topics or [TEST_GCN_KAFKA_TOPIC])
+    consumer.poll(timeout=1.0)
+
+    # ------------------------------------------------------------
+    # Seek to replay time if specified
+    # ------------------------------------------------------------
+
+    if replay_from is not None:
+        timestamp_ms = int(replay_from.timestamp() * 1000)
+
+        assignments = consumer.assignment()
+        if not assignments:
+            raise RuntimeError("No partitions assigned; cannot replay")
+
+        for tp in assignments:
+            consumer.seek(tp, timestamp_ms)
+
+    # ------------------------------------------------------------
+    # Consume messages
+    # ------------------------------------------------------------
+
     logger.info("Connected ...")
     while True:
         for message in consumer.consume(timeout=1):
