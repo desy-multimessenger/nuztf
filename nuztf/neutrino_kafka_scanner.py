@@ -10,6 +10,7 @@ import numpy as np
 import requests
 from astropy.time import Time
 from gcn_kafka import Consumer
+from confluent_kafka import TopicPartition
 from ligo.skymap.io.fits import read_sky_map
 from ligo.skymap.postprocess.util import find_greedy_credible_levels, smooth_ud_grade
 
@@ -184,34 +185,61 @@ def listen(
         config["enable.auto.commit"] = False
 
     # ------------------------------------------------------------
+    # Seek to replay time if specified
+    # ------------------------------------------------------------
+
+    def on_assign(consumer, partitions):
+        logger.info("Partitions assigned: %s", partitions)
+
+        if replay_from is None:
+            return
+
+        timestamp_ms = int(replay_from.timestamp() * 1000)
+
+        # Refresh metadata first
+        consumer.poll(timeout=1.0)
+
+        tps = [
+            TopicPartition(tp.topic, tp.partition, timestamp_ms) for tp in partitions
+        ]
+        offsets = consumer.offsets_for_times(tps, timeout=10.0)
+
+        for tp_offset in offsets:
+            if tp_offset.offset != -1:
+                try:
+                    consumer.seek(tp_offset)
+                    logger.info(
+                        "Seeking %s partition %d to offset %d",
+                        tp_offset.topic,
+                        tp_offset.partition,
+                        tp_offset.offset,
+                    )
+                except Exception as e:
+                    logger.warning(
+                        "Failed to seek %s partition %d: %s",
+                        tp_offset.topic,
+                        tp_offset.partition,
+                        e,
+                    )
+            else:
+                logger.info(
+                    "No messages for %s partition %d after timestamp",
+                    tp_offset.topic,
+                    tp_offset.partition,
+                )
+
+    # ------------------------------------------------------------
     # Subscribe to topics
     # ------------------------------------------------------------
 
     consumer = Consumer(
         client_id=client_id,
         client_secret=client_secret,
-        config={
-            "group.id": "my-consumer-replay-2",
-            "auto.offset.reset": "earliest",
-        },
+        config=config
     )
 
     consumer.subscribe(topics or [ICECUBE_ASTROTRACK_TOPIC], on_assign=on_assign)
     consumer.poll(timeout=1.0)
-
-    # ------------------------------------------------------------
-    # Seek to replay time if specified
-    # ------------------------------------------------------------
-
-    if replay_from is not None:
-        timestamp_ms = int(replay_from.timestamp() * 1000)
-
-        assignments = consumer.assignment()
-        if not assignments:
-            raise RuntimeError("No partitions assigned; cannot replay")
-
-        for tp in assignments:
-            consumer.seek(tp, timestamp_ms)
 
     # ------------------------------------------------------------
     # Consume messages
