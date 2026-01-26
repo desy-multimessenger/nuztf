@@ -378,19 +378,19 @@ class BaseScanner:
 
         return alerts
 
-    def filter_alerts(self, query_res):
+    def filter_alerts(self, query_res, backend: str = ZTF_BACKEND) -> list:
         """
         Filter the alerts based on the filters
 
         :param query_res: List of alerts
+        :param backend: Backend to query (ampel or kowalski)
         :return: List of filtered alerts
         """
 
         ztf_ids_first_stage = []
         for res in tqdm(query_res):
             if self.filter_f_no_prv(res):
-                if self.filter_ampel(res):
-                    ztf_ids_first_stage.append(res["objectId"])
+                ztf_ids_first_stage.append(res["objectId"])
 
         ztf_ids_first_stage = list(set(ztf_ids_first_stage))
 
@@ -398,7 +398,7 @@ class BaseScanner:
 
         self.logger.info(f"Retrieving alert history for filtering stage 2")
 
-        results = self.filter_with_history(ztf_ids=ztf_ids_first_stage)
+        results = self.filter_with_history(ztf_ids=ztf_ids_first_stage, backend=backend)
 
         with open(self.get_final_cache_path(), "w") as outfile:
             json.dump(results, outfile)
@@ -418,7 +418,7 @@ class BaseScanner:
         """
         alerts = self.get_alerts(t_min=t_min, t_max=t_max, backend=backend)
         self.add_results([[x] for x in alerts], cache=self.cache_alerts)
-        candidates = self.filter_alerts(alerts)
+        candidates = self.filter_alerts(alerts, backend=backend)
         self.add_results(candidates, cache=self.cache_candidates)
 
     def add_results(self, results, cache: dict):
@@ -453,20 +453,27 @@ class BaseScanner:
     def in_contour(self, ra, dec):
         raise NotImplementedError
 
-    def filter_with_history(self, ztf_ids: list) -> list:
-        """ """
+    def filter_with_history(self, ztf_ids: list, backend: str = ZTF_BACKEND) -> list:
+        """
+        Filter the alerts with history
+
+        :param ztf_ids: List of ZTF IDs to filter
+        :param backend: Backend to query (ampel or kowalski)
+        :return: List of filtered alerts
+        """
         all_results = []
 
         for ztf_id in tqdm(ztf_ids):
             # get the full lightcurve from the API
-            query_res = api_name(ztf_name=ztf_id)
+            query_res = api_name(ztf_name=ztf_id, backend=backend, with_history=True)
 
             candidate_passes = False
 
             for res in query_res:
-                if self.filter_f_history(res):
-                    candidate_passes = True
-                    break
+                if self.filter_ampel(res):
+                    if self.filter_f_history(res):
+                        candidate_passes = True
+                        break
 
             if candidate_passes:
                 all_results.append(merge_alerts(query_res))

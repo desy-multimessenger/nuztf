@@ -189,6 +189,11 @@ class SkymapScanner(BaseScanner):
         except (KeyError, TypeError):
             pass
 
+        # Remove stars
+        if (res["candidate"]["sgscore1"] > 0.5) & (res["candidate"]["distpsnr1"] < 2.0):
+            self.logger.debug(f"❌ {res['objectId']}: Star-like object (sgscore1)")
+            return False
+
         # Check contour
         if not self.in_contour(res["candidate"]["ra"], res["candidate"]["dec"]):
             self.logger.debug(f"❌ {res['objectId']}: Outside of event contour.")

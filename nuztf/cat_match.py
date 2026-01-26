@@ -53,7 +53,7 @@ def query_ned_astroquery(
 
     try:
         return Ned.query_region(c, radius=r)
-    except RemoteServiceError:
+    except (RemoteServiceError, TimeoutError):
         return None
 
 
