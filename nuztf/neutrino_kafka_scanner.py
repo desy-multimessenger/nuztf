@@ -172,7 +172,9 @@ def listen(
     # ------------------------------------------------------------
 
     if isinstance(replay, str):
-        replay_from = datetime.datetime.fromisoformat(replay).replace(tzinfo=datetime.timezone.utc)
+        replay_from = datetime.datetime.fromisoformat(replay).replace(
+            tzinfo=datetime.timezone.utc
+        )
     elif isinstance(replay, int):
         replay_from = replay
     else:
@@ -183,7 +185,9 @@ def listen(
     if replay_from is not None:
         # a unique group id is required for replay because the
         # offsets are committed for each group id (even if auto commit is disabled, I think)
-        config["group.id"] = f"nuztf-replay-{replay_from if isinstance(replay_from, int) else int(replay_from.timestamp())}"
+        config["group.id"] = (
+            f"nuztf-replay-{replay_from if isinstance(replay_from, int) else int(replay_from.timestamp())}"
+        )
         config["enable.auto.commit"] = False
 
     # ------------------------------------------------------------
@@ -225,11 +229,7 @@ def listen(
     # Subscribe to topics
     # ------------------------------------------------------------
 
-    consumer = Consumer(
-        client_id=client_id,
-        client_secret=client_secret,
-        config=config
-    )
+    consumer = Consumer(client_id=client_id, client_secret=client_secret, config=config)
 
     consumer.subscribe(topics or [ICECUBE_ASTROTRACK_TOPIC], on_assign=on_assign)
     consumer.poll(timeout=1.0)
