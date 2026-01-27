@@ -8,6 +8,7 @@ import numpy as np
 import yaml
 from astropy.time import Time
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 from nuztf.base_scanner import BaseScanner
 from nuztf.parse_nu_gcn import find_gcn_no, get_latest_gcn, parse_gcn_circular
@@ -283,7 +284,10 @@ class NeutrinoScanner(BaseScanner):
         self.query_for_alerts()
         self.scan_area()
         self.create_candidate_summary()
-        self.plot_overlap_with_observations(first_det_window_days=30.0)
+        fig, _ = self.plot_overlap_with_observations(first_det_window_days=30.0)
+        if gcn_filename is not None:
+            fig.savefig(gcn_filename.replace(".txt", ".png"))
+        plt.close()
         jds = self.observations.obsjd.unique()
 
         if console:
