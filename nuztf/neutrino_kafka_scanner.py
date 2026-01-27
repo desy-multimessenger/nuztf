@@ -38,8 +38,8 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
         # to be compatible with code relying on the 90% rectangle
         # we parse accordingly from the header
         # 26.01.2026: checked that alert_dict and header contain same info
-        ra = [header["RA"], header["RA_ERR_MINUS_90"], header["RA_ERR_PLUS_90"]]
-        dec = [header["DEC"], header["DEC_ERR_MINUS_90"], header["DEC_ERR_PLUS_90"]]
+        ra = [header["RA"], -header["RA_ERR_MINUS_90"], header["RA_ERR_PLUS_90"]]
+        dec = [header["DEC"], -header["DEC_ERR_MINUS_90"], header["DEC_ERR_PLUS_90"]]
 
         if not header["nest"]:
             hpx_map = hp.reorder(hpx_map, r2n=True)
