@@ -10,7 +10,7 @@ import numpy as np
 import requests
 from astropy.time import Time
 from gcn_kafka import Consumer
-from confluent_kafka import TopicPartition
+from confluent_kafka import TopicPartition, OFFSET_END
 from ligo.skymap.io.fits import read_sky_map
 from ligo.skymap.postprocess.util import find_greedy_credible_levels, smooth_ud_grade
 
@@ -160,7 +160,7 @@ def listen(
     topics: list[str] = None,
     console=None,
     draft_directory: str | None = None,
-    from_utc_time: str | None = None,
+    replay: str | int | None = None,
 ):
 
     if draft_directory:
@@ -171,8 +171,10 @@ def listen(
     # Parse replay time
     # ------------------------------------------------------------
 
-    if from_utc_time is not None:
-        replay_from = datetime.datetime.fromisoformat(from_utc_time).replace(tzinfo=datetime.timezone.utc)
+    if isinstance(replay, str):
+        replay_from = datetime.datetime.fromisoformat(replay).replace(tzinfo=datetime.timezone.utc)
+    elif isinstance(replay, int):
+        replay_from = replay
     else:
         replay_from = None
 
@@ -181,7 +183,7 @@ def listen(
     if replay_from is not None:
         # a unique group id is required for replay because the
         # offsets are committed for each group id (even if auto commit is disabled, I think)
-        config["group.id"] = f"nuztf-replay-{int(replay_from.timestamp())}"
+        config["group.id"] = f"nuztf-replay-{replay_from if isinstance(replay_from, int) else int(replay_from.timestamp())}"
         config["enable.auto.commit"] = False
 
     # ------------------------------------------------------------
@@ -197,12 +199,21 @@ def listen(
             # live mode
             return
 
-        ts_ms = int(replay_from.timestamp() * 1000)
+        if isinstance(replay_from, datetime.datetime):
+            # get offsets for times
+            ts_ms = int(replay_from.timestamp() * 1000)
+            # IMPORTANT: build request from *assigned* partitions
+            query = [TopicPartition(tp.topic, tp.partition, ts_ms) for tp in partitions]
+            resolved = consumer.offsets_for_times(query, timeout=10.0)
+        else:
+            resolved = []
+            for tp in partitions:
+                # offsets are given directly
+                low, high = consumer.get_watermark_offsets(tp)
 
-        # IMPORTANT: build request from *assigned* partitions
-        query = [TopicPartition(tp.topic, tp.partition, ts_ms) for tp in partitions]
-
-        resolved = consumer.offsets_for_times(query, timeout=10.0)
+                # high is the *next* offset, so subtract
+                start = max(low, high - replay_from)
+                resolved.append(TopicPartition(tp.topic, tp.partition, start))
 
         for tp in resolved:
             if tp.offset < 0:

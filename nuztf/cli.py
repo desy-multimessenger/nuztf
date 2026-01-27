@@ -16,6 +16,7 @@ from nuztf.neutrino_kafka_scanner import listen, scan_saved
 from nuztf.neutrino_scanner import NeutrinoScanner
 
 app = typer.Typer()
+logger = logging.getLogger(__name__)
 
 
 # --- Global callback (runs before every command) ---
@@ -115,7 +116,7 @@ def nu_listen(
             help="Filename to write GCN to, if None (default) print to console",
         ),
     ] = None,
-    from_utc_time: Annotated[
+    replay: Annotated[
         str,
         typer.Option(
             "--from-utc-time",
@@ -124,12 +125,19 @@ def nu_listen(
         ),
     ] = None,
 ):
+    if replay is not None:
+        try:
+            replay = int(replay)
+            logger.debug(f"Replaying last {replay} messages")
+        except ValueError:
+            logger.debug(f"Replaying from {replay}")
+
     listen(
         client_id=client_id,
         client_secret=client_secret,
         draft_directory=draft_directory,
         console=ctx.obj["console"],
-        from_utc_time=from_utc_time,
+        replay=replay,
     )
 
 
