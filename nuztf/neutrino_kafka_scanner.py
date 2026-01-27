@@ -75,7 +75,7 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
             response.raise_for_status()
             with open(local_path, "wb") as f:
                 f.write(response.content)
-        flat_path = local_path.parent / (local_path.name.replace("_multiorder", "") + local_path.suffix)
+        flat_path = local_path.parent / local_path.name.replace("_multiorder", "")
         if not flat_path.exists():
             logger.info(f"Flattening skymap to {flat_path}")
             # convert to flat format
