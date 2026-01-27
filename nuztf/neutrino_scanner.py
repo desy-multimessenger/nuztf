@@ -5,11 +5,11 @@ import logging
 from pathlib import Path
 
 import healpy as hp
+import matplotlib.pyplot as plt
 import numpy as np
 import yaml
 from astropy.time import Time
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 
 from nuztf.base_scanner import BaseScanner
 from nuztf.parse_nu_gcn import find_gcn_no, get_latest_gcn, parse_gcn_circular

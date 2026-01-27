@@ -8,9 +8,9 @@ except ImportError:
 import logging
 from typing import Annotated
 
+from astropy.time import Time
 from rich.console import Console
 from rich.logging import RichHandler
-from astropy.time import Time
 
 from nuztf.neutrino_kafka_scanner import listen, scan_saved
 from nuztf.neutrino_scanner import NeutrinoScanner

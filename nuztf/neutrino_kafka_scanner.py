@@ -5,16 +5,16 @@ import logging
 from hashlib import sha256
 from pathlib import Path
 
-import healpy as hp
 import astropy_healpix as ah
+import healpy as hp
 import numpy as np
 import requests
-from astropy.time import Time
 from astropy.io import fits
+from astropy.time import Time
+from confluent_kafka import OFFSET_END, TopicPartition
 from gcn_kafka import Consumer
-from confluent_kafka import TopicPartition, OFFSET_END
-from ligo.skymap.io.fits import read_sky_map, write_sky_map
 from ligo.skymap.bayestar import rasterize
+from ligo.skymap.io.fits import read_sky_map, write_sky_map
 from ligo.skymap.postprocess.util import find_greedy_credible_levels, smooth_ud_grade
 
 from nuztf.neutrino_scanner import NeutrinoScanner
@@ -267,7 +267,9 @@ def listen(
             save_alert(alert_dict)
 
             if alert_dict["healpix_url"] is None:
-                logger.info("Alert does not contain a healpix skymap URL, probably first notice, skipping...")
+                logger.info(
+                    "Alert does not contain a healpix skymap URL, probably first notice, skipping..."
+                )
                 continue
             # instantiate scanner
             nu = NeutrinoKafkaScanner(alert=alert_dict)
