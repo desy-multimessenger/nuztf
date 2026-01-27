@@ -33,16 +33,17 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
         map_path: Path = None,
     ):
         map_path = map_path or self.download_and_flatten(alert["healpix_url"])
-        hpx_map, header = read_sky_map(str(map_path))
+        hpx_map, header = read_sky_map(str(map_path), nest=True)
+
+        if not header["nest"]:
+            hpx_map, header = read_sky_map(str(map_path), nest=False)
+            hpx_map = hp.reorder(hpx_map, r2n=True)
 
         # to be compatible with code relying on the 90% rectangle
         # we parse accordingly from the header
         # 26.01.2026: checked that alert_dict and header contain same info
         ra = [header["RA"], -header["RA_ERR_MINUS_90"], header["RA_ERR_PLUS_90"]]
         dec = [header["DEC"], -header["DEC_ERR_MINUS_90"], header["DEC_ERR_PLUS_90"]]
-
-        if not header["nest"]:
-            hpx_map = hp.reorder(hpx_map, r2n=True)
 
         self.skymap = np.array(hpx_map, dtype=[("PROB", float)])
         self.skymap_header = header
@@ -96,7 +97,7 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
             self.logger.info(
                 f"Interpolating input skymap from nside {map_nside} to {output_nside}"
             )
-            skymap = smooth_ud_grade(self.skymap, output_nside)
+            skymap = smooth_ud_grade(self.skymap, output_nside, nest=True)
         else:
             skymap = self.skymap
 
@@ -107,7 +108,7 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
 
         # find healpix indices inside credible region
         healpix_indices = np.where(credible_levels <= self.prob_threshold)[0]
-        map_coords = hp.pix2ang(map_nside, healpix_indices, lonlat=True)
+        map_coords = hp.pix2ang(map_nside, healpix_indices, lonlat=True, nest=True)
 
         # calculate the probability of the 90% region
         map_inside_threshold = skymap[healpix_indices]["PROB"]
