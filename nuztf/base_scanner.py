@@ -1021,7 +1021,7 @@ class BaseScanner:
         overlapping_fields = sorted(list(set(overlapping_fields)))
 
         _observations = data.query("obsjd in @times").reset_index(drop=True)[
-            ["obsjd", "exposure_time", "filter_id"]
+            ["obsjd", "exposure_time", "filter_id", "field_id"]
         ]
         bands = [self.fid_to_band(fid) for fid in _observations["filter_id"].values]
         _observations["band"] = bands

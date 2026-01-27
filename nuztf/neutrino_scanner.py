@@ -300,12 +300,14 @@ class NeutrinoScanner(BaseScanner):
             table.add_column("Time", justify="right")
             table.add_column("Bands")
             table.add_column("Exp. Times")
+            table.add_column("Field")
             for jd in jds:
                 m = self.observations.obsjd == jd
                 bands = self.observations.band[m].unique()
                 exp_times = self.observations.exposure_time[m].unique()
+                fields = self.observations.field_id[m].unique()
                 time = Time(jd, format="jd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
-                table.add_row(str(time), str(bands), str(exp_times))
+                table.add_row(str(time), str(bands), str(exp_times), str(fields))
 
             console.print(table)
 
