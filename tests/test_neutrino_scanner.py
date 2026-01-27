@@ -14,6 +14,7 @@ from astropy.time import Time
 from astropy.visualization.wcsaxes import Quadrangle
 from matplotlib.patches import Polygon
 from ztfquery.fields import get_field_vertices
+from ligo.skymap.io.fits import write_sky_map
 
 from nuztf.neutrino_kafka_scanner import NeutrinoKafkaScanner
 from nuztf.neutrino_scanner import NeutrinoScanner
@@ -86,7 +87,7 @@ class TestNeutrinoScanner(unittest.TestCase):
         nside = 1024
         npix = hp.nside2npix(nside)
 
-        ra, dec = hp.pix2ang(nside, np.arange(npix), lonlat=True)
+        ra, dec = hp.pix2ang(nside, np.arange(npix), lonlat=True, nest=True)
 
         # -------- rectangle bounds --------
         ra_min = gcn_info["ra"] + gcn_info["ra_err"][1]
@@ -115,21 +116,11 @@ class TestNeutrinoScanner(unittest.TestCase):
 
         meta = OrderedDict(
             [
-                ("PIXTYPE", "HEALPIX"),
-                ("ORDERING", "RING"),
-                ("COORDSYS", "C"),
-                ("EXTNAME", "xtension"),
-                ("NSIDE", nside),
-                ("FIRSTPIX", 0),
-                ("LASTPIX", 12582911),
-                ("INDXSCHM", "IMPLICIT"),
-                ("OBJECT", "FULLSKY"),
                 ("RUNID", 140078),
                 ("EVENTID", 30891383),
                 ("SENDER", "IceCube Collaboration"),
-                ("DATE-OBS", "2024-11-13T00:22:20.682"),
-                ("MJD-OBS", nu.t_min.mjd),
-                ("I3TYPE", "EHE"),
+                ("EVENT-TYPE", "neutrino"),
+                ("ALERT-STREAM", "Bronze"),
                 ("RA", gcn_info["ra"]),
                 ("DEC", gcn_info["dec"]),
                 ("RA_ERR_PLUS_90", gcn_info["ra_err"][0]),
@@ -144,6 +135,7 @@ class TestNeutrinoScanner(unittest.TestCase):
                     "NOTE",
                     "Please ignore pixels with infinite or NaN values. They are rare cases of the minimizer failing to converge",
                 ),
+                ("nest", True),
             ]
         )
 
@@ -152,9 +144,7 @@ class TestNeutrinoScanner(unittest.TestCase):
         alert["event_name"] = ["IceCube-" + self.neutrino_name.replace("IC", "")]
 
         filename = self.tmp_path / "skymap.fits"
-        Table([skymap], meta=meta, names=["PROB"], units=["1 / pix"]).write(
-            filename, format="fits"
-        )
+        write_sky_map(str(filename), skymap, **meta)
         nu_kafka = NeutrinoKafkaScanner(alert=alert, map_path=filename)
 
         assert len(nu_kafka.pixel_nos) == len(nu.pixel_nos)
