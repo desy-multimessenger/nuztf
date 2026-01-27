@@ -254,6 +254,9 @@ def listen(
             alert_dict = json.loads(value)
             save_alert(alert_dict)
 
+            if alert_dict["healpix_url"] is None:
+                logger.info("Alert does not contain a healpix skymap URL, probably first notice, skipping...")
+                continue
             # instantiate scanner
             nu = NeutrinoKafkaScanner(alert=alert_dict)
             gcn_filename = (
