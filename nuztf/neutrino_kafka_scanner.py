@@ -6,12 +6,15 @@ from hashlib import sha256
 from pathlib import Path
 
 import healpy as hp
+import astropy_healpix as ah
 import numpy as np
 import requests
 from astropy.time import Time
+from astropy.io import fits
 from gcn_kafka import Consumer
 from confluent_kafka import TopicPartition, OFFSET_END
-from ligo.skymap.io.fits import read_sky_map
+from ligo.skymap.io.fits import read_sky_map, write_sky_map
+from ligo.skymap.bayestar import rasterize
 from ligo.skymap.postprocess.util import find_greedy_credible_levels, smooth_ud_grade
 
 from nuztf.neutrino_scanner import NeutrinoScanner
@@ -29,7 +32,7 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
         prob_threshold: float = 0.9,
         map_path: Path = None,
     ):
-        map_path = map_path or self.download_map(alert["healpix_url"])
+        map_path = map_path or self.download_and_flatten(alert["healpix_url"])
         hpx_map, header = read_sky_map(str(map_path))
 
         # to be compatible with code relying on the 90% rectangle
@@ -64,13 +67,24 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
         return self._credible_levels
 
     @staticmethod
-    def download_map(url: str) -> Path:
-        response = requests.get(url)
-        response.raise_for_status()
+    def download_and_flatten(url: str) -> Path:
         local_path = SKYMAP_DIR / Path(url).name
-        with open(local_path, "wb") as f:
-            f.write(response.content)
-        return local_path
+        if not local_path.exists():
+            logger.info(f"Downloading {url}")
+            response = requests.get(url)
+            response.raise_for_status()
+            with open(local_path, "wb") as f:
+                f.write(response.content)
+        flat_path = local_path.parent / (local_path.name.replace("_multiorder", "") + local_path.suffix)
+        if not flat_path.exists():
+            logger.info(f"Flattening skymap to {flat_path}")
+            # convert to flat format
+            skymap = read_sky_map(str(local_path), moc=True)
+            # Area of each pixel
+            level, ipix = ah.uniq_to_level_ipix(skymap["UNIQ"])
+            rasterized_skymap = rasterize(skymap, level.max())
+            write_sky_map(str(flat_path), rasterized_skymap, nest=True)
+        return flat_path
 
     def unpack_skymap(self, output_nside: None | int = None):
         map_nside = hp.npix2nside(len(self.skymap))
