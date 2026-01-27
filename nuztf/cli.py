@@ -111,8 +111,8 @@ def nu_listen(
     draft_directory: Annotated[
         str,
         typer.Option(
-            "--gcn-filename",
-            "-f",
+            "--draft-directory",
+            "-d",
             help="Filename to write GCN to, if None (default) print to console",
         ),
     ] = None,
