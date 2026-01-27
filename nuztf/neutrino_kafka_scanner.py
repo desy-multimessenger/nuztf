@@ -222,12 +222,13 @@ def listen(
             else:
                 consumer.seek(tp)
 
+        logger.info("Connected ...")
+
     # ------------------------------------------------------------
     # Subscribe to topics
     # ------------------------------------------------------------
 
     consumer = Consumer(client_id=client_id, client_secret=client_secret, config=config)
-
     consumer.subscribe(topics or [ICECUBE_ASTROTRACK_TOPIC], on_assign=on_assign)
     consumer.poll(timeout=1.0)
 
@@ -235,7 +236,6 @@ def listen(
     # Consume messages
     # ------------------------------------------------------------
 
-    logger.info("Connected ...")
     while True:
         for message in consumer.consume(timeout=1):
             if message.error():
