@@ -12,9 +12,9 @@ from astropy import units as u
 from astropy.table import Table
 from astropy.time import Time
 from astropy.visualization.wcsaxes import Quadrangle
+from ligo.skymap.io.fits import write_sky_map
 from matplotlib.patches import Polygon
 from ztfquery.fields import get_field_vertices
-from ligo.skymap.io.fits import write_sky_map
 
 from nuztf.neutrino_kafka_scanner import NeutrinoKafkaScanner
 from nuztf.neutrino_scanner import NeutrinoScanner
