@@ -189,44 +189,26 @@ def listen(
     # ------------------------------------------------------------
 
     def on_assign(consumer, partitions):
-        logger.info("Partitions assigned: %s", partitions)
+        logger.info("Assigned: %s", partitions)
+
+        consumer.assign(partitions)
 
         if replay_from is None:
+            # live mode
             return
 
-        timestamp_ms = int(replay_from.timestamp() * 1000)
+        ts_ms = int(replay_from.timestamp() * 1000)
 
-        # Refresh metadata first
-        consumer.poll(timeout=1.0)
+        # IMPORTANT: build request from *assigned* partitions
+        query = [TopicPartition(tp.topic, tp.partition, ts_ms) for tp in partitions]
 
-        tps = [
-            TopicPartition(tp.topic, tp.partition, timestamp_ms) for tp in partitions
-        ]
-        offsets = consumer.offsets_for_times(tps, timeout=10.0)
+        resolved = consumer.offsets_for_times(query, timeout=10.0)
 
-        for tp_offset in offsets:
-            if tp_offset.offset != -1:
-                try:
-                    consumer.seek(tp_offset)
-                    logger.info(
-                        "Seeking %s partition %d to offset %d",
-                        tp_offset.topic,
-                        tp_offset.partition,
-                        tp_offset.offset,
-                    )
-                except Exception as e:
-                    logger.warning(
-                        "Failed to seek %s partition %d: %s",
-                        tp_offset.topic,
-                        tp_offset.partition,
-                        e,
-                    )
+        for tp in resolved:
+            if tp.offset < 0:
+                consumer.seek(TopicPartition(tp.topic, tp.partition, OFFSET_END))
             else:
-                logger.info(
-                    "No messages for %s partition %d after timestamp",
-                    tp_offset.topic,
-                    tp_offset.partition,
-                )
+                consumer.seek(tp)
 
     # ------------------------------------------------------------
     # Subscribe to topics
