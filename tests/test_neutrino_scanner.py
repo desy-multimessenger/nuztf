@@ -132,10 +132,10 @@ class TestNeutrinoScanner(unittest.TestCase):
                 ("I3TYPE", "EHE"),
                 ("RA", gcn_info["ra"]),
                 ("DEC", gcn_info["dec"]),
-                ("RA_ERR_PLUS", gcn_info["ra_err"][0]),
-                ("RA_ERR_MINUS", gcn_info["ra_err"][1]),
-                ("DEC_ERR_PLUS", gcn_info["dec_err"][0]),
-                ("DEC_ERR_MINUS", gcn_info["dec_err"][1]),
+                ("RA_ERR_PLUS_90", gcn_info["ra_err"][0]),
+                ("RA_ERR_MINUS_90", -gcn_info["ra_err"][1]),
+                ("DEC_ERR_PLUS_90", gcn_info["dec_err"][0]),
+                ("DEC_ERR_MINUS_90", -gcn_info["dec_err"][1]),
                 (
                     "COMMENTS",
                     "90% uncertainty location => Highest posterior density 90% credible region",
@@ -166,10 +166,10 @@ class TestNeutrinoScanner(unittest.TestCase):
 
         center_ra = meta["RA"] * u.deg
         center_dec = meta["DEC"] * u.deg
-        ra_err_minus = meta["RA_ERR_MINUS"] * u.deg
-        ra_err_plus = meta["RA_ERR_PLUS"] * u.deg
-        dec_err_minus = meta["DEC_ERR_MINUS"] * u.deg
-        dec_err_plus = meta["DEC_ERR_PLUS"] * u.deg
+        ra_err_minus = -meta["RA_ERR_MINUS_90"] * u.deg
+        ra_err_plus = meta["RA_ERR_PLUS_90"] * u.deg
+        dec_err_minus = -meta["DEC_ERR_MINUS_90"] * u.deg
+        dec_err_plus = meta["DEC_ERR_PLUS_90"] * u.deg
         left_lower_corner_ra = center_ra + ra_err_minus
         left_lower_corner_dec = center_dec + dec_err_minus
         dra = ra_err_plus - ra_err_minus
