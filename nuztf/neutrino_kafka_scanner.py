@@ -213,6 +213,7 @@ def listen(
 
         if replay_from is None:
             # live mode
+            logger.info("Connected ...")
             return
 
         if isinstance(replay_from, datetime.datetime):
