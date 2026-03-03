@@ -106,8 +106,6 @@ def nu_saved_kafka(
 @app.command()
 def nu_listen(
     ctx: typer.Context,
-    client_id: Annotated[str, typer.Argument(..., help="GCN Kafka Client ID")],
-    client_secret: Annotated[str, typer.Argument(..., help="GCN Kafka Client Secret")],
     draft_directory: Annotated[
         str,
         typer.Option(
@@ -121,7 +119,7 @@ def nu_listen(
         typer.Option(
             "--from-utc-time",
             "-t",
-            help="UTC time to start replaying from, in format YYYY-MM-DDTHH:MM:SS",
+            help="UTC time to start replaying from, in format YYYY-MM-DDTHH:MM:SS or integer number of messages to replay from the end of the stream",
         ),
     ] = None,
 ):
@@ -133,8 +131,6 @@ def nu_listen(
             logger.debug(f"Replaying from {replay}")
 
     listen(
-        client_id=client_id,
-        client_secret=client_secret,
         draft_directory=draft_directory,
         console=ctx.obj["console"],
         replay=replay,

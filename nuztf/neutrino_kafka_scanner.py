@@ -16,6 +16,7 @@ from gcn_kafka import Consumer
 from ligo.skymap.bayestar import rasterize
 from ligo.skymap.io.fits import read_sky_map, write_sky_map
 from ligo.skymap.postprocess.util import find_greedy_credible_levels, smooth_ud_grade
+from ztfquery.io import _load_id_
 
 from nuztf.neutrino_scanner import NeutrinoScanner
 from nuztf.paths import GCN_KAFKA_CACHE, SKYMAP_DIR
@@ -167,8 +168,6 @@ def load_alert(nu_name: str) -> dict:
 
 
 def listen(
-    client_id: str,
-    client_secret: str,
     topics: list[str] = None,
     console=None,
     draft_directory: str | None = None,
@@ -244,6 +243,7 @@ def listen(
     # Subscribe to topics
     # ------------------------------------------------------------
 
+    client_id, client_secret = _load_id_("icecube_gcn_kafka")
     consumer = Consumer(client_id=client_id, client_secret=client_secret, config=config)
     consumer.subscribe(topics or [ICECUBE_ASTROTRACK_TOPIC], on_assign=on_assign)
     consumer.poll(timeout=1.0)
