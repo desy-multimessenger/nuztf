@@ -4,6 +4,7 @@ import json
 import logging
 from hashlib import sha256
 from pathlib import Path
+from typing import Any
 
 import astropy_healpix as ah
 import healpy as hp
@@ -191,7 +192,9 @@ def listen(
     else:
         replay_from = None
 
-    config = {}
+    config: dict[str, Any] = {
+        "max.poll.interval.ms": 1800000,  # 30 minutes
+    }
 
     if replay_from is not None:
         # a unique group id is required for replay because the
