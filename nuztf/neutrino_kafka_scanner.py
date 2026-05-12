@@ -4,15 +4,20 @@ import json
 import logging
 from hashlib import sha256
 from pathlib import Path
+from typing import Any
 
+import astropy_healpix as ah
 import healpy as hp
 import numpy as np
 import requests
+from astropy.io import fits
 from astropy.time import Time
+from confluent_kafka import OFFSET_END, TopicPartition
 from gcn_kafka import Consumer
-from confluent_kafka import TopicPartition
-from ligo.skymap.io.fits import read_sky_map
+from ligo.skymap.bayestar import rasterize
+from ligo.skymap.io.fits import read_sky_map, write_sky_map
 from ligo.skymap.postprocess.util import find_greedy_credible_levels, smooth_ud_grade
+from ztfquery.io import _load_id_
 
 from nuztf.neutrino_scanner import NeutrinoScanner
 from nuztf.paths import GCN_KAFKA_CACHE, SKYMAP_DIR
@@ -29,20 +34,18 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
         prob_threshold: float = 0.9,
         map_path: Path = None,
     ):
-        map_path = map_path or self.download_map(alert["healpix_url"])
-        hpx_map, header = read_sky_map(str(map_path))
+        map_path = map_path or self.download_and_flatten(alert["healpix_url"])
+        hpx_map, header = read_sky_map(str(map_path), nest=True)
+
+        if not header["nest"]:
+            hpx_map, header = read_sky_map(str(map_path), nest=False)
+            hpx_map = hp.reorder(hpx_map, r2n=True)
 
         # to be compatible with code relying on the 90% rectangle
         # we parse accordingly from the header
-        # TODO:
-        #  The position values are taken from the header for now
-        #  because the position does not match for the example alert
-        #  between alert json and header!
-        ra = [header["RA"], header["RA_ERR_MINUS"], header["RA_ERR_PLUS"]]
-        dec = [header["DEC"], header["DEC_ERR_MINUS"], header["DEC_ERR_PLUS"]]
-
-        if not header["nest"]:
-            hpx_map = hp.reorder(hpx_map, r2n=True)
+        # 26.01.2026: checked that alert_dict and header contain same info
+        ra = [header["RA"], -header["RA_ERR_MINUS_90"], header["RA_ERR_PLUS_90"]]
+        dec = [header["DEC"], -header["DEC_ERR_MINUS_90"], header["DEC_ERR_PLUS_90"]]
 
         self.skymap = np.array(hpx_map, dtype=[("PROB", float)])
         self.skymap_header = header
@@ -67,13 +70,24 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
         return self._credible_levels
 
     @staticmethod
-    def download_map(url: str) -> Path:
-        response = requests.get(url)
-        response.raise_for_status()
+    def download_and_flatten(url: str) -> Path:
         local_path = SKYMAP_DIR / Path(url).name
-        with open(local_path, "wb") as f:
-            f.write(response.content)
-        return local_path
+        if not local_path.exists():
+            logger.info(f"Downloading {url}")
+            response = requests.get(url)
+            response.raise_for_status()
+            with open(local_path, "wb") as f:
+                f.write(response.content)
+        flat_path = local_path.parent / local_path.name.replace("_multiorder", "")
+        if not flat_path.exists():
+            logger.info(f"Flattening skymap to {flat_path}")
+            # convert to flat format
+            skymap = read_sky_map(str(local_path), moc=True)
+            # Area of each pixel
+            level, ipix = ah.uniq_to_level_ipix(skymap["UNIQ"])
+            rasterized_skymap = rasterize(skymap, level.max())
+            write_sky_map(str(flat_path), rasterized_skymap, nest=True)
+        return flat_path
 
     def unpack_skymap(self, output_nside: None | int = None):
         map_nside = hp.npix2nside(len(self.skymap))
@@ -85,7 +99,7 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
             self.logger.info(
                 f"Interpolating input skymap from nside {map_nside} to {output_nside}"
             )
-            skymap = smooth_ud_grade(self.skymap, output_nside)
+            skymap = smooth_ud_grade(self.skymap, output_nside, nest=True)
         else:
             skymap = self.skymap
 
@@ -96,7 +110,7 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
 
         # find healpix indices inside credible region
         healpix_indices = np.where(credible_levels <= self.prob_threshold)[0]
-        map_coords = hp.pix2ang(map_nside, healpix_indices, lonlat=True)
+        map_coords = hp.pix2ang(map_nside, healpix_indices, lonlat=True, nest=True)
 
         # calculate the probability of the 90% region
         map_inside_threshold = skymap[healpix_indices]["PROB"]
@@ -155,12 +169,10 @@ def load_alert(nu_name: str) -> dict:
 
 
 def listen(
-    client_id: str,
-    client_secret: str,
     topics: list[str] = None,
     console=None,
     draft_directory: str | None = None,
-    from_utc_time: str | None = None,
+    replay: str | int | None = None,
 ):
 
     if draft_directory:
@@ -171,17 +183,25 @@ def listen(
     # Parse replay time
     # ------------------------------------------------------------
 
-    if from_utc_time is not None:
-        replay_from = datetime.datetime.fromisoformat(from_utc_time).replace(tzinfo=datetime.timezone.utc)
+    if isinstance(replay, str):
+        replay_from = datetime.datetime.fromisoformat(replay).replace(
+            tzinfo=datetime.timezone.utc
+        )
+    elif isinstance(replay, int):
+        replay_from = replay
     else:
         replay_from = None
 
-    config = {}
+    config: dict[str, Any] = {
+        "max.poll.interval.ms": 1800000,  # 30 minutes
+    }
 
     if replay_from is not None:
         # a unique group id is required for replay because the
         # offsets are committed for each group id (even if auto commit is disabled, I think)
-        config["group.id"] = f"nuztf-replay-{int(replay_from.timestamp())}"
+        config["group.id"] = (
+            f"nuztf-replay-{replay_from if isinstance(replay_from, int) else int(replay_from.timestamp())}"
+        )
         config["enable.auto.commit"] = False
 
     # ------------------------------------------------------------
@@ -189,55 +209,45 @@ def listen(
     # ------------------------------------------------------------
 
     def on_assign(consumer, partitions):
-        logger.info("Partitions assigned: %s", partitions)
+        logger.info("Assigned: %s", partitions)
+
+        consumer.assign(partitions)
 
         if replay_from is None:
+            # live mode
+            logger.info("Connected ...")
             return
 
-        timestamp_ms = int(replay_from.timestamp() * 1000)
+        if isinstance(replay_from, datetime.datetime):
+            # get offsets for times
+            ts_ms = int(replay_from.timestamp() * 1000)
+            # IMPORTANT: build request from *assigned* partitions
+            query = [TopicPartition(tp.topic, tp.partition, ts_ms) for tp in partitions]
+            resolved = consumer.offsets_for_times(query, timeout=10.0)
+        else:
+            resolved = []
+            for tp in partitions:
+                # offsets are given directly
+                low, high = consumer.get_watermark_offsets(tp)
 
-        # Refresh metadata first
-        consumer.poll(timeout=1.0)
+                # high is the *next* offset, so subtract
+                start = max(low, high - replay_from)
+                resolved.append(TopicPartition(tp.topic, tp.partition, start))
 
-        tps = [
-            TopicPartition(tp.topic, tp.partition, timestamp_ms) for tp in partitions
-        ]
-        offsets = consumer.offsets_for_times(tps, timeout=10.0)
-
-        for tp_offset in offsets:
-            if tp_offset.offset != -1:
-                try:
-                    consumer.seek(tp_offset)
-                    logger.info(
-                        "Seeking %s partition %d to offset %d",
-                        tp_offset.topic,
-                        tp_offset.partition,
-                        tp_offset.offset,
-                    )
-                except Exception as e:
-                    logger.warning(
-                        "Failed to seek %s partition %d: %s",
-                        tp_offset.topic,
-                        tp_offset.partition,
-                        e,
-                    )
+        for tp in resolved:
+            if tp.offset < 0:
+                consumer.seek(TopicPartition(tp.topic, tp.partition, OFFSET_END))
             else:
-                logger.info(
-                    "No messages for %s partition %d after timestamp",
-                    tp_offset.topic,
-                    tp_offset.partition,
-                )
+                consumer.seek(tp)
+
+        logger.info("Connected ...")
 
     # ------------------------------------------------------------
     # Subscribe to topics
     # ------------------------------------------------------------
 
-    consumer = Consumer(
-        client_id=client_id,
-        client_secret=client_secret,
-        config=config
-    )
-
+    client_id, client_secret = _load_id_("icecube_gcn_kafka")
+    consumer = Consumer(client_id=client_id, client_secret=client_secret, config=config)
     consumer.subscribe(topics or [ICECUBE_ASTROTRACK_TOPIC], on_assign=on_assign)
     consumer.poll(timeout=1.0)
 
@@ -245,7 +255,6 @@ def listen(
     # Consume messages
     # ------------------------------------------------------------
 
-    logger.info("Connected ...")
     while True:
         for message in consumer.consume(timeout=1):
             if message.error():
@@ -261,6 +270,11 @@ def listen(
             alert_dict = json.loads(value)
             save_alert(alert_dict)
 
+            if alert_dict["healpix_url"] is None:
+                logger.info(
+                    "Alert does not contain a healpix skymap URL, probably first notice, skipping..."
+                )
+                continue
             # instantiate scanner
             nu = NeutrinoKafkaScanner(alert=alert_dict)
             gcn_filename = (

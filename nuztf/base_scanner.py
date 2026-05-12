@@ -589,7 +589,7 @@ class BaseScanner:
         text += self.text_summary()
 
         text += (
-            "ZTF and GROWTH are worldwide collaborations comprising Caltech, USA; IPAC, USA; WIS, Israel; OKC, Sweden; JSI/UMd, USA; DESY, Germany; TANGO, Taiwan; UW Milwaukee, USA; LANL, USA; TCD, Ireland; IN2P3, France.\n\n"
+            "ZTF and GROWTH are worldwide collaborations comprising Caltech/IPAC, USA; University of Maryland, USA; University of California, Berkeley, USA; Cornell University, USA; Drexel University, USA; University of North Carolina at Chapel Hill, USA; Institute of Science and Technology, Austria; National Central University, Taiwan; OKC, Sweden; DZA, Germany.\n\n"
             "GROWTH acknowledges generous support of the NSF under PIRE Grant No 1545949.\n"
             "Alert distribution service provided by DIRAC@UW (Patterson et al. 2019).\n"
             "Alert database searches are done by AMPEL (Nordin et al. 2019).\n"
@@ -1021,7 +1021,7 @@ class BaseScanner:
         overlapping_fields = sorted(list(set(overlapping_fields)))
 
         _observations = data.query("obsjd in @times").reset_index(drop=True)[
-            ["obsjd", "exposure_time", "filter_id"]
+            ["obsjd", "exposure_time", "filter_id", "field_id"]
         ]
         bands = [self.fid_to_band(fid) for fid in _observations["filter_id"].values]
         _observations["band"] = bands
