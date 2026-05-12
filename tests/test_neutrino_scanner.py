@@ -18,6 +18,7 @@ from ztfquery.fields import get_field_vertices
 
 from nuztf.neutrino_kafka_scanner import NeutrinoKafkaScanner
 from nuztf.neutrino_scanner import NeutrinoScanner
+from nuztf.paths import CROSSMATCH_CACHE
 
 EXAMPLE_KAFKA_ALERT = {
     "$schema": "https://gcn.nasa.gov/schema/v6.0.0/gcn/notices/icecube/single_neutrino_alerts.schema.json",
@@ -209,6 +210,13 @@ class TestNeutrinoScanner(unittest.TestCase):
         self.scan(scanner=nu_kafka)
 
     def scan(self, scanner: NeutrinoScanner | NeutrinoKafkaScanner):
+
+        # clear cache to avoid old results hanging around
+        names = ["ZTF18acvhwtf", "ZTF20abgvabi"]
+        for n in names:
+            if (fn := CROSSMATCH_CACHE / f"{n}.json").exists():
+                fn.unlink()
+
         t_max = scanner.default_t_max - 8
 
         scanner.scan_area(t_max=t_max)
