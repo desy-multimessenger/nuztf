@@ -162,6 +162,7 @@ def get_cross_match_info(raw: dict, logger=None) -> str:
         logger=logger,
     )
     if res is not None:
+        logger.debug(json.dumps(res, indent=2))
         if len(res) == 1:
             if "q" in res[0]["body"]["broad_type"]:
                 label = (

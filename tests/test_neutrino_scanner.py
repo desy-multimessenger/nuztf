@@ -50,7 +50,8 @@ EXAMPLE_KAFKA_ALERT = {
 class TestNeutrinoScanner(unittest.TestCase):
     def setUp(self):
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.DEBUG)
+        logging.getLogger("nuztf").setLevel(logging.DEBUG)
 
         self.max_distance_diff_arcsec = 2
         self.maxDiff = None
