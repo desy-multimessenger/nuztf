@@ -190,7 +190,10 @@ def parse_gcn_circular(gcn_number: int):
     body = res_json.get("body")
 
     base = submitter.split("at")[0].split(" ")
-    author = [x for x in base if x != ""][1]
+    try:
+        author = [x for x in base if x != ""][1]
+    except IndexError:
+        author = "NO AUTHOR FOUND!"
     returndict.update({"author": author})
 
     name = subject.split(" - ")[0]
