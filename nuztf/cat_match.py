@@ -152,6 +152,7 @@ def get_cross_match_info(raw: dict, logger=None) -> str:
 
     # Check if known QSO/AGN
 
+    logger.debug(f"checking milliquas at RA={alert['ra']} DEC={alert['dec']}")
     res = ampel_api_catalog(
         catalog="milliquas",
         catalog_type="extcats",
