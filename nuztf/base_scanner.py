@@ -594,7 +594,8 @@ class BaseScanner:
         text += self.text_summary()
 
         text += (
-            "ZTF and GROWTH are worldwide collaborations comprising Caltech/IPAC, USA; University of Maryland, USA; University of California, Berkeley, USA; Cornell University, USA; Drexel University, USA; University of North Carolina at Chapel Hill, USA; Institute of Science and Technology, Austria; National Central University, Taiwan; OKC, Sweden; DZA, Germany.\n\n"
+            "Based on observations obtained with the Samuel Oschin Telescope 48-inch and the 60-inch Telescope at the Palomar Observatory as part of the Zwicky Transient Facility project. "
+            "ZTF is supported by the National Science Foundation under Award #2407588 and a partnership including Caltech/IPAC, USA; University of Maryland, USA; University of California, Berkeley, USA; Cornell University, USA; Drexel University, USA; University of North Carolina at Chapel Hill, USA; Institute of Science and Technology, Austria; National Central University, Taiwan; OKC, Sweden; DZA, Germany.\n\n"
             "GROWTH acknowledges generous support of the NSF under PIRE Grant No 1545949.\n"
             "Alert distribution service provided by DIRAC@UW (Patterson et al. 2019).\n"
             "Alert database searches are done by AMPEL (Nordin et al. 2019).\n"
