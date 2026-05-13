@@ -4,6 +4,7 @@ import unittest
 import pytest
 
 from nuztf.skymap_scanner import SkymapScanner
+from tests.utils import clip_scanner_data
 
 
 class TestSkymapScanner(unittest.TestCase):
@@ -48,6 +49,9 @@ class TestSkymapScanner(unittest.TestCase):
         )
 
         self.assertEqual(n_retrieved_candidates, n_expected_candidates)
+
+        # Clip in case there are extra new detections
+        scanner = clip_scanner_data(scanner)
 
         self.logger.info("Creating overview table")
 

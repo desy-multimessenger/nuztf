@@ -1,22 +1,23 @@
 import logging
 import unittest
 from collections import OrderedDict
-from pathlib import Path
 
 import healpy as hp
-import ligo.skymap.plot as lkp
+import ligo.skymap.plot
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from astropy import units as u
-from astropy.table import Table
 from astropy.time import Time
 from astropy.visualization.wcsaxes import Quadrangle
+from ligo.skymap.io.fits import write_sky_map
 from matplotlib.patches import Polygon
 from ztfquery.fields import get_field_vertices
 
 from nuztf.neutrino_kafka_scanner import NeutrinoKafkaScanner
 from nuztf.neutrino_scanner import NeutrinoScanner
+from nuztf.paths import CROSSMATCH_CACHE
+from tests.utils import clip_scanner_data
 
 EXAMPLE_KAFKA_ALERT = {
     "$schema": "https://gcn.nasa.gov/schema/v6.0.0/gcn/notices/icecube/single_neutrino_alerts.schema.json",
@@ -48,7 +49,8 @@ EXAMPLE_KAFKA_ALERT = {
 class TestNeutrinoScanner(unittest.TestCase):
     def setUp(self):
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.DEBUG)
+        logging.getLogger("nuztf").setLevel(logging.DEBUG)
 
         self.max_distance_diff_arcsec = 2
         self.maxDiff = None
@@ -86,7 +88,7 @@ class TestNeutrinoScanner(unittest.TestCase):
         nside = 1024
         npix = hp.nside2npix(nside)
 
-        ra, dec = hp.pix2ang(nside, np.arange(npix), lonlat=True)
+        ra, dec = hp.pix2ang(nside, np.arange(npix), lonlat=True, nest=True)
 
         # -------- rectangle bounds --------
         ra_min = gcn_info["ra"] + gcn_info["ra_err"][1]
@@ -115,27 +117,17 @@ class TestNeutrinoScanner(unittest.TestCase):
 
         meta = OrderedDict(
             [
-                ("PIXTYPE", "HEALPIX"),
-                ("ORDERING", "RING"),
-                ("COORDSYS", "C"),
-                ("EXTNAME", "xtension"),
-                ("NSIDE", nside),
-                ("FIRSTPIX", 0),
-                ("LASTPIX", 12582911),
-                ("INDXSCHM", "IMPLICIT"),
-                ("OBJECT", "FULLSKY"),
                 ("RUNID", 140078),
                 ("EVENTID", 30891383),
                 ("SENDER", "IceCube Collaboration"),
-                ("DATE-OBS", "2024-11-13T00:22:20.682"),
-                ("MJD-OBS", nu.t_min.mjd),
-                ("I3TYPE", "EHE"),
+                ("EVENT-TYPE", "neutrino"),
+                ("ALERT-STREAM", "Bronze"),
                 ("RA", gcn_info["ra"]),
                 ("DEC", gcn_info["dec"]),
-                ("RA_ERR_PLUS", gcn_info["ra_err"][0]),
-                ("RA_ERR_MINUS", gcn_info["ra_err"][1]),
-                ("DEC_ERR_PLUS", gcn_info["dec_err"][0]),
-                ("DEC_ERR_MINUS", gcn_info["dec_err"][1]),
+                ("RA_ERR_PLUS_90", gcn_info["ra_err"][0]),
+                ("RA_ERR_MINUS_90", -gcn_info["ra_err"][1]),
+                ("DEC_ERR_PLUS_90", gcn_info["dec_err"][0]),
+                ("DEC_ERR_MINUS_90", -gcn_info["dec_err"][1]),
                 (
                     "COMMENTS",
                     "90% uncertainty location => Highest posterior density 90% credible region",
@@ -144,6 +136,7 @@ class TestNeutrinoScanner(unittest.TestCase):
                     "NOTE",
                     "Please ignore pixels with infinite or NaN values. They are rare cases of the minimizer failing to converge",
                 ),
+                ("nest", True),
             ]
         )
 
@@ -152,9 +145,7 @@ class TestNeutrinoScanner(unittest.TestCase):
         alert["event_name"] = ["IceCube-" + self.neutrino_name.replace("IC", "")]
 
         filename = self.tmp_path / "skymap.fits"
-        Table([skymap], meta=meta, names=["PROB"], units=["1 / pix"]).write(
-            filename, format="fits"
-        )
+        write_sky_map(str(filename), skymap, **meta)
         nu_kafka = NeutrinoKafkaScanner(alert=alert, map_path=filename)
 
         assert len(nu_kafka.pixel_nos) == len(nu.pixel_nos)
@@ -166,10 +157,10 @@ class TestNeutrinoScanner(unittest.TestCase):
 
         center_ra = meta["RA"] * u.deg
         center_dec = meta["DEC"] * u.deg
-        ra_err_minus = meta["RA_ERR_MINUS"] * u.deg
-        ra_err_plus = meta["RA_ERR_PLUS"] * u.deg
-        dec_err_minus = meta["DEC_ERR_MINUS"] * u.deg
-        dec_err_plus = meta["DEC_ERR_PLUS"] * u.deg
+        ra_err_minus = -meta["RA_ERR_MINUS_90"] * u.deg
+        ra_err_plus = meta["RA_ERR_PLUS_90"] * u.deg
+        dec_err_minus = -meta["DEC_ERR_MINUS_90"] * u.deg
+        dec_err_plus = meta["DEC_ERR_PLUS_90"] * u.deg
         left_lower_corner_ra = center_ra + ra_err_minus
         left_lower_corner_dec = center_dec + dec_err_minus
         dra = ra_err_plus - ra_err_minus
@@ -219,6 +210,13 @@ class TestNeutrinoScanner(unittest.TestCase):
         self.scan(scanner=nu_kafka)
 
     def scan(self, scanner: NeutrinoScanner | NeutrinoKafkaScanner):
+
+        # clear cache to avoid old results hanging around
+        names = ["ZTF18acvhwtf", "ZTF20abgvabi"]
+        for n in names:
+            if (fn := CROSSMATCH_CACHE / f"{n}.json").exists():
+                fn.unlink()
+
         t_max = scanner.default_t_max - 8
 
         scanner.scan_area(t_max=t_max)
@@ -229,19 +227,7 @@ class TestNeutrinoScanner(unittest.TestCase):
         )
         self.assertEqual(self.expected_candidates, retrieved_candidates)
 
-        for name, res in sorted(scanner.cache_candidates.items()):
-            # Only use old data, so new detections do not change CI
-            dets = [
-                x
-                for x in res["prv_candidates"]
-                if ("isdiffpos" in x.keys()) & (x["jd"] < scanner.default_t_max.jd)
-            ]
-            dets = [
-                x for x in dets if str(x["isdiffpos"]).lower() in ["t", "true", "1"]
-            ]
-            cand = dets[-1]
-            res["candidate"] = cand
-            res["prv_candidates"] = dets[:-1]
+        scanner = clip_scanner_data(scanner)
 
         scanner.plot_overlap_with_observations(
             first_det_window_days=(t_max - scanner.t_min).to("d").value
@@ -251,7 +237,7 @@ class TestNeutrinoScanner(unittest.TestCase):
         print(repr(res))
 
         # Update the true using repr(res)
-        true_gcn = "Astronomer Name (Institute of Somewhere), ............. report,\n\nOn behalf of the Zwicky Transient Facility (ZTF) and Global Relay of Observatories Watching Transients Happen (GROWTH) collaborations: \n\nAs part of the ZTF neutrino follow up program (Stein et al. 2023), we observed the localization region of the neutrino event IceCube-200620A (Santander et. al, GCN 27997) with the Palomar 48-inch telescope, equipped with the 47 square degree ZTF camera (Bellm et al. 2019, Graham et al. 2019). We started observations in the g- and r-band beginning at 2020-06-21 04:53 UTC, approximately 25.8 hours after event time. We covered 77.6% (1.3 sq deg) of the reported localization region. This estimate accounts for chip gaps. Each exposure was 300s with a typical depth of 21.0 mag. \n \nThe images were processed in real-time through the ZTF reduction and image subtraction pipelines at IPAC to search for potential counterparts (Masci et al. 2019). AMPEL (Nordin et al. 2019, Stein et al. 2021) was used to search the alerts database for candidates. We reject stellar sources (Tachibana and Miller 2018) and moving objects, and apply machine learning algorithms (Mahabal et al. 2019) . We are left with the following high-significance transient candidates by our pipeline, all lying within the 90.0% localization of the skymap.\n\n+--------------------------------------------------------------------------------+\n| ZTF Name     | IAU Name  | RA (deg)    | DEC (deg)   | Filter | Mag   | MagErr |\n+--------------------------------------------------------------------------------+\n| ZTF18acvhwtf | AT2020ncs | 162.0678742 | +12.1264130 | r      | 20.55 | 0.11   | (MORE THAN ONE DAY SINCE SECOND DETECTION) \n| ZTF20abgvabi | AT2020ncr | 162.5306820 | +12.1462203 | r      | 20.67 | 0.10   | (MORE THAN ONE DAY SINCE SECOND DETECTION) \n+--------------------------------------------------------------------------------+\n\n \n\nAmongst our candidates, \n\nZTF18acvhwtf was first detected on 2018-12-09. It has a spec-z of 0.291 [1500 Mpc] and an abs. mag of -20.4. Distance to SDSS galaxy is 0.09 arcsec. [MILLIQUAS: SDSS J104816.25+120734.7 - 'Q'-type source (0.06 arsec)] [TNS NAME=AT2020ncs]\nZTF20abgvabi was first detected on 2020-05-26. WISE DETECTION: W1-W2=0.04 (1.03 arsec) [TNS NAME=AT2020ncr]\n\n\nZTF and GROWTH are worldwide collaborations comprising Caltech, USA; IPAC, USA; WIS, Israel; OKC, Sweden; JSI/UMd, USA; DESY, Germany; TANGO, Taiwan; UW Milwaukee, USA; LANL, USA; TCD, Ireland; IN2P3, France.\n\nGROWTH acknowledges generous support of the NSF under PIRE Grant No 1545949.\nAlert distribution service provided by DIRAC@UW (Patterson et al. 2019).\nAlert database searches are done by AMPEL (Nordin et al. 2019).\nAlert filtering is performed with the nuztf (Stein et al. 2021, https://github.com/desy-multimessenger/nuztf ).\n"
+        true_gcn = "Astronomer Name (Institute of Somewhere), ............. report,\n\nOn behalf of the Zwicky Transient Facility (ZTF) and Global Relay of Observatories Watching Transients Happen (GROWTH) collaborations: \n\nAs part of the ZTF neutrino follow up program (Stein et al. 2023), we observed the localization region of the neutrino event IceCube-200620A (Santander et. al, GCN 27997) with the Palomar 48-inch telescope, equipped with the 47 square degree ZTF camera (Bellm et al. 2019, Graham et al. 2019). We started observations in the g- and r-band beginning at 2020-06-21 04:53 UTC, approximately 25.8 hours after event time. We covered 77.6% (1.3 sq deg) of the reported localization region. This estimate accounts for chip gaps. Each exposure was 300s with a typical depth of 21.0 mag. \n \nThe images were processed in real-time through the ZTF reduction and image subtraction pipelines at IPAC to search for potential counterparts (Masci et al. 2019). AMPEL (Nordin et al. 2019, Stein et al. 2021) was used to search the alerts database for candidates. We reject stellar sources (Tachibana and Miller 2018) and moving objects, and apply machine learning algorithms (Mahabal et al. 2019) . We are left with the following high-significance transient candidates by our pipeline, all lying within the 90.0% localization of the skymap.\n\n+--------------------------------------------------------------------------------+\n| ZTF Name     | IAU Name  | RA (deg)    | DEC (deg)   | Filter | Mag   | MagErr |\n+--------------------------------------------------------------------------------+\n| ZTF18acvhwtf | AT2020ncs | 162.0678742 | +12.1264130 | r      | 20.55 | 0.11   | (MORE THAN ONE DAY SINCE SECOND DETECTION) \n| ZTF20abgvabi | AT2020ncr | 162.5306820 | +12.1462203 | r      | 20.67 | 0.10   | (MORE THAN ONE DAY SINCE SECOND DETECTION) \n+--------------------------------------------------------------------------------+\n\n \n\nAmongst our candidates, \n\nZTF18acvhwtf was first detected on 2018-12-09. It has a spec-z of 0.291 [1500 Mpc] and an abs. mag of -20.3. Distance to SDSS galaxy is 0.61 arcsec. [MILLIQUAS: SDSS J104816.25+120734.7 - 'Q'-type source (0.64 arsec)] [TNS NAME=AT2020ncs]\nZTF20abgvabi was first detected on 2020-05-26. WISE DETECTION: W1-W2=0.04 (1.23 arsec) [TNS NAME=AT2020ncr]\n\n\nZTF and GROWTH are worldwide collaborations comprising Caltech/IPAC, USA; University of Maryland, USA; University of California, Berkeley, USA; Cornell University, USA; Drexel University, USA; University of North Carolina at Chapel Hill, USA; Institute of Science and Technology, Austria; National Central University, Taiwan; OKC, Sweden; DZA, Germany.\n\nGROWTH acknowledges generous support of the NSF under PIRE Grant No 1545949.\nAlert distribution service provided by DIRAC@UW (Patterson et al. 2019).\nAlert database searches are done by AMPEL (Nordin et al. 2019).\nAlert filtering is performed with the nuztf (Stein et al. 2021, https://github.com/desy-multimessenger/nuztf ).\n"
 
         self.assertEqual(res, true_gcn)
 

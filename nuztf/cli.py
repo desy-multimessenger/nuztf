@@ -8,6 +8,7 @@ except ImportError:
 import logging
 from typing import Annotated
 
+from astropy.time import Time
 from rich.console import Console
 from rich.logging import RichHandler
 
@@ -15,6 +16,7 @@ from nuztf.neutrino_kafka_scanner import listen, scan_saved
 from nuztf.neutrino_scanner import NeutrinoScanner
 
 app = typer.Typer()
+logger = logging.getLogger(__name__)
 
 
 # --- Global callback (runs before every command) ---
@@ -52,6 +54,14 @@ def nu_classic(
     nu_name: Annotated[
         str, typer.Argument(..., help="Name of the neutrino, e.g. `IC200530A`")
     ],
+    manual_info: Annotated[
+        tuple[float, float, float, float, float, float, str],
+        typer.Argument(
+            ...,
+            help="Provide manual position and time in the format "
+            "RA, RA_LOWER, RA_UPPER, DEC, DEC_LOWER, DEC_UPPER, MJD",
+        ),
+    ] = None,
     gcn_filename: Annotated[
         str,
         typer.Option(
@@ -61,7 +71,16 @@ def nu_classic(
         ),
     ] = None,
 ):
-    nu = NeutrinoScanner(nu_name)
+    if manual_info is not None:
+        manual_args = (
+            nu_name,
+            (manual_info[0], -manual_info[1], manual_info[2]),
+            (manual_info[3], -manual_info[4], manual_info[5]),
+            Time(manual_info[-1]),
+        )
+        nu = NeutrinoScanner(manual_args=manual_args)
+    else:
+        nu = NeutrinoScanner(nu_name=nu_name)
     nu.scan(console=ctx.obj["console"], gcn_filename=gcn_filename)
 
 
@@ -87,22 +106,34 @@ def nu_saved_kafka(
 @app.command()
 def nu_listen(
     ctx: typer.Context,
-    client_id: Annotated[str, typer.Argument(..., help="GCN Kafka Client ID")],
-    client_secret: Annotated[str, typer.Argument(..., help="GCN Kafka Client Secret")],
-    gcn_filename: Annotated[
+    draft_directory: Annotated[
         str,
         typer.Option(
-            "--gcn-filename",
-            "-f",
+            "--draft-directory",
+            "-d",
             help="Filename to write GCN to, if None (default) print to console",
         ),
     ] = None,
+    replay: Annotated[
+        str,
+        typer.Option(
+            "--from-utc-time",
+            "-t",
+            help="UTC time to start replaying from, in format YYYY-MM-DDTHH:MM:SS or integer number of messages to replay from the end of the stream",
+        ),
+    ] = None,
 ):
+    if replay is not None:
+        try:
+            replay = int(replay)
+            logger.debug(f"Replaying last {replay} messages")
+        except ValueError:
+            logger.debug(f"Replaying from {replay}")
+
     listen(
-        client_id=client_id,
-        client_secret=client_secret,
-        gcn_filename=gcn_filename,
+        draft_directory=draft_directory,
         console=ctx.obj["console"],
+        replay=replay,
     )
 
 

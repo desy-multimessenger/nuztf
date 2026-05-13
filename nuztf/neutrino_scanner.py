@@ -2,8 +2,10 @@
 # coding: utf-8
 
 import logging
+from pathlib import Path
 
 import healpy as hp
+import matplotlib.pyplot as plt
 import numpy as np
 import yaml
 from astropy.time import Time
@@ -282,7 +284,13 @@ class NeutrinoScanner(BaseScanner):
     def scan(self, console=None, gcn_filename: str | None = None):
         self.query_for_alerts()
         self.scan_area()
-        self.plot_overlap_with_observations(first_det_window_days=30.0)
+        self.create_candidate_summary()
+        fig, _ = self.plot_overlap_with_observations(first_det_window_days=30.0)
+        if gcn_filename is not None:
+            fn = Path(gcn_filename).with_suffix(".pdf")
+            self.logger.info(f"Writing {fn}")
+            fig.savefig(fn)
+        plt.close()
         jds = self.observations.obsjd.unique()
 
         if console:
@@ -292,12 +300,14 @@ class NeutrinoScanner(BaseScanner):
             table.add_column("Time", justify="right")
             table.add_column("Bands")
             table.add_column("Exp. Times")
+            table.add_column("Field")
             for jd in jds:
                 m = self.observations.obsjd == jd
                 bands = self.observations.band[m].unique()
                 exp_times = self.observations.exposure_time[m].unique()
+                fields = self.observations.field_id[m].unique()
                 time = Time(jd, format="jd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
-                table.add_row(str(time), str(bands), str(exp_times))
+                table.add_row(str(time), str(bands), str(exp_times), str(fields))
 
             console.print(table)
 
