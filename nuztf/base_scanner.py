@@ -5,13 +5,11 @@ import json
 import logging
 from pathlib import Path
 
-import backoff
 import healpy as hp
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import requests
 from ampel.ztf.alert.ZiAlertSupplier import ZiAlertSupplier
 from ampel.ztf.dev.DevAlertConsumer import DevAlertConsumer
 from ampel.ztf.t0.DecentFilter import DecentFilter
@@ -380,19 +378,19 @@ class BaseScanner:
 
         return alerts
 
-    def filter_alerts(self, query_res):
+    def filter_alerts(self, query_res, backend: str = ZTF_BACKEND) -> list:
         """
         Filter the alerts based on the filters
 
         :param query_res: List of alerts
+        :param backend: Backend to query (ampel or kowalski)
         :return: List of filtered alerts
         """
 
         ztf_ids_first_stage = []
         for res in tqdm(query_res):
             if self.filter_f_no_prv(res):
-                if self.filter_ampel(res):
-                    ztf_ids_first_stage.append(res["objectId"])
+                ztf_ids_first_stage.append(res["objectId"])
 
         ztf_ids_first_stage = list(set(ztf_ids_first_stage))
 
@@ -400,7 +398,7 @@ class BaseScanner:
 
         self.logger.info(f"Retrieving alert history for filtering stage 2")
 
-        results = self.filter_with_history(ztf_ids=ztf_ids_first_stage)
+        results = self.filter_with_history(ztf_ids=ztf_ids_first_stage, backend=backend)
 
         with open(self.get_final_cache_path(), "w") as outfile:
             json.dump(results, outfile)
@@ -420,7 +418,7 @@ class BaseScanner:
         """
         alerts = self.get_alerts(t_min=t_min, t_max=t_max, backend=backend)
         self.add_results([[x] for x in alerts], cache=self.cache_alerts)
-        candidates = self.filter_alerts(alerts)
+        candidates = self.filter_alerts(alerts, backend=backend)
         self.add_results(candidates, cache=self.cache_candidates)
 
     def add_results(self, results, cache: dict):
@@ -455,20 +453,27 @@ class BaseScanner:
     def in_contour(self, ra, dec):
         raise NotImplementedError
 
-    def filter_with_history(self, ztf_ids: list) -> list:
-        """ """
+    def filter_with_history(self, ztf_ids: list, backend: str = ZTF_BACKEND) -> list:
+        """
+        Filter the alerts with history
+
+        :param ztf_ids: List of ZTF IDs to filter
+        :param backend: Backend to query (ampel or kowalski)
+        :return: List of filtered alerts
+        """
         all_results = []
 
         for ztf_id in tqdm(ztf_ids):
             # get the full lightcurve from the API
-            query_res = api_name(ztf_name=ztf_id)
+            query_res = api_name(ztf_name=ztf_id, backend=backend, with_history=True)
 
             candidate_passes = False
 
             for res in query_res:
-                if self.filter_f_history(res):
-                    candidate_passes = True
-                    break
+                if self.filter_ampel(res):
+                    if self.filter_f_history(res):
+                        candidate_passes = True
+                        break
 
             if candidate_passes:
                 all_results.append(merge_alerts(query_res))
@@ -589,7 +594,8 @@ class BaseScanner:
         text += self.text_summary()
 
         text += (
-            "ZTF and GROWTH are worldwide collaborations comprising Caltech/IPAC, USA; University of Maryland, USA; University of California, Berkeley, USA; Cornell University, USA; Drexel University, USA; University of North Carolina at Chapel Hill, USA; Institute of Science and Technology, Austria; National Central University, Taiwan; OKC, Sweden; DZA, Germany.\n\n"
+            "Based on observations obtained with the Samuel Oschin Telescope 48-inch and the 60-inch Telescope at the Palomar Observatory as part of the Zwicky Transient Facility project. "
+            "ZTF is supported by the National Science Foundation under Award #2407588 and a partnership including Caltech/IPAC, USA; University of Maryland, USA; University of California, Berkeley, USA; Cornell University, USA; Drexel University, USA; University of North Carolina at Chapel Hill, USA; Institute of Science and Technology, Austria; National Central University, Taiwan; OKC, Sweden; DZA, Germany.\n\n"
             "GROWTH acknowledges generous support of the NSF under PIRE Grant No 1545949.\n"
             "Alert distribution service provided by DIRAC@UW (Patterson et al. 2019).\n"
             "Alert database searches are done by AMPEL (Nordin et al. 2019).\n"
@@ -977,8 +983,6 @@ class BaseScanner:
                     f"This might be an engineering observation."
                 )
 
-        npix = hp.nside2npix(self.nside)
-
         ras, decs = hp.pixelfunc.pix2ang(
             self.nside, hp.nest2ring(self.nside, self.pixel_nos), lonlat=True
         )
@@ -1064,6 +1068,7 @@ class BaseScanner:
         :param min_sep: Minimum separation between observations to consider them as separate.
         :param fields: Fields to consider.
         :param backend: Backend to use for coverage calculation
+        :return: Figure and message
 
         """
 
@@ -1096,7 +1101,7 @@ class BaseScanner:
 
         if len(veto_pixels) > 0:
             plt.scatter(
-                np.radians(veto_pixels["ra_deg"]),
+                np.radians(self.wrap_around_180(veto_pixels["ra_deg"])),
                 np.radians(veto_pixels["dec_deg"]),
                 color="red",
                 s=size,
@@ -1188,6 +1193,106 @@ class BaseScanner:
             f"covering approximately {plane_area:.2g} sq deg."
         )
         return fig, message
+
+    def plot_zoomed_overlap_with_observations(
+        self, first_det_window_days=None, min_sep=0.01, fields=None, backend="best"
+    ):
+        """
+        Function to plot the overlap of the field with observations.
+
+        :param first_det_window_days: Window of time in days to consider for the first detection.
+        :param min_sep: Minimum separation between observations to consider them as separate.
+        :param fields: Fields to consider.
+        :param backend: Backend to use for coverage calculation
+        :return: Figure and message
+
+        """
+
+        (
+            coverage_df,
+            times,
+            overlapping_fields,
+        ) = self.calculate_overlap_with_observations(
+            first_det_window_days=first_det_window_days,
+            min_sep=min_sep,
+            fields=fields,
+            backend=backend,
+        )
+
+        if coverage_df is None:
+            self.logger.warning("Not plotting overlap with observations.")
+            return
+
+        fig = plt.figure()
+        ax = plt.subplot()
+
+        double_pixels = coverage_df.where(
+            ~coverage_df["in_plane"] & (coverage_df["n_det_class"] == 2)
+        ).dropna()
+
+        # Set pixel size
+        ax.plot(
+            double_pixels["ra_deg"], double_pixels["dec_deg"], "o"
+        )  # Initial plot to set limits
+        marker_radius_data_units = 0.015 * (self.pixel_area / 0.0008) ** 0.5
+        r_display_units = (
+            ax.transData.transform([marker_radius_data_units, 0])[0]
+            - ax.transData.transform([0, 0])[0]
+        )
+        dpi = fig.dpi  # Get the figure's DPI
+        r_points = r_display_units / (dpi / 72)
+        s_value = np.pi * (r_points**2)
+
+        kwargs = {"s": s_value, "marker": "D", "zorder": 2, "edgecolor": "white"}
+
+        veto_pixels = coverage_df.where(coverage_df["n_det_class"] == 0)
+
+        if len(veto_pixels) > 0:
+            plt.scatter(
+                veto_pixels["ra_deg"], veto_pixels["dec_deg"], color="red", **kwargs
+            )
+
+        plane_pixels = coverage_df.where(
+            coverage_df["in_plane"] & (coverage_df["n_det_class"] > 0)
+        )
+
+        if len(plane_pixels) > 0:
+            plt.scatter(
+                plane_pixels["ra_deg"], plane_pixels["dec_deg"], color="green", **kwargs
+            )
+
+        single_pixels = coverage_df.where(
+            ~coverage_df["in_plane"] & (coverage_df["n_det_class"] == 1)
+        )
+
+        if len(single_pixels) > 0:
+            plt.scatter(
+                single_pixels["ra_deg"],
+                single_pixels["dec_deg"],
+                c=single_pixels["prob"],
+                vmin=0.0,
+                vmax=max(self.data[self.key]),
+                **kwargs,
+                cmap="gray",
+            )
+
+        if len(double_pixels) > 0:
+            plt.scatter(
+                double_pixels["ra_deg"],
+                double_pixels["dec_deg"],
+                c=double_pixels["prob"],
+                vmin=0.0,
+                vmax=max(self.data[self.key]),
+                **kwargs,
+            )
+
+        red_patch = mpatches.Patch(color="red", label="Not observed")
+        gray_patch = mpatches.Patch(color="gray", label="Observed once")
+        violet_patch = mpatches.Patch(
+            color="green", label="Observed Galactic Plane (|b|<10)"
+        )
+        plt.legend(handles=[red_patch, gray_patch, violet_patch])
+        return fig
 
     def get_exposure_summary(self) -> pd.DataFrame:
         """
