@@ -26,6 +26,8 @@ from numpy.lib.recfunctions import append_fields
 
 from nuztf.paths import RESULTS_DIR, SKYMAP_DIR
 
+logger = logging.getLogger(__name__)
+
 
 class EventNotFound(Exception):
     """Base class for non-existing event"""
@@ -42,6 +44,7 @@ class Skymap:
         rev: int = None,
         prob_threshold: float = 0.9,
         output_nside: int | None = None,
+        time_str: str | None = None,
     ):
         self.logger = logging.getLogger(__name__)
 
@@ -49,9 +52,9 @@ class Skymap:
         self.event = event
 
         if ".fit" in event:
-            basename = Path(event).stem
+            basename = Path(event).name
 
-            self.event_name = basename
+            self.event_name = Path(event).stem
             self.skymap_path = SKYMAP_DIR.joinpath(basename)
             self.rev = None
 
@@ -78,6 +81,13 @@ class Skymap:
             self.dist,
             self.dist_unc,
         ) = self.read_map(output_nside=output_nside)
+
+        if time_str is not None:
+            if self.t_obs is not None:
+                logger.info(f"Replacing event time {self.t_obs} with {time_str}")
+            else:
+                logger.info(f"Setting event time to {time_str}")
+            self.t_obs = time_str
 
         t_min = Time(self.t_obs, format="isot", scale="utc")
 
@@ -233,6 +243,7 @@ class Skymap:
 
         with fits.open(self.skymap_path) as hdul:
             data = None
+
             h = hdul[0].header
 
             dist = None

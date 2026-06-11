@@ -31,6 +31,7 @@ class SkymapScanner(BaseScanner):
         output_nside: int | None = None,
         n_days: float = 3.0,  # By default, accept things detected within 72 hours of event time
         config: dict = None,
+        time_str: str | None = None,
     ):
         self.logger = logging.getLogger(__name__)
         self.prob_threshold = prob_threshold
@@ -51,6 +52,7 @@ class SkymapScanner(BaseScanner):
             rev=rev,
             prob_threshold=self.prob_threshold,
             output_nside=self.output_nside,
+            time_str=time_str,
         )
         self.rev = self.skymap.rev
 

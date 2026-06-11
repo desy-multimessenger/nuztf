@@ -28,6 +28,7 @@ class NeutrinoScanner(BaseScanner):
         t_precursor: float = None,
         config: dict = None,
         output_nside: int = 1024,
+        circle: bool = False,
     ):
         self.logger = logging.getLogger(__name__)
 
@@ -67,6 +68,8 @@ class NeutrinoScanner(BaseScanner):
         else:
             (nu_name, ra, dec, nu_time) = manual_args
             author = None
+
+        self.circle = circle
 
         self.nu_name = nu_name
         self.author = author
@@ -193,6 +196,11 @@ class NeutrinoScanner(BaseScanner):
 
         scan_radius = np.degrees(hp.max_pixrad(self.cone_nside))
 
+        dist = (self.ra_max - self.ra_min) / 2.0
+
+        mid_ra = (self.ra_max + self.ra_min) / 2.0
+        mid_dec = (self.dec_max + self.dec_min) / 2.0
+
         self.logger.info("Finding search pixels:")
 
         for i in tqdm(range(hp.nside2npix(self.cone_nside))):
@@ -206,6 +214,10 @@ class NeutrinoScanner(BaseScanner):
                     dec > self.dec_min - scan_radius,
                     dec < self.dec_max + scan_radius,
                 ):
+                    if self.circle:
+                        radius = np.sqrt((ra - mid_ra) ** 2 + (dec - mid_dec) ** 2)
+                        if radius > dist:
+                            continue
                     cone_coords.append((ra_rad, dec_rad))
                     cone_ids.append(i)
 
@@ -218,6 +230,13 @@ class NeutrinoScanner(BaseScanner):
     def in_contour(self, ra_deg, dec_deg):
         in_ra = np.logical_and(ra_deg > self.ra_min, ra_deg < self.ra_max)
         in_dec = np.logical_and(dec_deg > self.dec_min, dec_deg < self.dec_max)
+
+        if self.circle:
+            mid_ra = (self.ra_max + self.ra_min) / 2.0
+            mid_dec = (self.dec_max + self.dec_min) / 2.0
+            dist = (self.ra_max - self.ra_min) / 2.0
+            radius = np.sqrt((ra_deg - mid_ra) ** 2 + (dec_deg - mid_dec) ** 2)
+            return np.logical_and(in_ra, in_dec) and radius < dist
 
         return np.logical_and(in_ra, in_dec)
 
@@ -243,6 +262,9 @@ class NeutrinoScanner(BaseScanner):
         rad = np.radians(
             max(self.ra_max - self.ra_min, self.dec_max - self.dec_min)
         ) / np.sqrt(2)
+
+        if self.circle:
+            rad = np.radians(self.ra_max - self.ra_min) / 2.0
 
         nearish_pixels = list(
             hp.query_disc(

@@ -12,11 +12,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import requests
+from ampel.log.AmpelLogger import DEBUG as AMPEL_DEBUG
 from ampel.ztf.alert.ZiAlertSupplier import ZiAlertSupplier
 from ampel.ztf.dev.DevAlertConsumer import DevAlertConsumer
 from ampel.ztf.t0.DecentFilter import DecentFilter
 from astropy import units as u
 from astropy.coordinates import Distance, SkyCoord
+from astropy.logger import level
 from astropy.time import Time
 from matplotlib.backends.backend_pdf import PdfPages
 from tqdm import tqdm
@@ -31,7 +33,6 @@ from nuztf.paths import BASE_CANDIDATE_DIR, RESULTS_DIR
 from nuztf.plot import lightcurve_from_alert
 from nuztf.utils import cosmo
 
-DEBUG = False
 RATELIMIT_CALLS = 10
 RATELIMIT_PERIOD = 1
 
@@ -114,10 +115,14 @@ class BaseScanner:
         self.n_fields = None
         self.rectangular_area = None
         self.double_extragalactic_area = None
+        self.healpix_area = None
+        self.double_area = None
 
         self.observations = None
 
         self.pixel_area = hp.pixelfunc.nside2pixarea(self.nside, degrees=True)
+
+        self.logger.info(f"Pixel area: total area: {self.total_pixel_area:.2f} deg^2")
 
         if not hasattr(self, "dist"):
             self.dist = None
@@ -217,22 +222,26 @@ class BaseScanner:
 
     def get_overlap_line(self):
         """ """
-        if (self.overlap_prob is not None) and (
-            self.double_extragalactic_area is not None
-        ):
-            return (
-                f"We covered {self.overlap_prob:.1f}% "
-                f"({self.double_extragalactic_area:.1f} sq deg) "
+        if (self.overlap_prob is not None) and (self.overlap_area is not None):
+            line = (
+                f"We covered {self.overlap_prob:.1f}% ({self.overlap_area:.1f} sq deg) "
                 f"of the reported localization region. "
-                "This estimate accounts for chip gaps. "
             )
+
+            if self.galactic_prob > 0:
+                line += (
+                    f"This includes {self.galactic_prob:.1f}% "
+                    f"({self.galactic_area:.1f} sq deg) at galactic latitude < 10 deg. "
+                )
+
+            line += "This estimate accounts for chip gaps. "
+            return line
         else:
             self.logger.warning("No overlap line added!")
             return ""
 
     def filter_ampel(self, res):
         self.logger.debug(f"{res['objectId']}: Running AMPEL filter")
-
         shaped_alert = ZiAlertSupplier.shape_alert_dict(res, ["FilterTest"])
         filterres = self.ampel_filter_class.process(alert=shaped_alert)
         if filterres:
@@ -265,6 +274,15 @@ class BaseScanner:
     def check_ampel_filter(self, ztf_name):
         lvl = logging.getLogger().getEffectiveLevel()
         logging.getLogger().setLevel(logging.DEBUG)
+
+        # Reengineer the ampel log level
+        ampel_logger = self.ampel_filter_class.logger
+        ampel_log_lvl = ampel_logger.level
+        handler = ampel_logger.handlers[0]
+        handler.level = AMPEL_DEBUG
+        ampel_logger.level = AMPEL_DEBUG
+        self.ampel_filter_class.logger = ampel_logger
+
         self.logger.info("Set logger level to DEBUG")
         all_query_res = api_name(ztf_name)
         assert len(all_query_res) > 0, f"No results from ampel api for {ztf_name}"
@@ -285,6 +303,12 @@ class BaseScanner:
                         pipeline_bool = True
         self.logger.info(f"Setting logger back to {lvl}")
         logging.getLogger().setLevel(lvl)
+
+        # Reset the ampel log level
+        ampel_logger.level = ampel_log_lvl
+        handler.level = ampel_log_lvl
+        self.ampel_filter_class.logger = ampel_logger
+
         return pipeline_bool
 
     def get_multi_night_summary(self, max_days=None):
@@ -1087,9 +1111,6 @@ class BaseScanner:
 
         self.overlap_fields = list(set(overlapping_fields))
 
-        overlap_mask = (coverage_df["n_det_class"] == 2) & ~coverage_df["in_plane"]
-        self.overlap_prob = coverage_df[overlap_mask]["prob"].sum() * 100.0
-
         size = hp.max_pixrad(self.nside) ** 2 * 50.0
 
         veto_pixels = coverage_df.where(coverage_df["n_det_class"] == 0)
@@ -1169,23 +1190,36 @@ class BaseScanner:
         n_double = len(coverage_df.query("n_det_class == 2 & prob > 0.0"))
         n_plane = len(coverage_df.query("in_plane & n_det_class > 0 & prob > 0.0"))
 
-        self.healpix_area = self.pixel_area * n_pixels
-        self.double_extragalactic_area = self.pixel_area * n_double
-        plane_area = self.pixel_area * n_plane
+        overlap_mask = coverage_df["n_det_class"] == 2
+        self.overlap_prob = coverage_df[overlap_mask]["prob"].sum() * 100.0
+        self.overlap_area = self.pixel_area * n_double
+
+        galactic_mask = overlap_mask & coverage_df["in_plane"]
+        self.galactic_area = self.pixel_area * len(coverage_df[galactic_mask])
+        self.galactic_prob = coverage_df[galactic_mask]["prob"].sum() * 100.0
+
+        healpix_area = self.pixel_area * n_pixels
+        # self.double_extragalactic_area = self.pixel_area * n_double
+        # self.double_area = self.pixel_area * n_double
+        #
+        # print(self.overlap_area, self.double_area)
+        # raise
+        #
+        # plane_area = self.pixel_area * n_plane
 
         self.overlap_fields = overlapping_fields
 
         self.logger.info(
             f"{n_pixels} pixels were covered, covering approximately "
-            f"{self.healpix_area:.2g} sq deg."
+            f"{healpix_area:.2g} sq deg."
         )
         self.logger.info(
             f"{n_double} pixels were covered at least twice (b>10), "
-            f"covering approximately {self.double_extragalactic_area:.2g} sq deg."
+            f"covering approximately {self.overlap_prob:.2g} sq deg."
         )
         self.logger.info(
             f"{n_plane} pixels were covered at low galactic latitude, "
-            f"covering approximately {plane_area:.2g} sq deg."
+            f"covering approximately {self.galactic_area:.2g} sq deg."
         )
         return fig, message
 

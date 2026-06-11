@@ -147,7 +147,7 @@ def get_cross_match_info(raw: dict, logger=None) -> str:
             logger.info(res)
         label = (
             f"[CRTS variable star: "
-            f"{res[0]['body']['name']} ({res[0]['dist_arcsec']:.2f} arsec)]"
+            f"{res[0]['body']['CSID']} ({res[0]['dist_arcsec']:.2f} arsec)]"
         )
 
     # Check if known QSO/AGN
