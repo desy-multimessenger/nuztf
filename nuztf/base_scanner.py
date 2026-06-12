@@ -108,6 +108,7 @@ class BaseScanner:
         self.default_t_max = t_min + 10.0
 
         self.overlap_prob = None
+        self.overlap_prob_galactic = None
         self.overlap_fields = None
         self.first_obs = None
         self.last_obs = None
@@ -220,12 +221,32 @@ class BaseScanner:
         if (self.overlap_prob is not None) and (
             self.double_extragalactic_area is not None
         ):
-            return (
-                f"We covered {self.overlap_prob:.1f}% "
-                f"({self.double_extragalactic_area:.1f} sq deg) "
-                f"of the reported localization region. "
-                "This estimate accounts for chip gaps. "
-            )
+            if (self.overlap_prob > 0) and (self.overlap_prob_galactic == 0):
+                return (
+                    f"We covered {self.overlap_prob:.1f}% "
+                    f"({self.double_extragalactic_area:.1f} sq deg) "
+                    f"of the reported localization region. "
+                    "This estimate accounts for chip gaps. "
+                )
+            elif (self.overlap_prob == 0) and (self.overlap_prob_galactic > 0):
+                return (
+                    f"We covered {self.overlap_prob_galactic:.1f}% "
+                    f"({self.double_plane_area:.1f} sq deg) "
+                    f"of the reported localization region at low galactic latitudes (|b| < 10 deg). "
+                    "This estimate accounts for chip gaps. "
+                )
+            elif (self.overlap_prob > 0) and (self.overlap_prob_galactic > 0):
+                return (
+                    f"We covered {self.overlap_prob:.1f}% "
+                    f"({self.double_extragalactic_area:.1f} sq deg) "
+                    f"of the reported localization region at high galactic latitudes (|b| > 10 deg), "
+                    f"{self.overlap_prob_galactic:.1f}% "
+                    f"({self.double_plane_area:.1f} sq deg) at low galactic latitudes (|b| < 10 deg). "
+                    "This estimate accounts for chip gaps. "
+                )
+            else:
+                self.logger.warning("No overlap of observations and localisation!")
+                return "We did not cover any of the reported localisation region."
         else:
             self.logger.warning("No overlap line added!")
             return ""
@@ -1089,6 +1110,12 @@ class BaseScanner:
 
         overlap_mask = (coverage_df["n_det_class"] == 2) & ~coverage_df["in_plane"]
         self.overlap_prob = coverage_df[overlap_mask]["prob"].sum() * 100.0
+        self.overlap_prob_galactic = (
+            coverage_df[(coverage_df["n_det_class"] == 2) & coverage_df["in_plane"]][
+                "prob"
+            ].sum()
+            * 100.0
+        )
 
         size = hp.max_pixrad(self.nside) ** 2 * 50.0
 
@@ -1170,10 +1197,14 @@ class BaseScanner:
             coverage_df.query("n_det_class == 2 & prob > 0.0 &~in_plane")
         )
         n_plane = len(coverage_df.query("in_plane & n_det_class > 0 & prob > 0.0"))
+        n_double_plane = len(
+            coverage_df.query("n_det_class == 2 & prob > 0.0 & in_plane")
+        )
 
         self.healpix_area = self.pixel_area * n_pixels
         self.double_extragalactic_area = self.pixel_area * n_double_extragalactic
         plane_area = self.pixel_area * n_plane
+        self.double_plane_area = self.pixel_area * n_double_plane
 
         self.overlap_fields = overlapping_fields
 
