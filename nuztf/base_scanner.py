@@ -1166,11 +1166,13 @@ class BaseScanner:
         )
 
         n_pixels = len(coverage_df.query("n_det_class > 0 & prob > 0.0"))
-        n_double = len(coverage_df.query("n_det_class == 2 & prob > 0.0"))
+        n_double_extragalactic = len(
+            coverage_df.query("n_det_class == 2 & prob > 0.0 &~in_plane")
+        )
         n_plane = len(coverage_df.query("in_plane & n_det_class > 0 & prob > 0.0"))
 
         self.healpix_area = self.pixel_area * n_pixels
-        self.double_extragalactic_area = self.pixel_area * n_double
+        self.double_extragalactic_area = self.pixel_area * n_double_extragalactic
         plane_area = self.pixel_area * n_plane
 
         self.overlap_fields = overlapping_fields
@@ -1180,7 +1182,7 @@ class BaseScanner:
             f"{self.healpix_area:.2g} sq deg."
         )
         self.logger.info(
-            f"{n_double} pixels were covered at least twice (b>10), "
+            f"{n_double_extragalactic} pixels were covered at least twice (b>10), "
             f"covering approximately {self.double_extragalactic_area:.2g} sq deg."
         )
         self.logger.info(
