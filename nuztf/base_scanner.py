@@ -69,7 +69,7 @@ class BaseScanner:
 
         if resource is None:
             resource = {
-                "ampel-ztf/catalogmatch": API_CATALOGMATCH_URL,
+                "ampel-ztf/catalogmatch": API_CATALOGMATCH_URL + "/",
             }
 
         if logger is None:
