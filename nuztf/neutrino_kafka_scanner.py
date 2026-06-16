@@ -103,6 +103,10 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
         else:
             skymap = self.skymap
 
+        # some skymap fits do not converge on every pixel
+        # to ignore them we assign 0 probability
+        skymap["PROB"][np.isnan(skymap["PROB"])] = 0
+
         # the map contains the probability per pixel so we need to convert
         # to cumulative probability contained within a contour
         credible_levels = find_greedy_credible_levels(skymap["PROB"])
@@ -161,9 +165,11 @@ def load_alert(nu_name: str) -> dict:
     if len(files) == 0:
         raise FileNotFoundError(f"No file found in {GCN_KAFKA_CACHE} for {nu_name}!")
     if len(files) > 1:
-        raise RuntimeError(
-            f"More than one file found in {GCN_KAFKA_CACHE} for {nu_name}!"
+        logger.info(
+            f"More than one file found in {GCN_KAFKA_CACHE} for {nu_name}! Using latest one"
         )
+        files = sorted(files, key=lambda p: p.stat().st_mtime, reverse=True)
+    logger.info(f"Loading {files[0]}")
     with open(GCN_KAFKA_CACHE / files[0], "r") as f:
         return json.load(f)
 
