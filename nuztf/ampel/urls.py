@@ -1,4 +1,4 @@
-API_BASEURL = "https://ampel.zeuthen.desy.de"
+API_BASEURL = "https://ampel-ztf.zeuthen.desy.de"
 API_ZTF_ARCHIVE_URL = API_BASEURL + "/api/ztf/archive/v3"
 API_CATALOGMATCH_URL = API_BASEURL + "/api/catalogmatch"
 

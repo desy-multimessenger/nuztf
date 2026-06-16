@@ -22,6 +22,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from tqdm import tqdm
 
 from nuztf.ampel.utils import merge_alerts
+from nuztf.ampel.urls import API_CATALOGMATCH_URL
 from nuztf.api import ZTF_BACKEND, api_name, api_skymap
 from nuztf.cat_match import ampel_api_tns, get_cross_match_info, query_ned_for_z
 from nuztf.flatpix import get_nested_pix
@@ -68,7 +69,7 @@ class BaseScanner:
 
         if resource is None:
             resource = {
-                "ampel-ztf/catalogmatch": "https://ampel.zeuthen.desy.de/api/catalogmatch/",
+                "ampel-ztf/catalogmatch":API_CATALOGMATCH_URL,
             }
 
         if logger is None:
