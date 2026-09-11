@@ -31,9 +31,13 @@ def fritz_api(method: str, endpoint_extension: str, data: dict = None):
     headers = {"Authorization": f"token {get_fritz_token()}"}
     endpoint = os.path.join(API_BASEURL, endpoint_extension)
     if method in ["post", "POST"]:
-        response = requests.request(method, endpoint, json=data, headers=headers)
+        response = requests.request(
+            method, endpoint, json=data, headers=headers, timeout=30
+        )
     elif method in ["get", "GET"]:
-        response = requests.request(method, endpoint, params=data, headers=headers)
+        response = requests.request(
+            method, endpoint, params=data, headers=headers, timeout=30
+        )
     else:
         raise ValueError("You have to use either 'get' or 'post'")
     return response

@@ -19,7 +19,9 @@ def download_master_log():
     """
     Download the master log of observations
     """
-    response = requests.get(MASTER_LOG_URL, auth=HTTPBasicAuth(username, password))
+    response = requests.get(
+        MASTER_LOG_URL, auth=HTTPBasicAuth(username, password), timeout=30
+    )
     response.raise_for_status()
     with open(ZTF_LOG_PATH, "wb") as f:
         f.write(response.content)
