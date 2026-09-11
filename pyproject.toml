@@ -49,6 +49,7 @@ penquins = "^2.4.2"
 dotenv = "^0.9.9"
 pydantic = "^2.10.6"
 gcn-kafka = "^0.3.4"
+blastwave = "^1.0.0"
 
 
 [tool.poetry.scripts]
