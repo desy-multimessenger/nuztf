@@ -39,6 +39,16 @@ jobs:
         run: |
           poetry install -E cli
 
+      # Fail fast if this runner's IP can't reach the AMPEL API, rather than
+      # waiting ~1-2h for the test suite's retry/backoff logic to give up.
+      - name: Check AMPEL API connectivity
+        run: |
+          if ! curl -sS --connect-timeout 10 --max-time 15 -o /dev/null https://ampel-ztf.zeuthen.desy.de/api/ztf/archive/v3; then
+            echo "::error::Could not reach ampel-ztf.zeuthen.desy.de from this runner within 10s. This runner's IP may be blocked by DESY's firewall (this is intermittent - a re-run often lands on a different runner/IP and succeeds)."
+            exit 1
+          fi
+          echo "AMPEL API host is reachable from this runner."
+
       # Runs all tests in the 'tests' directory and gets coverage
       - name: Test the code
         env:
