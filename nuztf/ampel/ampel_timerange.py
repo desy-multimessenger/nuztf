@@ -51,6 +51,7 @@ def ampel_api_timerange(
     response = requests.get(
         queryurl_timerange,
         headers=headers,
+        timeout=30,
     )
 
     if response.status_code == 503:

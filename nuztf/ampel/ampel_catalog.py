@@ -58,7 +58,9 @@ def ampel_api_catalog(
     logger.debug(queryurl_catalogmatch)
     logger.debug(query)
 
-    response = requests.post(url=queryurl_catalogmatch, json=query, headers=headers)
+    response = requests.post(
+        url=queryurl_catalogmatch, json=query, headers=headers, timeout=30
+    )
 
     if response.status_code == 503:
         if response.headers:
