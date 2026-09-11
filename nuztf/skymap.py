@@ -79,7 +79,11 @@ class Skymap:
             self.dist_unc,
         ) = self.read_map(output_nside=output_nside)
 
-        t_min = Time(self.t_obs, format="isot", scale="utc")
+        try:
+            t_min = Time(self.t_obs, format="isot", scale="utc")
+        except (ValueError, TypeError) as exc:
+            self.logger.error(f"Error converting event time ('{self.t_obs}') to ISOT")
+            raise exc
 
         self.logger.info(f"Event time: {t_min}")
         self.logger.info("Reading map")

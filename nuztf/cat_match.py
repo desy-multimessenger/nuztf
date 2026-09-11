@@ -11,6 +11,7 @@ from astropy.utils.exceptions import AstropyWarning
 from astroquery.exceptions import RemoteServiceError
 from astroquery.ipac.irsa import Irsa
 from astroquery.ipac.ned import Ned
+from blastwave import BoomClient
 
 from nuztf.ampel import ampel_api_catalog, ampel_api_name
 from nuztf.paths import CROSSMATCH_CACHE
