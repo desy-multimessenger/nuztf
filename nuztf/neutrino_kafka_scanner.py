@@ -74,7 +74,7 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
         local_path = SKYMAP_DIR / Path(url).name
         if not local_path.exists():
             logger.info(f"Downloading {url}")
-            response = requests.get(url)
+            response = requests.get(url, timeout=60)
             response.raise_for_status()
             with open(local_path, "wb") as f:
                 f.write(response.content)

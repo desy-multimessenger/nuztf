@@ -169,7 +169,7 @@ def query_tns_by_name(name, logger=None):
 
     get_data = {"api_key": tns_api_token, "data": json.dumps(json_file)}
 
-    response = requests.post(queryurl_tns, headers=headers, data=get_data)
+    response = requests.post(queryurl_tns, headers=headers, data=get_data, timeout=30)
 
     try:
         res = response.json()

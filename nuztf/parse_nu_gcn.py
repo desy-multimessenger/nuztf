@@ -48,6 +48,7 @@ def find_gcn_no(base_nu_name: str):
             "query": querystr,
             "Content-Type": "application/json",
         },
+        timeout=30,
     )
     res = json.loads(r.text)
 
@@ -68,6 +69,7 @@ def find_gcn_no(base_nu_name: str):
                 "query": querystr,
                 "Content-Type": "application/json",
             },
+            timeout=30,
         )
         result = json.loads(r.text)
 
@@ -124,6 +126,7 @@ def get_latest_gcn():
             "query": querystr,
             "Content-Type": "application/json",
         },
+        timeout=30,
     )
     result = json.loads(r.text)
 
@@ -181,7 +184,7 @@ def parse_gcn_circular(gcn_number: int):
     mainbody_starts_here = 999
 
     endpoint = f"https://gcn.nasa.gov/circulars/{gcn_number}.json"
-    res = requests.get(endpoint)
+    res = requests.get(endpoint, timeout=30)
 
     res_json = res.json()
 

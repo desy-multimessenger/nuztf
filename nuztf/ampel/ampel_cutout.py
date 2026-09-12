@@ -35,6 +35,7 @@ def ampel_api_cutout(candid: int, logger=None):
     response = requests.get(
         queryurl_cutouts,
         headers=headers,
+        timeout=30,
     )
 
     logger.debug(queryurl_cutouts)

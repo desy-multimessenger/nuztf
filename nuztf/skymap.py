@@ -194,7 +194,7 @@ class Skymap:
                 f"{latest_voevent['filename']}, was retracted."
             )
 
-        response = requests.get(latest_voevent["links"]["file"])
+        response = requests.get(latest_voevent["links"]["file"], timeout=30)
 
         root = lxml.etree.fromstring(response.content)
         params = {
@@ -211,7 +211,7 @@ class Skymap:
         )
 
         self.logger.info(f"Saving to: {savepath}")
-        response = requests.get(latest_skymap)
+        response = requests.get(latest_skymap, timeout=60)
 
         with open(savepath, "wb") as f:
             f.write(response.content)
