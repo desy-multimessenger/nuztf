@@ -7,7 +7,7 @@ import unittest
 from nuztf.parse_nu_gcn import find_gcn_no, gcn_url, get_latest_gcn
 
 
-class TestNeutrinoScanner(unittest.TestCase):
+class TestGCNParser(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
