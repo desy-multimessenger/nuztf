@@ -55,6 +55,7 @@ def ampel_api_cone(
     response = requests.get(
         queryurl_conesearch,
         headers=headers,
+        timeout=30,
     )
 
     if response.status_code == 503:

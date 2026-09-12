@@ -48,6 +48,7 @@ def ampel_api_name(
     response = requests.get(
         queryurl_ztf_name,
         headers=headers,
+        timeout=30,
     )
 
     if response.status_code == 503:
@@ -104,6 +105,7 @@ def ampel_api_lightcurve(
     response = requests.get(
         queryurl_lightcurve,
         headers=headers,
+        timeout=30,
     )
 
     if response.status_code == 503:
@@ -161,6 +163,7 @@ def ampel_api_alerts(
     response = requests.get(
         queryurl_lightcurve,
         headers=headers,
+        timeout=30,
     )
 
     if response.status_code == 503:

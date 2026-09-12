@@ -67,6 +67,7 @@ def ampel_api_healpix(
     response = requests.get(
         queryurl_healpix,
         headers=headers,
+        timeout=30,
     )
 
     if response.status_code == 503:
@@ -118,7 +119,7 @@ def ampel_api_acknowledge_chunk(resume_token: str, chunk_id: int, logger=None):
 
     logger.debug(f"Acknowledging:\n{payload}")
 
-    response = requests.post(url=endpoint, json=payload, headers=headers)
+    response = requests.post(url=endpoint, json=payload, headers=headers, timeout=30)
 
 
 @backoff.on_exception(
@@ -168,7 +169,7 @@ def ampel_api_skymap_single(
     if resume_token is not None:
         queryurl_stream = API_ZTF_ARCHIVE_URL + f"/stream/{resume_token}/chunk"
         response = requests.get(
-            queryurl_stream, params={"with_history": hist}, headers=headers
+            queryurl_stream, params={"with_history": hist}, headers=headers, timeout=60
         )
 
     # if we don't have a resume_token, we first need to create the full query
@@ -211,7 +212,9 @@ def ampel_api_skymap_single(
         logger.debug(f"Query url:\n{queryurl_skymap}")
         logger.debug(f"Query:\n{query}")
 
-        response = requests.post(url=queryurl_skymap, json=query, headers=headers)
+        response = requests.post(
+            url=queryurl_skymap, json=query, headers=headers, timeout=60
+        )
 
     logger.debug(response)
     logger.debug(response.status_code)
@@ -316,6 +319,7 @@ def get_preprocessed_results(file_basename: str, logger=None) -> None | list:
         f"https://syncandshare.desy.de/public.php/webdav/{filename.name}",
         headers={"X-Requested-With": "XMLHttpRequest"},
         auth=(desy_cloud_token, "bla"),
+        timeout=60,
     )
 
     if res.status_code != 200:
