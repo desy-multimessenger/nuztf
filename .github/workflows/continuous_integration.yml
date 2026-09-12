@@ -20,6 +20,18 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
+      # Fail fast if this runner's IP can't reach the AMPEL API, rather than
+      # spending time on checkout/setup/install before the test suite's
+      # retry/backoff logic burns ~1-2h finding out the same thing. curl is
+      # preinstalled on this image, so this needs no checkout or setup.
+      - name: Check AMPEL API connectivity
+        run: |
+          if ! curl -sS --connect-timeout 10 --max-time 15 -o /dev/null https://ampel-ztf.zeuthen.desy.de/api/ztf/archive/v3; then
+            echo "::error::Could not reach ampel-ztf.zeuthen.desy.de from this runner within 10s. This runner's IP may be blocked by DESY's firewall (this is intermittent - a re-run often lands on a different runner/IP and succeeds)."
+            exit 1
+          fi
+          echo "AMPEL API host is reachable from this runner."
+
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
 

@@ -31,7 +31,7 @@ def download_depot_log(date):
     """
     url = f"https://ztfweb.ipac.caltech.edu/ztf/depot/{date}/ztf_recentproc_{date}.json"
     username, password = get_depot_credentials()
-    response = requests.get(url, auth=HTTPBasicAuth(username, password))
+    response = requests.get(url, auth=HTTPBasicAuth(username, password), timeout=30)
     if response.status_code == 404:
         raise NoDepotEntry(f"No depot entry for {date} at url {url}")
     response.raise_for_status()
