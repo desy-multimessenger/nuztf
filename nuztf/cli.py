@@ -70,6 +70,14 @@ def nu_classic(
             help="Filename to write GCN to, if None (default) print to console",
         ),
     ] = None,
+    bad_quadrants: Annotated[
+        list[int],
+        typer.Option(
+            "--bad-quadrants",
+            "-b",
+            help="List of bad quadrants to ignore, e.g. `1 2`",
+        ),
+    ] = None,
 ):
     if manual_info is not None:
         manual_args = (
@@ -78,9 +86,9 @@ def nu_classic(
             (manual_info[3], -manual_info[4], manual_info[5]),
             Time(manual_info[-1]),
         )
-        nu = NeutrinoScanner(manual_args=manual_args)
+        nu = NeutrinoScanner(manual_args=manual_args, bad_quadrants=bad_quadrants)
     else:
-        nu = NeutrinoScanner(nu_name=nu_name)
+        nu = NeutrinoScanner(nu_name=nu_name, bad_quadrants=bad_quadrants)
     nu.scan(console=ctx.obj["console"], gcn_filename=gcn_filename)
 
 
@@ -98,9 +106,17 @@ def nu_saved_kafka(
             help="Filename to write GCN to, if None (default) print to console",
         ),
     ] = None,
+    bad_quadrants: Annotated[
+        list[int],
+        typer.Option(
+            "--bad-quadrants",
+            "-b",
+            help="List of bad quadrants to ignore, e.g. `1 2`",
+        ),
+    ] = None,
 ):
     print("scanning")
-    scan_saved(nu_name=nu_name, console=ctx.obj["console"], gcn_filename=gcn_filename)
+    scan_saved(nu_name=nu_name, console=ctx.obj["console"], gcn_filename=gcn_filename, bad_quadrants=bad_quadrants)
 
 
 @app.command()
@@ -122,6 +138,14 @@ def nu_listen(
             help="UTC time to start replaying from, in format YYYY-MM-DDTHH:MM:SS or integer number of messages to replay from the end of the stream",
         ),
     ] = None,
+    bad_quadrants: Annotated[
+        list[int],
+        typer.Option(
+            "--bad-quadrants",
+            "-b",
+            help="List of bad quadrants to ignore, e.g. `1 2`",
+        ),
+    ] = None
 ):
     if replay is not None:
         try:
@@ -134,6 +158,7 @@ def nu_listen(
         draft_directory=draft_directory,
         console=ctx.obj["console"],
         replay=replay,
+        bad_quadrants=bad_quadrants
     )
 
 

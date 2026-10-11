@@ -181,6 +181,7 @@ def listen(
     console=None,
     draft_directory: str | None = None,
     replay: str | int | None = None,
+    bad_quadrants: list[int] | None = None
 ):
 
     if draft_directory:
@@ -284,14 +285,14 @@ def listen(
                 )
                 continue
             # instantiate scanner
-            nu = NeutrinoKafkaScanner(alert=alert_dict)
+            nu = NeutrinoKafkaScanner(alert=alert_dict, bad_quadrants=bad_quadrants)
             gcn_filename = (
                 draft_directory / f"{nu.nu_name}_draft.txt" if draft_directory else None
             )
             nu.scan(console=console, gcn_filename=gcn_filename)
 
 
-def scan_saved(nu_name: str, console=None, gcn_filename: str | None = None):
+def scan_saved(nu_name: str, console=None, gcn_filename: str | None = None, bad_quadrants: list[int] | None = None):
     alert = load_alert(nu_name)
-    nu = NeutrinoKafkaScanner(alert)
+    nu = NeutrinoKafkaScanner(alert, bad_quadrants=bad_quadrants)
     nu.scan(console=console, gcn_filename=gcn_filename)
