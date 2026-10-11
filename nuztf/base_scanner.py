@@ -50,9 +50,11 @@ class BaseScanner:
         cones_to_scan=None,
         output_nside: None | int = None,
         logger=None,
+        bad_quadrants=None,
     ):
         self.cone_nside = cone_nside
         self.t_min = t_min
+        self.bad_quadrants = bad_quadrants
 
         (
             self.map_coords,
@@ -917,6 +919,7 @@ class BaseScanner:
         :param min_sep: Minimum separation between detections in days
         :param fields: Fields to consider (if None, all fields are considered)
         :param backend: Backend to use for coverage calculation
+        :param bad_quadrants: List of bad quadrants to ignore
         :return:
         """
 
@@ -980,6 +983,8 @@ class BaseScanner:
                 indices = obs["qid"].values[mask]
 
                 for qid in indices:
+                    if self.bad_quadrants is not None and qid in self.bad_quadrants:
+                        continue
                     pixels = flat_pix[int(qid)]
 
                     for p in pixels:

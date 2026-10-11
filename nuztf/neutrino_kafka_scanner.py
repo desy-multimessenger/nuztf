@@ -32,7 +32,8 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
         self,
         alert: dict,
         prob_threshold: float = 0.9,
-        map_path: Path = None,
+        map_path: Path | None = None,
+        bad_quadrants: list[int] | None = None,
     ):
         map_path = map_path or self.download_and_flatten(alert["healpix_url"])
         hpx_map, header = read_sky_map(str(map_path), nest=True)
@@ -62,6 +63,7 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
             t_precursor=None,
             config=None,
             output_nside=hp.npix2nside(len(self.skymap)),
+            bad_quadrants=bad_quadrants
         )
 
     @property
