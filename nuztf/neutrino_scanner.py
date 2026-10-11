@@ -28,6 +28,7 @@ class NeutrinoScanner(BaseScanner):
         t_precursor: float = None,
         config: dict = None,
         output_nside: int = 1024,
+        bad_quadrants: list[int] | None = None,
     ):
         self.logger = logging.getLogger(__name__)
 
@@ -91,6 +92,7 @@ class NeutrinoScanner(BaseScanner):
             run_config=self.config,
             cone_nside=cone_nside,
             output_nside=output_nside,
+            bad_quadrants=bad_quadrants
         )
         self.prob_threshold = 0.9
         self.rectangular_area = (
