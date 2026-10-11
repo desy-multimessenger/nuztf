@@ -92,7 +92,7 @@ class NeutrinoScanner(BaseScanner):
             run_config=self.config,
             cone_nside=cone_nside,
             output_nside=output_nside,
-            bad_quadrants=bad_quadrants
+            bad_quadrants=bad_quadrants,
         )
         self.prob_threshold = 0.9
         self.rectangular_area = (
