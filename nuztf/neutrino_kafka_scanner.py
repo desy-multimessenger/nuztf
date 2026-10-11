@@ -63,7 +63,7 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
             t_precursor=None,
             config=None,
             output_nside=hp.npix2nside(len(self.skymap)),
-            bad_quadrants=bad_quadrants
+            bad_quadrants=bad_quadrants,
         )
 
     @property
@@ -181,7 +181,7 @@ def listen(
     console=None,
     draft_directory: str | None = None,
     replay: str | int | None = None,
-    bad_quadrants: list[int] | None = None
+    bad_quadrants: list[int] | None = None,
 ):
 
     if draft_directory:
@@ -292,7 +292,12 @@ def listen(
             nu.scan(console=console, gcn_filename=gcn_filename)
 
 
-def scan_saved(nu_name: str, console=None, gcn_filename: str | None = None, bad_quadrants: list[int] | None = None):
+def scan_saved(
+    nu_name: str,
+    console=None,
+    gcn_filename: str | None = None,
+    bad_quadrants: list[int] | None = None,
+):
     alert = load_alert(nu_name)
     nu = NeutrinoKafkaScanner(alert, bad_quadrants=bad_quadrants)
     nu.scan(console=console, gcn_filename=gcn_filename)

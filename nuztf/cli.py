@@ -79,7 +79,9 @@ def nu_classic(
         ),
     ] = None,
 ):
-    _bq = [int(bq) for bq in bad_quadrants.split()] if bad_quadrants is not None else None
+    _bq = (
+        [int(bq) for bq in bad_quadrants.split()] if bad_quadrants is not None else None
+    )
     if manual_info is not None:
         manual_args = (
             nu_name,
@@ -117,8 +119,15 @@ def nu_saved_kafka(
     ] = None,
 ):
     print("scanning")
-    _bq = [int(bq) for bq in bad_quadrants.split()] if bad_quadrants is not None else None
-    scan_saved(nu_name=nu_name, console=ctx.obj["console"], gcn_filename=gcn_filename, bad_quadrants=_bq)
+    _bq = (
+        [int(bq) for bq in bad_quadrants.split()] if bad_quadrants is not None else None
+    )
+    scan_saved(
+        nu_name=nu_name,
+        console=ctx.obj["console"],
+        gcn_filename=gcn_filename,
+        bad_quadrants=_bq,
+    )
 
 
 @app.command()
@@ -147,7 +156,7 @@ def nu_listen(
             "-b",
             help="List of bad quadrants to ignore, separated by space, e.g. `1 2`",
         ),
-    ] = None
+    ] = None,
 ):
     if replay is not None:
         try:
@@ -160,7 +169,11 @@ def nu_listen(
         draft_directory=draft_directory,
         console=ctx.obj["console"],
         replay=replay,
-        bad_quadrants=[int(bq) for bq in bad_quadrants.split()] if bad_quadrants is not None else None
+        bad_quadrants=(
+            [int(bq) for bq in bad_quadrants.split()]
+            if bad_quadrants is not None
+            else None
+        ),
     )
 
 
