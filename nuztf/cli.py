@@ -71,14 +71,15 @@ def nu_classic(
         ),
     ] = None,
     bad_quadrants: Annotated[
-        list[int],
+        str,
         typer.Option(
             "--bad-quadrants",
             "-b",
-            help="List of bad quadrants to ignore, e.g. `1 2`",
+            help="List of bad quadrants to ignore, separated by space, e.g. `1 2`",
         ),
     ] = None,
 ):
+    _bq = [int(bq) for bq in bad_quadrants.split()] if bad_quadrants is not None else None
     if manual_info is not None:
         manual_args = (
             nu_name,
@@ -86,9 +87,9 @@ def nu_classic(
             (manual_info[3], -manual_info[4], manual_info[5]),
             Time(manual_info[-1]),
         )
-        nu = NeutrinoScanner(manual_args=manual_args, bad_quadrants=bad_quadrants)
+        nu = NeutrinoScanner(manual_args=manual_args, bad_quadrants=_bq)
     else:
-        nu = NeutrinoScanner(nu_name=nu_name, bad_quadrants=bad_quadrants)
+        nu = NeutrinoScanner(nu_name=nu_name, bad_quadrants=_bq)
     nu.scan(console=ctx.obj["console"], gcn_filename=gcn_filename)
 
 
@@ -107,16 +108,17 @@ def nu_saved_kafka(
         ),
     ] = None,
     bad_quadrants: Annotated[
-        list[int],
+        str,
         typer.Option(
             "--bad-quadrants",
             "-b",
-            help="List of bad quadrants to ignore, e.g. `1 2`",
+            help="List of bad quadrants to ignore separated by space, e.g. `1 2`",
         ),
     ] = None,
 ):
     print("scanning")
-    scan_saved(nu_name=nu_name, console=ctx.obj["console"], gcn_filename=gcn_filename, bad_quadrants=bad_quadrants)
+    _bq = [int(bq) for bq in bad_quadrants.split()] if bad_quadrants is not None else None
+    scan_saved(nu_name=nu_name, console=ctx.obj["console"], gcn_filename=gcn_filename, bad_quadrants=_bq)
 
 
 @app.command()
@@ -139,11 +141,11 @@ def nu_listen(
         ),
     ] = None,
     bad_quadrants: Annotated[
-        list[int],
+        str,
         typer.Option(
             "--bad-quadrants",
             "-b",
-            help="List of bad quadrants to ignore, e.g. `1 2`",
+            help="List of bad quadrants to ignore, separated by space, e.g. `1 2`",
         ),
     ] = None
 ):
@@ -158,7 +160,7 @@ def nu_listen(
         draft_directory=draft_directory,
         console=ctx.obj["console"],
         replay=replay,
-        bad_quadrants=bad_quadrants
+        bad_quadrants=[int(bq) for bq in bad_quadrants.split()] if bad_quadrants is not None else None
     )
 
 
