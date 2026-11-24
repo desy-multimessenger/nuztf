@@ -12,6 +12,7 @@ import numpy as np
 import requests
 from astropy.io import fits
 from astropy.time import Time
+from astropy import units as u
 from confluent_kafka import OFFSET_END, TopicPartition
 from gcn_kafka import Consumer
 from ligo.skymap.bayestar import rasterize
@@ -34,6 +35,7 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
         prob_threshold: float = 0.9,
         map_path: Path | None = None,
         bad_quadrants: list[int] | None = None,
+        t_precursor: float | None = None,
     ):
         map_path = map_path or self.download_and_flatten(alert["healpix_url"])
         hpx_map, header = read_sky_map(str(map_path), nest=True)
@@ -57,8 +59,12 @@ class NeutrinoKafkaScanner(NeutrinoScanner):
         # calculated in self.unpack_skymap
         self._credible_levels = None
 
+        time = Time(alert["trigger_time"])
+        if t_precursor:
+            time = time - t_precursor * u.d
+
         super().__init__(
-            manual_args=(alert["event_name"][0], ra, dec, Time(alert["trigger_time"])),
+            manual_args=(alert["event_name"][0], ra, dec, time),
             cone_nside=128,
             t_precursor=None,
             config=None,
@@ -297,7 +303,9 @@ def scan_saved(
     console=None,
     gcn_filename: str | None = None,
     bad_quadrants: list[int] | None = None,
+    t_precursor: float | None = None,
+    t_max_offset: float | None = None
 ):
     alert = load_alert(nu_name)
-    nu = NeutrinoKafkaScanner(alert, bad_quadrants=bad_quadrants)
-    nu.scan(console=console, gcn_filename=gcn_filename)
+    nu = NeutrinoKafkaScanner(alert, bad_quadrants=bad_quadrants, t_precursor=t_precursor)
+    nu.scan(console=console, gcn_filename=gcn_filename, t_max_offset=t_max_offset)
