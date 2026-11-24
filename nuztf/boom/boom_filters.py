@@ -7,28 +7,29 @@ _LSST_FILTER = {
     "candidate.centroid_flag": {"$eq": False},
     "candidate.psfFlux_flag": {"$eq": False},
 }
+_ZTF_BASE_FILTER = {"candidate.isdiffpos": {"$eq": True}}
 _ZTF_DRB_FILTER = {"candidate.drb": {"$gt": 0.65}}
 _ZTF_RB_FILTER = {"candidate.rb": {"$gt": 0.5}}
 
 ZTF_DRB_JD = 2458653.5
 
 
-def get_quality_filter(survey: str, jd: float) -> dict:
+def get_quality_filter(catalog: str, jd: float) -> dict:
     """
     Get quality filter based on survey properties
 
-    :param survey: Survey
+    :param catalog: Catalog
     :param jd: JD of search window
     :return:
     """
     # LSST - reliability
-    if survey == "LSST":
+    if catalog == "LSST_alerts":
         return {**_LSST_FILTER}
     # ZTF - drb or rb depending on date
-    elif survey == "ZTF":
+    elif catalog == "ZTF_alerts":
         if jd > ZTF_DRB_JD:
-            return {**_ZTF_DRB_FILTER}
+            return {**_ZTF_BASE_FILTER, **_ZTF_DRB_FILTER}
         else:
-            return {**_ZTF_RB_FILTER}
+            return {**_ZTF_BASE_FILTER, **_ZTF_RB_FILTER}
     else:
-        raise ValueError(f"Unrecognized survey: {survey}")
+        raise ValueError(f"Unrecognized survey: {catalog}")

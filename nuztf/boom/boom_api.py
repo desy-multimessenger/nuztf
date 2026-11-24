@@ -24,5 +24,5 @@ def boom_api_name(
         is_ztf = "ztf" in source_name.lower()
         client = ZTFClient() if is_ztf else LSSTClient()
 
-    src = client.get_source(object_id)
-    return src.convert_to_ztfstyle()
+    src = client.get_source(source_name)
+    return [src.convert_to_ztfstyle()]

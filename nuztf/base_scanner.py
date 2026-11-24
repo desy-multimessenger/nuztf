@@ -5,13 +5,11 @@ import json
 import logging
 from pathlib import Path
 
-import backoff
 import healpy as hp
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import requests
 from ampel.ztf.alert.ZiAlertSupplier import ZiAlertSupplier
 from ampel.ztf.dev.DevAlertConsumer import DevAlertConsumer
 from ampel.ztf.t0.DecentFilter import DecentFilter
@@ -21,8 +19,6 @@ from astropy.time import Time
 from matplotlib.backends.backend_pdf import PdfPages
 from tqdm import tqdm
 
-from nuztf.ampel.urls import API_CATALOGMATCH_URL
-from nuztf.ampel.utils import merge_alerts
 from nuztf.ampel.urls import API_CATALOGMATCH_URL
 from nuztf.ampel.utils import merge_alerts
 from nuztf.api import ZTF_BACKEND, api_name, api_skymap

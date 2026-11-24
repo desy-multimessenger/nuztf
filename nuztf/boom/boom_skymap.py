@@ -41,7 +41,7 @@ def boom_api_skymap(
         "candidate.jd": {"$gt": t_min.jd, "$lt": t_max.jd},
     }
 
-    quality_cuts = get_quality_filter(survey=client.catalog, jd=t_max.jd)
+    quality_cuts = get_quality_filter(catalog=client.catalog, jd=t_max.jd)
 
     new_cuts = {
         "properties.rock": {"$eq": False},
