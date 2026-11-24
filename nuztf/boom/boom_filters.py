@@ -8,7 +8,7 @@ _LSST_FILTER = {
     "candidate.psfFlux_flag": {"$eq": False},
 }
 _ZTF_BASE_FILTER = {"candidate.isdiffpos": {"$eq": True}}
-_ZTF_DRB_FILTER = {"candidate.drb": {"$gt": 0.65}}
+_ZTF_DRB_FILTER = {"candidate.drb": {"$gt": 0.3}}
 _ZTF_RB_FILTER = {"candidate.rb": {"$gt": 0.5}}
 
 ZTF_DRB_JD = 2458653.5

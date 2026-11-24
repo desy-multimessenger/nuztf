@@ -282,8 +282,8 @@ class BaseScanner:
             self.add_res_to_cache(query_res, cache=self.cache_candidates)
 
     def check_ampel_filter(self, ztf_name):
-        lvl = logging.getLogger().getEffectiveLevel()
-        logging.getLogger().setLevel(logging.DEBUG)
+        lvl = self.logger.getEffectiveLevel()
+        self.logger.setLevel(logging.DEBUG)
         self.logger.info("Set logger level to DEBUG")
         all_query_res = api_name(ztf_name)
         assert len(all_query_res) > 0, f"No results from ampel api for {ztf_name}"
@@ -303,7 +303,7 @@ class BaseScanner:
                     if history_bool:
                         pipeline_bool = True
         self.logger.info(f"Setting logger back to {lvl}")
-        logging.getLogger().setLevel(lvl)
+        self.logger.setLevel(lvl)
         return pipeline_bool
 
     def get_multi_night_summary(self, max_days=None):
