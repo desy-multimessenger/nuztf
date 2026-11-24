@@ -314,10 +314,14 @@ class NeutrinoScanner(BaseScanner):
             console.print(table)
 
         gcn_draft = self.draft_gcn()
-        if gcn_filename is not None:
-            self.logger.info(f"Writing GCN to {gcn_filename}")
-            with open(gcn_filename, "w") as f:
-                f.write(gcn_draft)
-        if console:
-            console.print("Here is your GCN draft:\n\n", style="bold magenta")
-            console.print(gcn_draft)
+        if gcn_draft:
+            if gcn_filename is not None:
+                self.logger.info(f"Writing GCN to {gcn_filename}")
+                with open(gcn_filename, "w") as f:
+                    f.write(gcn_draft)
+            if console:
+                console.print("Here is your GCN draft:\n\n", style="bold magenta")
+                console.print(gcn_draft)
+
+        else:
+            self.logger.warning("No GCN draft generated. Check logs for details.")

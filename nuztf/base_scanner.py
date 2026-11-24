@@ -581,7 +581,8 @@ class BaseScanner:
 
     def draft_gcn(self):
         if self.first_obs is None:
-            raise ValueError("No first observation set. Cannot draft GCN.")
+            self.logger.error("No first observation set. Cannot draft GCN.")
+            return
 
         first_obs_dt = self.first_obs.datetime
         pretty_date = first_obs_dt.strftime("%Y-%m-%d")
@@ -1063,6 +1064,7 @@ class BaseScanner:
             self.first_obs.utc.format = "isot"
             self.last_obs = Time(max(times), format="jd")
             self.last_obs.utc.format = "isot"
+            self.logger.info(f"Observations started at {self.first_obs.isot}")
 
         except ValueError:
             err = (
@@ -1071,9 +1073,8 @@ class BaseScanner:
                 f"Coverage overlap is 0%!"
             )
             self.logger.error(err)
-            raise ValueError(err)
 
-        self.logger.info(f"Observations started at {self.first_obs.isot}")
+
 
         return (
             coverage_df,

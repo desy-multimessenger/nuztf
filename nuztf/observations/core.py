@@ -108,7 +108,10 @@ def get_coverage(jds: [int], backend="best") -> pd.DataFrame | None:
                 f"Some logs were still missing from the cache. "
                 f"Querying for the following JDs from TAP: {missing_logs}"
             )
-            write_coverage_tap(missing_logs)
+            try:
+                write_coverage_tap(missing_logs)
+            except Exception as e:
+                logger.error(f"Failed to query TAP for missing logs: {e}")
 
     # Load logs from cache
 
@@ -131,9 +134,14 @@ def get_coverage(jds: [int], backend="best") -> pd.DataFrame | None:
 
         if backend in ["best", "tap"]:
             if res is None:
-                df = pd.read_json(coverage_tap_path(jd))
-                if len(df) > 0:
-                    res = df
+                fn = coverage_tap_path(jd)
+                if fn.exists():
+                    df = pd.read_json(coverage_tap_path(jd))
+                    if len(df) > 0:
+                        res = df
+                else:
+                    logger.warning(f"Coverage file {fn} does not exist")
+
 
         if res is not None:
             results.append(res)
@@ -159,7 +167,7 @@ def get_obs_summary_depot(t_min: Time, t_max: Time, backend="best") -> MNS | Non
 
     res = get_coverage(jds, backend=backend)
 
-    if len(res) == 0:
+    if (res is None) or (len(res) == 0):
         return None
 
     res["date"] = Time(res["obsjd"].to_numpy(), format="jd").isot
