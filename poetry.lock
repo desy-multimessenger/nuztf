@@ -8739,4 +8739,4 @@ slackbot = ["flask", "gunicorn", "slackclient", "slackeventsapi"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.12"
-content-hash = "c7c88e0c1d7413a2f5f5d67b6cc897d34bee4d308bc9228f935f6f65be9bbffd"
+content-hash = "6e1e65b2cb9985b196b88728feb1d36970db5e16045abb97dfcb41ab4c6b5250"

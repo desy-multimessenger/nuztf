@@ -9,6 +9,7 @@ from blastwave import LSSTClient, ZTFClient
 from blastwave.models.query import BOOMQuery
 from tqdm import tqdm
 
+from nuztf.boom.boom_filters import get_quality_filter
 from nuztf.kowalski.kowalski_skymap import get_cones_for_map
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ def boom_api_skymap(
     """
 
     if client is None:
-        client = LSSTClient()
+        client = ZTFClient()
 
     cones = get_cones_for_map(nside=cone_nside, cone_ids=cone_ids)
 
@@ -40,15 +41,7 @@ def boom_api_skymap(
         "candidate.jd": {"$gt": t_min.jd, "$lt": t_max.jd},
     }
 
-    rb_cut = {
-        "candidate.reliability": {"$gt": 0.4},
-        "candidate.isDipole": {"$eq": False},
-        "candidate.pixelFlags": {"$eq": False},
-        "candidate.glint_trail": {"$eq": False},
-        "candidate.isNegative": {"$eq": False},
-        "candidate.centroid_flag": {"$eq": False},
-        "candidate.psfFlux_flag": {"$eq": False},
-    }
+    quality_cuts = get_quality_filter(survey=client.catalog, jd=t_max.jd)
 
     new_cuts = {
         "properties.rock": {"$eq": False},
@@ -57,7 +50,7 @@ def boom_api_skymap(
         "properties.stationary": {"$eq": True},
     }
 
-    filter_dict: dict = {**time_cut, **rb_cut, **new_cuts}
+    filter_dict: dict = {**time_cut, **quality_cuts, **new_cuts}
 
     queries = []
     for cone in cones:
@@ -77,12 +70,12 @@ def boom_api_skymap(
                 },
                 **filter_dict,
             },
-            projection={
-                "objectId": 1,
-                "candidate.ra": 1,
-                "candidate.dec": 1,
-                "candidate.jd": 1,
-            },
+            # projection={
+            #     "objectId": 1,
+            #     "candidate.ra": 1,
+            #     "candidate.dec": 1,
+            #     "candidate.jd": 1,
+            # },
         )
         queries.append(query)
 
