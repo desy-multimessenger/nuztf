@@ -41,7 +41,7 @@ class NeutrinoScanner(BaseScanner):
         self.prob_threshold = 0.9
 
         if manual_args is None:
-            if nu_name is not None:
+            if (nu_name is not None) & (gcn_no is None):
                 gcn_no = find_gcn_no(nu_name)
 
             elif gcn_no is None:
