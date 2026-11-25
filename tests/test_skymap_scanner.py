@@ -73,11 +73,6 @@ class TestSkymapScanner(unittest.TestCase):
 
         self.assertEqual(tns_summary, true_tns_summary)
 
-        # Backend: Kowalski
-        scanner.scan_area(backend="kowalski")
-        n_retrieved_alerts = scanner.n_alerts
-        self.assertEqual(n_retrieved_alerts, n_expected_alerts)
-
     # def test_grb_scan(self):
     #     self.logger.info("\n\n Testing GRB Scanner \n\n")
     #

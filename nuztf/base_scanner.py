@@ -321,7 +321,7 @@ class BaseScanner:
 
         :param t_min: Minimum time to query
         :param t_max: Maximum time to query
-        :param backend: Backend to query (ampel or kowalski)
+        :param backend: Backend to query (ampel)
 
         :return: List of alerts
         """
@@ -392,7 +392,7 @@ class BaseScanner:
 
         :param t_min: Minimum time to query
         :param t_max: Maximum time to query
-        :param backend: Backend to query (ampel or kowalski)
+        :param backend: Backend to query (ampel)
         :return: List of alerts
         """
         alerts = self.query_for_alerts(t_min=t_min, t_max=t_max, backend=backend)
@@ -436,7 +436,7 @@ class BaseScanner:
 
         :param t_min: Minimum time to query
         :param t_max: Maximum time to query
-        :param backend: Backend to query (ampel or kowalski)
+        :param backend: Backend to query (ampel)
 
         :return: None
         """
