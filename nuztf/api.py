@@ -23,7 +23,7 @@ OVERWRITE = False
 dotenv.load_dotenv()
 
 ZTF_BACKEND = os.getenv("ZTF_BACKEND", "ampel")
-assert ZTF_BACKEND in ["ampel", "kowalski"], f"Invalid ZTF backend: {ZTF_BACKEND}"
+assert ZTF_BACKEND in ["ampel"], f"Invalid ZTF backend: {ZTF_BACKEND}"
 
 
 def api_name(
