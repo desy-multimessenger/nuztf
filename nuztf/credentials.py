@@ -100,4 +100,3 @@ try:
 
 except KeyError:
     logging.info("No Token for Fritz API found in environment" "Assume it is set.")
-
