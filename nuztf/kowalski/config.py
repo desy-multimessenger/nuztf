@@ -22,5 +22,6 @@ def get_kowalski():
     Get Kowalski object
     :return: Kowalski object
     """
+    raise DeprecationWarning("Kowalski is deprecated!")
     kowalski_token = load_credentials("kowalski", token_based=True)
     return Kowalski(token=kowalski_token, **kwargs)
