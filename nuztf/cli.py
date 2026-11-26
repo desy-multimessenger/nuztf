@@ -117,6 +117,13 @@ def nu_saved_kafka(
             help="List of bad quadrants to ignore separated by space, e.g. `1 2`",
         ),
     ] = None,
+    t_precursor: Annotated[
+        float,
+        typer.Option("--t-pre", help="Time to start scanning before neutrino arrival"),
+    ] = None,
+    t_max_offset: Annotated[
+        float, typer.Option("--t-max-offset", help="Days from t_min to look for alerts")
+    ] = None,
 ):
     print("scanning")
     _bq = (
@@ -127,6 +134,15 @@ def nu_saved_kafka(
         console=ctx.obj["console"],
         gcn_filename=gcn_filename,
         bad_quadrants=_bq,
+        t_precursor=t_precursor,
+        t_max_offset=t_max_offset,
+    )
+    scan_saved(
+        nu_name=nu_name,
+        console=ctx.obj["console"],
+        gcn_filename=gcn_filename,
+        t_precursor=t_precursor,
+        t_max_offset=t_max_offset,
     )
 
 
@@ -157,6 +173,13 @@ def nu_listen(
             help="List of bad quadrants to ignore, separated by space, e.g. `1 2`",
         ),
     ] = None,
+    t_precursor: Annotated[
+        float,
+        typer.Option("--t-pre", help="Time to start scanning before neutrino arrival"),
+    ] = None,
+    t_max_offset: Annotated[
+        float, typer.Option("--t-max-offset", help="Days from t_min to look for alerts")
+    ] = None,
 ):
     if replay is not None:
         try:
@@ -174,6 +197,8 @@ def nu_listen(
             if bad_quadrants is not None
             else None
         ),
+        t_precursor=t_precursor,
+        t_max_offset=t_max_offset,
     )
 
 
