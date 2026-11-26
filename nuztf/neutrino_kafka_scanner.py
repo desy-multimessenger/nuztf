@@ -10,9 +10,9 @@ import astropy_healpix as ah
 import healpy as hp
 import numpy as np
 import requests
+from astropy import units as u
 from astropy.io import fits
 from astropy.time import Time
-from astropy import units as u
 from confluent_kafka import OFFSET_END, TopicPartition
 from gcn_kafka import Consumer
 from ligo.skymap.bayestar import rasterize
@@ -293,11 +293,15 @@ def listen(
                 )
                 continue
             # instantiate scanner
-            nu = NeutrinoKafkaScanner(alert=alert_dict, bad_quadrants=bad_quadrants, t_precursor=t_precursor)
+            nu = NeutrinoKafkaScanner(
+                alert=alert_dict, bad_quadrants=bad_quadrants, t_precursor=t_precursor
+            )
             gcn_filename = (
                 draft_directory / f"{nu.nu_name}_draft.txt" if draft_directory else None
             )
-            nu.scan(console=console, gcn_filename=gcn_filename, t_max_offset=t_max_offset)
+            nu.scan(
+                console=console, gcn_filename=gcn_filename, t_max_offset=t_max_offset
+            )
 
 
 def scan_saved(
@@ -306,8 +310,10 @@ def scan_saved(
     gcn_filename: str | None = None,
     bad_quadrants: list[int] | None = None,
     t_precursor: float | None = None,
-    t_max_offset: float | None = None
+    t_max_offset: float | None = None,
 ):
     alert = load_alert(nu_name)
-    nu = NeutrinoKafkaScanner(alert, bad_quadrants=bad_quadrants, t_precursor=t_precursor)
+    nu = NeutrinoKafkaScanner(
+        alert, bad_quadrants=bad_quadrants, t_precursor=t_precursor
+    )
     nu.scan(console=console, gcn_filename=gcn_filename, t_max_offset=t_max_offset)

@@ -117,20 +117,13 @@ def nu_saved_kafka(
             help="List of bad quadrants to ignore separated by space, e.g. `1 2`",
         ),
     ] = None,
-    t_precursor : Annotated[
+    t_precursor: Annotated[
         float,
-        typer.Option(
-            "--t-pre",
-            help="Time to start scanning before neutrino arrival"
-        )
+        typer.Option("--t-pre", help="Time to start scanning before neutrino arrival"),
     ] = None,
     t_max_offset: Annotated[
-        float,
-        typer.Option(
-            "--t-max-offset",
-            help="Days from t_min to look for alerts"
-        )
-    ] = None
+        float, typer.Option("--t-max-offset", help="Days from t_min to look for alerts")
+    ] = None,
 ):
     print("scanning")
     _bq = (
@@ -149,7 +142,7 @@ def nu_saved_kafka(
         console=ctx.obj["console"],
         gcn_filename=gcn_filename,
         t_precursor=t_precursor,
-        t_max_offset=t_max_offset
+        t_max_offset=t_max_offset,
     )
 
 

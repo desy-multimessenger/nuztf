@@ -8,8 +8,8 @@ import healpy as hp
 import matplotlib.pyplot as plt
 import numpy as np
 import yaml
-from astropy.time import Time
 from astropy import units as u
+from astropy.time import Time
 from tqdm import tqdm
 
 from nuztf.base_scanner import BaseScanner
@@ -284,7 +284,12 @@ class NeutrinoScanner(BaseScanner):
             key,
         )
 
-    def scan(self, console=None, gcn_filename: str | None = None, t_max_offset: float | None = None):
+    def scan(
+        self,
+        console=None,
+        gcn_filename: str | None = None,
+        t_max_offset: float | None = None,
+    ):
         t_max = self.t_min + t_max_offset * u.d if t_max_offset is not None else None
         self.query_for_alerts(t_max=t_max)
         self.scan_area()
