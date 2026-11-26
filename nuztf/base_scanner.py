@@ -1074,8 +1074,6 @@ class BaseScanner:
             )
             self.logger.error(err)
 
-
-
         return (
             coverage_df,
             times,

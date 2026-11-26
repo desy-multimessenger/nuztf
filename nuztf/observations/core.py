@@ -142,7 +142,6 @@ def get_coverage(jds: [int], backend="best") -> pd.DataFrame | None:
                 else:
                     logger.warning(f"Coverage file {fn} does not exist")
 
-
         if res is not None:
             results.append(res)
 
