@@ -141,7 +141,7 @@ def nu_saved_kafka(
         console=ctx.obj["console"],
         gcn_filename=gcn_filename,
         bad_quadrants=_bq,
-    t_precursor=t_precursor,
+        t_precursor=t_precursor,
         t_max_offset=t_max_offset,
     )
     scan_saved(
@@ -180,7 +180,7 @@ def nu_listen(
             help="List of bad quadrants to ignore, separated by space, e.g. `1 2`",
         ),
     ] = None,
-t_precursor: Annotated[
+    t_precursor: Annotated[
         float,
         typer.Option("--t-pre", help="Time to start scanning before neutrino arrival"),
     ] = None,
@@ -204,6 +204,8 @@ t_precursor: Annotated[
             if bad_quadrants is not None
             else None
         ),
+        t_precursor=t_precursor,
+        t_max_offset=t_max_offset,
     )
 
 
