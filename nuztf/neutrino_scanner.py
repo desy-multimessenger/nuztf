@@ -287,13 +287,16 @@ class NeutrinoScanner(BaseScanner):
         self.query_for_alerts()
         self.scan_area()
         self.create_candidate_summary()
-        fig, _ = self.plot_overlap_with_observations(first_det_window_days=30.0)
-        if gcn_filename is not None:
-            fn = Path(gcn_filename).with_suffix(".pdf")
-            self.logger.info(f"Writing {fn}")
-            fig.savefig(fn)
-        plt.close()
-        jds = self.observations.obsjd.unique()
+        plot = self.plot_overlap_with_observations(first_det_window_days=30.0)
+        if plot is not None:
+            fig, _ = plot
+            if gcn_filename is not None:
+                fn = Path(gcn_filename).with_suffix(".pdf")
+                self.logger.info(f"Writing {fn}")
+                fig.savefig(fn)
+            plt.close()
+
+        jds = self.observations.obsjd.unique() if self.observations is not None else []
 
         if console:
             from rich.table import Table
