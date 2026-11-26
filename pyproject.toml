@@ -59,7 +59,7 @@ nuztf = "nuztf.cli:app"
 black = "^25.1.0"
 coverage = "^7.6"
 coveralls = "^4.0.0"
-pytest = "^8.3.2"
+pytest = "^9.0.3"
 isort = "^6.0.0"
 pre-commit = ">=2.20,<5.0"
 
