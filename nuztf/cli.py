@@ -55,8 +55,8 @@ def nu_classic(
         str, typer.Argument(..., help="Name of the neutrino, e.g. `IC200530A`")
     ],
     manual_info: Annotated[
-        tuple[float, float, float, float, float, float, str],
-        typer.Argument(
+        tuple[float, float, float, float, float, float, str] | None,
+        typer.Option(
             ...,
             help="Provide manual position and time in the format "
             "RA, RA_LOWER, RA_UPPER, DEC, DEC_LOWER, DEC_UPPER, MJD",

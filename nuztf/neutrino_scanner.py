@@ -287,13 +287,16 @@ class NeutrinoScanner(BaseScanner):
         self.query_for_alerts()
         self.scan_area()
         self.create_candidate_summary()
-        fig, _ = self.plot_overlap_with_observations(first_det_window_days=30.0)
-        if gcn_filename is not None:
-            fn = Path(gcn_filename).with_suffix(".pdf")
-            self.logger.info(f"Writing {fn}")
-            fig.savefig(fn)
-        plt.close()
-        jds = self.observations.obsjd.unique()
+        plot = self.plot_overlap_with_observations(first_det_window_days=30.0)
+        if plot is not None:
+            fig, _ = plot
+            if gcn_filename is not None:
+                fn = Path(gcn_filename).with_suffix(".pdf")
+                self.logger.info(f"Writing {fn}")
+                fig.savefig(fn)
+            plt.close()
+
+        jds = self.observations.obsjd.unique() if self.observations is not None else []
 
         if console:
             from rich.table import Table
@@ -314,10 +317,14 @@ class NeutrinoScanner(BaseScanner):
             console.print(table)
 
         gcn_draft = self.draft_gcn()
-        if gcn_filename is not None:
-            self.logger.info(f"Writing GCN to {gcn_filename}")
-            with open(gcn_filename, "w") as f:
-                f.write(gcn_draft)
-        if console:
-            console.print("Here is your GCN draft:\n\n", style="bold magenta")
-            console.print(gcn_draft)
+        if gcn_draft:
+            if gcn_filename is not None:
+                self.logger.info(f"Writing GCN to {gcn_filename}")
+                with open(gcn_filename, "w") as f:
+                    f.write(gcn_draft)
+            if console:
+                console.print("Here is your GCN draft:\n\n", style="bold magenta")
+                console.print(gcn_draft)
+
+        else:
+            self.logger.warning("No GCN draft generated. Check logs for details.")
