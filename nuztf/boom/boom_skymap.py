@@ -4,15 +4,77 @@ Query a skymap using boom
 
 import logging
 
+import numpy as np
 from astropy.time import Time
 from blastwave import LSSTClient, ZTFClient
-from blastwave.models.query import BOOMQuery
+from mocpy import MOC
 from tqdm import tqdm
 
 from nuztf.boom.boom_filters import get_quality_filter
-from nuztf.kowalski.kowalski_skymap import get_cones_for_map
 
 logger = logging.getLogger(__name__)
+
+# BOOM rejects a filter test spanning more than this many days
+MAX_JD_WINDOW = 7.0
+
+# Program IDs to ask for. BOOM intersects these with the grants the user
+# actually has, so requesting all of them means "everything I may see".
+PROGRAM_IDS = [1, 2, 3]
+
+# Fields to return. BOOM only exposes the subset of the alert available at
+# filter time, and requires the last pipeline stage to be a $project
+# including objectId.
+PROJECTION = {
+    "objectId": 1,
+    "candidate": 1,
+    "properties": 1,
+    "classifications": 1,
+}
+
+
+def ids_to_moc_ascii(nside: int, ids: list[int]) -> str:
+    """
+    Convert nested healpix indices to a MOC in IVOA ASCII form
+
+    :param nside: nside of the healpix indices
+    :param ids: nested healpix indices
+    :return: MOC string, e.g. "4/278 5/1116 1118 6/4427-4428"
+    """
+
+    depth = int(np.log2(nside))
+
+    if 2**depth != nside:
+        raise ValueError(f"nside must be a power of two, not {nside}")
+
+    moc = MOC.from_healpix_cells(
+        ipix=np.array(ids),
+        depth=np.full(len(ids), depth),
+        max_depth=depth,
+    )
+
+    return moc.to_string(format="ascii")
+
+
+def split_jd_window(t_min: Time, t_max: Time) -> list[tuple[float, float]]:
+    """
+    Split a time range into equal chunks that BOOM will accept
+
+    :param t_min: minimum time
+    :param t_max: maximum time
+    :return: list of (start_jd, end_jd) pairs, each no longer than the cap
+    """
+
+    n_chunks = max(1, int(np.ceil((t_max.jd - t_min.jd) / MAX_JD_WINDOW)))
+
+    # A window that is an exact multiple of the cap can land a hair over it
+    # once the edges are rounded to float64, which BOOM would reject
+    while True:
+        edges = np.linspace(t_min.jd, t_max.jd, n_chunks + 1)
+        if n_chunks == 1 or np.all(np.diff(edges) <= MAX_JD_WINDOW):
+            break
+        n_chunks += 1
+
+    return [(float(x), float(y)) for x, y in zip(edges[:-1], edges[1:])]
 
 
 def boom_api_skymap(
@@ -25,21 +87,30 @@ def boom_api_skymap(
     """
     Query BOOM for objects in a skymap
 
+    The healpix indices are sent as a single MOC, so the entire region is
+    matched by healpix range in one query against the
+    {coordinates.hpx, candidate.jd} index, rather than one cone per pixel.
+    BOOM caps a filter test at 7 days, so longer windows are split.
+
+    Unlike a cone search, the region is matched exactly, so alerts just
+    outside the requested pixels are no longer returned.
+
     :param cone_nside: nside of the skymap
     :param cone_ids: list of cone ids
     :param t_min: minimum time
     :param t_max: maximum time
     :param client: BOOM client
+    :return: list of alerts
     """
 
     if client is None:
         client = ZTFClient()
 
-    cones = get_cones_for_map(nside=cone_nside, cone_ids=cone_ids)
+    if len(cone_ids) == 0:
+        logger.warning("No healpix indices to query, skipping")
+        return []
 
-    time_cut = {
-        "candidate.jd": {"$gt": t_min.jd, "$lt": t_max.jd},
-    }
+    moc_ascii = ids_to_moc_ascii(nside=cone_nside, ids=cone_ids)
 
     quality_cuts = get_quality_filter(catalog=client.catalog, jd=t_max.jd)
 
@@ -50,39 +121,47 @@ def boom_api_skymap(
         "properties.stationary": {"$eq": True},
     }
 
-    filter_dict: dict = {**time_cut, **quality_cuts, **new_cuts}
+    # BOOM prepends the region and the time cut, and appends nothing, so the
+    # pipeline is just our own cuts plus the projection it requires
+    pipeline = [
+        {"$match": {**quality_cuts, **new_cuts}},
+        {"$project": PROJECTION},
+    ]
 
-    queries = []
-    for cone in cones:
-        query = BOOMQuery(
-            catalog_name=client.catalog,
-            filter={
-                "coordinates.radec_geojson": {
-                    "$nearSphere": {
-                        "$geometry": {
-                            "type": "Point",
-                            "coordinates": [cone.ra - 180.0, cone.dec],
-                        },
-                        "$maxDistance": client.get_near_sphere_dist(
-                            3600.0 * cone.radius
-                        ),
-                    }
-                },
-                **filter_dict,
+    chunks = split_jd_window(t_min=t_min, t_max=t_max)
+
+    logger.info(f"Querying {len(cone_ids)} pixels in {len(chunks)} time chunk(s)")
+
+    res: dict[int, dict] = {}
+
+    for start_jd, end_jd in tqdm(chunks):
+        response = client.api(
+            "post",
+            "filters/test",
+            data={
+                "survey": client.base_catalog,
+                "permissions": {client.base_catalog: PROGRAM_IDS},
+                "start_jd": start_jd,
+                "end_jd": end_jd,
+                "moc_ascii": moc_ascii,
+                "pipeline": pipeline,
             },
         )
-        queries.append(query)
 
-    logger.info(f"Found {len(queries)} cones")
+        if not response.ok:
+            logger.error(f"BOOM rejected the skymap query: {response.text}")
 
-    res = []
+        response.raise_for_status()
 
-    for query in tqdm(queries):
-        res += client.query(query)
+        # chunk edges are inclusive, so an alert can be returned twice
+        for alert in response.json()["data"]["results"]:
+            res[alert["_id"]] = alert
+
+    alerts = list(res.values())
 
     # propagate candid
-    for r in res:
-        r["candid"] = r["_id"]
-        r["prv_candidates"] = []
+    for alert in alerts:
+        alert["candid"] = alert["_id"]
+        alert["prv_candidates"] = []
 
-    return res
+    return alerts
