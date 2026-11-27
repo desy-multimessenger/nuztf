@@ -4,6 +4,7 @@
 import json
 import logging
 import warnings
+from xml.parsers.expat import ExpatError
 
 from astropy import units as u
 from astropy.coordinates import SkyCoord
@@ -53,7 +54,7 @@ def query_ned_astroquery(
 
     try:
         return Ned.query_region(c, radius=r)
-    except RemoteServiceError:
+    except (RemoteServiceError, ExpatError):
         return None
 
 

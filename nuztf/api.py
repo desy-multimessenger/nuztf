@@ -16,12 +16,6 @@ from nuztf.boom import (
     boom_api_skymap,
     ensure_boom_cutouts,
 )
-from nuztf.kowalski import (
-    ensure_kowalski_cutouts,
-    kowalski_api_cutout,
-    kowalski_api_name,
-    kowalski_api_skymap,
-)
 
 OVERWRITE = False
 
@@ -31,7 +25,6 @@ dotenv.load_dotenv()
 ZTF_BACKEND = str(os.getenv("ZTF_BACKEND", "ampel")).lower()
 assert ZTF_BACKEND in [
     "ampel",
-    "kowalski",
     "boom",
 ], f"Invalid ZTF backend: {ZTF_BACKEND}"
 
@@ -50,7 +43,7 @@ def api_name(
     :param with_history: Whether to include history
     :param with_cutouts: Whether to include cutouts
     :param limit: Limit for the number of alerts
-    :param backend: Backend to use for fetching data ("ampel" or "kowalski" or "boom")
+    :param backend: Backend to use for fetching data ("ampel" or "boom")
 
     :return: Alert data
     """
@@ -60,11 +53,6 @@ def api_name(
             with_history=with_history,
             with_cutouts=with_cutouts,
             limit=limit,
-        )
-    elif backend == "kowalski":
-        return kowalski_api_name(
-            ztf_name,
-            with_cutouts=with_cutouts,
         )
     elif backend == "boom":
         return boom_api_candid(
@@ -89,19 +77,12 @@ def api_skymap(
     :param t_max: End time
     :param cone_nside: Nside for the skymap
     :param cone_ids: List of cone IDs
-    :param backend: Backend to use for fetching data ("ampel" or "kowalski" or "boom")
+    :param backend: Backend to use for fetching data ("ampel" or "boom")
 
     :return: Skymap data
     """
     if backend == "ampel":
         return ampel_api_skymap(
-            t_min=t_min,
-            t_max=t_max,
-            cone_nside=cone_nside,
-            cone_ids=cone_ids,
-        )
-    elif backend == "kowalski":
-        return kowalski_api_skymap(
             t_min=t_min,
             t_max=t_max,
             cone_nside=cone_nside,
@@ -125,14 +106,12 @@ def api_cutout(
     """
     Get cutout data from the specified backend.
     :param candid: Candid of the alert
-    :param backend: Backend to use for fetching data ("ampel" or "kowalski" or "boom")
+    :param backend: Backend to use for fetching data ("ampel" or "boom")
     :return: Cutout data
     """
 
     if backend == "ampel":
         return ampel_api_cutout(candid=candid)
-    elif backend == "kowalski":
-        return kowalski_api_cutout(candid=candid)
     elif backend == "boom":
         return boom_api_cutout(candid=candid)
     else:
@@ -147,14 +126,12 @@ def ensure_cutouts(
     Ensure cutouts for the alert data.
 
     :param alert: Alert data
-    :param backend: Backend to use for fetching data ("ampel" or "kowalski" or "boom")
+    :param backend: Backend to use for fetching data ("ampel" or "boom")
     :return: Alert data with cutouts
     """
 
     if backend == "ampel":
         return ensure_ampel_cutouts(alert)
-    elif backend == "kowalski":
-        return ensure_kowalski_cutouts(alert)
     elif backend == "boom":
         # FIXME
         return ensure_ampel_cutouts(alert)

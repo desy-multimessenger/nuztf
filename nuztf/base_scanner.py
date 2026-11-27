@@ -49,9 +49,11 @@ class BaseScanner:
         cones_to_scan=None,
         output_nside: None | int = None,
         logger=None,
+        bad_quadrants=None,
     ):
         self.cone_nside = cone_nside
         self.t_min = t_min
+        self.bad_quadrants = bad_quadrants
 
         (
             self.map_coords,
@@ -315,7 +317,7 @@ class BaseScanner:
 
         :param t_min: Minimum time to query
         :param t_max: Maximum time to query
-        :param backend: Backend to query (ampel or kowalski)
+        :param backend: Backend to query (ampel)
 
         :return: List of alerts
         """
@@ -386,7 +388,7 @@ class BaseScanner:
 
         :param t_min: Minimum time to query
         :param t_max: Maximum time to query
-        :param backend: Backend to query (ampel or kowalski)
+        :param backend: Backend to query (ampel)
         :return: List of alerts
         """
         alerts = self.query_for_alerts(t_min=t_min, t_max=t_max, backend=backend)
@@ -428,7 +430,7 @@ class BaseScanner:
 
         :param t_min: Minimum time to query
         :param t_max: Maximum time to query
-        :param backend: Backend to query (ampel or kowalski)
+        :param backend: Backend to query (ampel)
 
         :return: None
         """
@@ -571,7 +573,8 @@ class BaseScanner:
 
     def draft_gcn(self):
         if self.first_obs is None:
-            raise ValueError("No first observation set. Cannot draft GCN.")
+            self.logger.error("No first observation set. Cannot draft GCN.")
+            return
 
         first_obs_dt = self.first_obs.datetime
         pretty_date = first_obs_dt.strftime("%Y-%m-%d")
@@ -909,6 +912,7 @@ class BaseScanner:
         :param min_sep: Minimum separation between detections in days
         :param fields: Fields to consider (if None, all fields are considered)
         :param backend: Backend to use for coverage calculation
+        :param bad_quadrants: List of bad quadrants to ignore
         :return:
         """
 
@@ -972,6 +976,8 @@ class BaseScanner:
                 indices = obs["qid"].values[mask]
 
                 for qid in indices:
+                    if self.bad_quadrants is not None and qid in self.bad_quadrants:
+                        continue
                     pixels = flat_pix[int(qid)]
 
                     for p in pixels:
@@ -1050,6 +1056,7 @@ class BaseScanner:
             self.first_obs.utc.format = "isot"
             self.last_obs = Time(max(times), format="jd")
             self.last_obs.utc.format = "isot"
+            self.logger.info(f"Observations started at {self.first_obs.isot}")
 
         except ValueError:
             err = (
@@ -1058,9 +1065,6 @@ class BaseScanner:
                 f"Coverage overlap is 0%!"
             )
             self.logger.error(err)
-            raise ValueError(err)
-
-        self.logger.info(f"Observations started at {self.first_obs.isot}")
 
         return (
             coverage_df,

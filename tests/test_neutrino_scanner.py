@@ -1,6 +1,7 @@
 import logging
 import unittest
 from collections import OrderedDict
+from unittest.mock import patch
 
 import healpy as hp
 import ligo.skymap.plot
@@ -208,6 +209,20 @@ class TestNeutrinoScanner(unittest.TestCase):
         assert nu_kafka.cone_nside == nu.cone_nside
         assert nu_kafka.cone_ids == nu.cone_ids
         self.scan(scanner=nu_kafka)
+
+    def test_scan_without_observations(self):
+        scanner = NeutrinoScanner.__new__(NeutrinoScanner)
+        scanner.logger = self.logger
+        scanner.observations = None
+        scanner.first_obs = None
+
+        with (
+            patch.object(scanner, "query_for_alerts"),
+            patch.object(scanner, "scan_area"),
+            patch.object(scanner, "create_candidate_summary"),
+            patch.object(scanner, "plot_overlap_with_observations", return_value=None),
+        ):
+            scanner.scan()
 
     def scan(self, scanner: NeutrinoScanner | NeutrinoKafkaScanner):
 
