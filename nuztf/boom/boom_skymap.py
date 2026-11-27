@@ -70,12 +70,6 @@ def boom_api_skymap(
                 },
                 **filter_dict,
             },
-            # projection={
-            #     "objectId": 1,
-            #     "candidate.ra": 1,
-            #     "candidate.dec": 1,
-            #     "candidate.jd": 1,
-            # },
         )
         queries.append(query)
 
@@ -85,4 +79,10 @@ def boom_api_skymap(
 
     for query in tqdm(queries):
         res += client.query(query)
+
+    # propagate candid
+    for r in res:
+        r["candid"] = r["_id"]
+        r["prv_candidates"] = []
+
     return res

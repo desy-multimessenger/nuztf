@@ -144,7 +144,7 @@ class NeutrinoScanner(BaseScanner):
             self.logger.debug(f"❌ {ztf_id}: Not in contour")
             return False
 
-        endhist = res["candidate"]["jdendhist"]
+        endhist = res["candidate"]["jd"]
         starthist = res["candidate"]["jdstarthist"]
 
         if endhist == starthist:

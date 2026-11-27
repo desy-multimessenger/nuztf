@@ -11,9 +11,10 @@ from nuztf.ampel import (
     ensure_ampel_cutouts,
 )
 from nuztf.boom import (
+    boom_api_candid,
     boom_api_cutout,
-    boom_api_name,
     boom_api_skymap,
+    ensure_boom_cutouts,
 )
 from nuztf.kowalski import (
     ensure_kowalski_cutouts,
@@ -66,7 +67,7 @@ def api_name(
             with_cutouts=with_cutouts,
         )
     elif backend == "boom":
-        return boom_api_name(
+        return boom_api_candid(
             ztf_name,
             with_cutouts=with_cutouts,
         )
@@ -155,6 +156,7 @@ def ensure_cutouts(
     elif backend == "kowalski":
         return ensure_kowalski_cutouts(alert)
     elif backend == "boom":
-        return ensure_boom_cutouts(alert)
+        # FIXME
+        return ensure_ampel_cutouts(alert)
     else:
         raise ValueError(f"Backend {backend} not supported")

@@ -10,6 +10,7 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from ampel.log.AmpelLogger import AmpelLogger
 from ampel.ztf.alert.ZiAlertSupplier import ZiAlertSupplier
 from ampel.ztf.dev.DevAlertConsumer import DevAlertConsumer
 from ampel.ztf.t0.DecentFilter import DecentFilter
@@ -77,18 +78,8 @@ class BaseScanner:
         self.logger.info("AMPEL run config:")
         self.logger.info(run_config)
 
-        lvl = self.logger.level
-
-        if lvl > 10:
-            logger_ampel = logging.getLogger("AMPEL_filter")
-            logger_ampel.setLevel(logging.WARNING)
-        else:
-            from ampel.log.AmpelLogger import AmpelLogger
-
-            logger_ampel = AmpelLogger()
-
         self.ampel_filter_class = filter_class(
-            logger=logger_ampel, resource=resource, **run_config
+            logger=AmpelLogger(), resource=resource, **run_config
         )
         self.ampel_filter_class.post_init()
 
@@ -283,7 +274,12 @@ class BaseScanner:
 
     def check_ampel_filter(self, ztf_name):
         lvl = self.logger.getEffectiveLevel()
+        logging.getLogger().setLevel(logging.DEBUG)
         self.logger.setLevel(logging.DEBUG)
+        old_logger = self.ampel_filter_class.logger
+        self.ampel_filter_class.logger = AmpelLogger.get_logger(
+            console={"level": logging.DEBUG}
+        )
         self.logger.info("Set logger level to DEBUG")
         all_query_res = api_name(ztf_name)
         assert len(all_query_res) > 0, f"No results from ampel api for {ztf_name}"
@@ -304,6 +300,7 @@ class BaseScanner:
                         pipeline_bool = True
         self.logger.info(f"Setting logger back to {lvl}")
         self.logger.setLevel(lvl)
+        self.ampel_filter_class.logger = old_logger
         return pipeline_bool
 
     def get_multi_night_summary(self, max_days=None):
@@ -407,19 +404,17 @@ class BaseScanner:
         :return: List of filtered alerts
         """
 
-        ztf_ids_first_stage = []
+        pass_first_stage = []
         for res in tqdm(query_res):
             if self.filter_f_no_prv(res):
-                if self.filter_ampel(res):
-                    ztf_ids_first_stage.append(res["objectId"])
+                # if self.filter_ampel(res): # FIXME
+                pass_first_stage.append(res)
 
-        ztf_ids_first_stage = list(set(ztf_ids_first_stage))
-
-        self.logger.info(f"{len(ztf_ids_first_stage)} alerts survive filtering stage 1")
+        self.logger.info(f"{len(pass_first_stage)} alerts survive filtering stage 1")
 
         self.logger.info(f"Retrieving alert history for filtering stage 2")
 
-        results = self.filter_with_history(ztf_ids=ztf_ids_first_stage)
+        results = self.filter_with_history(ztf_ids=pass_first_stage)
 
         with open(self.get_final_cache_path(), "w") as outfile:
             json.dump(results, outfile)
